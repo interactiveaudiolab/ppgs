@@ -5,14 +5,13 @@ with open('README.md') as file:
     long_description = file.read()
 
 
-# TODO - replace with details of your project
 setup(
     name='ppgs',
-    description='DESCRIPTION',
+    description='Phonetic posteriorgrams',
     version='0.0.1',
-    author='AUTHOR',
-    author_email='EMAIL',
-    url='https://github.com/USERppgs/ppgs',
+    author='Interactive Audio Lab',
+    author_email='interactiveaudiolab@gmail.com',
+    url='https://github.com/interactiveaudiolab/ppgs',
     install_requires=['torch', 'yapecs'],
     packages=['ppgs'],
     package_data={'ppgs': ['assets/*']},
