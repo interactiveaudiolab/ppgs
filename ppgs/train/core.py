@@ -167,7 +167,7 @@ def train(
 
             # Unpack batch
             (
-                """ TODO - unpack batch"""
+                #TODO - unpack batch
             ) = (item.to(device) for item in batch[1:])
 
             # Bundle training input
@@ -177,7 +177,7 @@ def train(
 
                 # Forward pass
                 (
-                    """ TODO - unpack network output"""
+                    #TODO - unpack network output
                 ) = model(*model_input)
 
                 # TODO - compute losses

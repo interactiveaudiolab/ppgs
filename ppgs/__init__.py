@@ -4,8 +4,9 @@
 
 
 # Default configuration parameters to be modified
-from .config.static import *
 from .config.defaults import *
+from .config.static import *
+
 from .config import defaults
 
 # Modify configuration
@@ -21,8 +22,8 @@ from .config.static import *
 # Module imports
 ###############################################################################
 
-
-from .core import *
+#TODO why was this here?
+# from .core import *
 from . import checkpoint
 from . import data
 from . import evaluate

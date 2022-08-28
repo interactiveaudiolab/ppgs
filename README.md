@@ -8,7 +8,7 @@
 
 ### Download data
 
-Complete all TODOs in `data/download`, then run `python -m ppgs.data.download <datasets>`.
+Complete all TODOs in `data/download`, then run `python -m ppgs.data.download --datasets <datasets>`.
 All datasets are saved in `data/datasets/DATASET`, where `DATASET` is the name of the dataset.
 
 
