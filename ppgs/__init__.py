@@ -22,8 +22,7 @@ from .config.static import *
 # Module imports
 ###############################################################################
 
-#TODO why was this here?
-# from .core import *
+from .core import *
 from . import checkpoint
 from . import data
 from . import evaluate

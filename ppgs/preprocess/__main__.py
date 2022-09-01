@@ -12,12 +12,21 @@ import ppgs
 
 
 def parse_args():
-    """Parse command-line arguments"""
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Preprocess a dataset')
     parser.add_argument(
-        'datasets',
+        '--datasets',
         nargs='+',
-        help='The name of the datasets to preprocess')
+        default=['arctic'],
+        help='The name of the datasets to use')
+    parser.add_argument(
+        '--features',
+        default=ppgs.preprocess.ALL_FEATURES,
+        nargs='+',
+        help='The features to preprocess')
+    parser.add_argument(
+        '--gpu',
+        type=int,
+        help='The index of the gpu to use')
     return parser.parse_args()
 
 

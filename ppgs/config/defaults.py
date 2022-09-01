@@ -29,7 +29,8 @@ MAX_SAMPLE_VALUE = 32768
 NUM_FFT = 1024
 
 # Audio sample rate
-SAMPLE_RATE = 22050  # Hz
+# SAMPLE_RATE = 22050  # Hz
+SAMPLE_RATE = 16000 #TODO check on this
 
 # Number of spectrogram channels
 WINDOW_SIZE = 1024
