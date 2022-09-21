@@ -32,17 +32,17 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None):
         speakers = [speaker for speaker in listdir(input_directory) if isdir(join(input_directory, speaker))]
         
         for speaker in speakers:
-            speaker_dir = join(input_directory, speaker)
+            print('Preprocessing for speaker', speaker, 'in dataset', dataset)
+            speaker_dir = input_directory / speaker
 
-            speaker_output_dir = join(output_directory, dataset, speaker)
+            speaker_output_dir = output_directory / speaker
+            makedirs(speaker_output_dir, exist_ok=True)
 
-            audio_dir = join(speaker_dir, 'wav')
+            audio_dir = speaker_dir / 'wav'
 
-            audio_files = [file for file in listdir(audio_dir) if isfile(join(audio_dir, file))]
-            input_audio_files = [join(audio_dir, file) for file in audio_files]
-            output_ppg_files = [join(output_directory, dataset, speaker)]
+            audio_files = sorted(list(audio_dir.glob('*.wav')))
 
-            from_files_to_files(speaker_output_dir)
+            from_files_to_files(speaker_output_dir, audio_files)
 
             
         
