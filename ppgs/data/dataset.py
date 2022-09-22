@@ -1,6 +1,8 @@
 """dataset.py - data loading"""
 
 
+from ppgs.config.defaults import DATA_DIR
+from ppgs.config.defaults import CACHE_DIR
 import torch
 
 import ppgs
@@ -22,7 +24,9 @@ class Dataset(torch.utils.data.Dataset):
     """
 
     def __init__(self, name, partition):
-        # TODO - initialize dataset
+        # TODO - implement partitions
+        assert name.lower() in ['arctic', 'timit']
+        
         self.stems = None
 
     def __getitem__(self, index):

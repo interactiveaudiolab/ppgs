@@ -16,7 +16,7 @@ TEST_ASSETS_DIR = Path(__file__).parent / 'assets'
 @pytest.fixture(scope='session')
 def dataset():
     """Preload the dataset"""
-    return ppgs.data.Dataset('DATASET', 'valid')
+    return ppgs.data.Dataset('arctic', 'valid')
 
 
 @pytest.fixture(scope='session')
