@@ -14,7 +14,7 @@ def parse_args():
     parser.add_argument(
         '--datasets',
         nargs='+',
-        default='timit arctic',
+        default=['timit', 'arctic'],
         help='The datasets to download'
     )
     parser.add_argument(
