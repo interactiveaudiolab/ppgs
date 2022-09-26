@@ -30,7 +30,7 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None):
         output_directory = ppgs.CACHE_DIR / dataset
 
         speakers = [speaker for speaker in listdir(input_directory) if isdir(join(input_directory, speaker))]
-        
+
         for speaker in speakers:
             print('Preprocessing for speaker', speaker, 'in dataset', dataset)
             speaker_dir = input_directory / speaker
@@ -42,10 +42,10 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None):
 
             audio_files = sorted(list(audio_dir.glob('*.wav')))
 
-            from_files_to_files(speaker_output_dir, audio_files)
+            from_files_to_files(speaker_output_dir, audio_files, gpu=gpu)
 
-            
-        
+
+
 def from_files_to_files(
     output_directory,
     audio_files,
