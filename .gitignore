@@ -1,7 +1,7 @@
 __pycache__/
 
 data/*/*
-!data/*/.gitignore
+!data/*/.gitkeep
 
 *.egg-info
 
