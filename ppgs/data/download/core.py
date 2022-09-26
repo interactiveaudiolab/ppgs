@@ -23,7 +23,7 @@ def download_tar_bz2(url, path):
         rstream.raise_for_status()
         with tarfile.open(fileobj=rstream.raw, mode="r|bz2") as tstream:
             tstream.extractall(path)
-        
+
 
 def datasets(datasets, format_only, timit_source, arctic_speakers):
     """Downloads the datasets passed in"""
@@ -73,7 +73,7 @@ def download_timit(timit_source):
             tf.extractall('data/sources/')
             if not exists(possible_paths[0]):
                 raise FileNotFoundError("'data/sources/timit' should exist now, but it does not")
-        download_timit()
+        download_timit(timit_source)
 
     format_timit()
 
@@ -145,7 +145,7 @@ def pcm_sph_to_wav(sphere_file):
 
 def phn_to_lab(phn_file):
     with open(phn_file, 'r') as f:
-        return f.read() 
+        return f.read()
 
 
 def format_timit():
@@ -197,7 +197,7 @@ def format_timit():
 
 def format_arctic():
     """Formats the CMU Arctic database"""
-    
+
     data_path = 'data/sources/arctic'
     if not exists(data_path):
         raise FileNotFoundError(f"'{data_path}' does not exist")
@@ -239,7 +239,7 @@ def format_arctic():
                     #write new label file as CSV
                     outf.writelines(['timestamp,phoneme\n'] + new_lines)
 
-        
+
         #transfer sentence file
         print(f'transferring sentence file for arctic speaker {speaker}')
         sentence_file_path = join(data_path, speaker, 'etc', 'txt.done.data')
@@ -263,7 +263,7 @@ def format_arctic():
         print(f'transferring wav files for arctic speaker {speaker}')
         wav_dir_path = join(data_path, speaker, 'wav')
         new_wav_dir_path = join(new_speaker_dir, 'wav')
-        
+
         if not exists(wav_dir_path):
             raise FileNotFoundError(f'could not find directory {wav_dir_path}')
 
@@ -275,7 +275,6 @@ def format_arctic():
             cp(join(wav_dir_path, wav_file), join(new_wav_dir_path, wav_file))
 
 
-            
 
-        
-    
+
+
