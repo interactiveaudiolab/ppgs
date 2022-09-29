@@ -1,9 +1,10 @@
 """dataset.py - data loading"""
 
-
-from ppgs.config.defaults import DATA_DIR
-from ppgs.config.defaults import CACHE_DIR
+import numpy as np
+import pyfoal
+import pypar
 import torch
+import torchaudio
 
 import ppgs
 
@@ -24,17 +25,39 @@ class Dataset(torch.utils.data.Dataset):
     """
 
     def __init__(self, name, partition):
-        # TODO - implement partitions
-        assert name.lower() in ['arctic', 'timit']
-        
-        self.stems = None
+        self.cache = ppgs.CACHE_DIR / name
+        self.stems = ppgs.load.partition(name)[partition]
 
     def __getitem__(self, index):
         """Retrieve the indexth item"""
         stem = self.stems[index]
 
-        # TODO - Load from stem
-        raise NotImplementedError
+        # Load ppgs
+        input_ppgs = torch.load(self.cache / f'{stem}-ppg.pt')
+
+        # This assumes that frame zero of ppgs is centered on sampled zero,
+        # frame one is centered on sample ppgs.HOPSIZE, frame two is centered
+        # on sample 2 * ppgs.HOPSIZE, etc. Adjust accordingly.
+        hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
+        times = np.arange(input_ppgs.shape[-1]) * hopsize
+
+        # Load alignment
+        # Assumes alignment is saved as a textgrid file, but
+        # pypar can also handle json and mfa
+        alignment = pypar.Alignment(self.cache / f'{stem}.TextGrid')
+
+        # Convert alignment to framewise indices
+        indices = pyfoal.alignment_to_indices(
+            alignment,
+            hopsize=hopsize,
+            return_word_breaks=True,
+            times=times)
+        indices = torch.tensor(indices, dtype=torch.long)
+
+        # Also load audio for evaluation purposes
+        audio = torchaudio.load(self.cache / f'{stem}.wav')
+
+        return input_ppgs, indices, alignment, audio
 
     def __len__(self):
         """Length of the dataset"""
