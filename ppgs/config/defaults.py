@@ -68,6 +68,9 @@ CHECKPOINT_INTERVAL = 25000  # steps
 # Number of steps between logging to Tensorboard
 LOG_INTERVAL = 1000  # steps
 
+# Number of batches to perform during evaluation
+EVALUATION_BATCHES = 4
+
 # Number of steps between evaluation
 EVALUATION_INTERVAL = 2500  # steps
 
