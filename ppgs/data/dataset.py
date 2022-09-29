@@ -47,6 +47,8 @@ class Dataset(torch.utils.data.Dataset):
         alignment = pypar.Alignment(self.cache / f'{stem}.TextGrid')
 
         # Convert alignment to framewise indices
+        # TODO - this might use a different phoneme map
+        # (see https://github.com/maxrmorrison/pyfoal/blob/dev/pyfoal/convert.py)
         indices = pyfoal.alignment_to_indices(
             alignment,
             hopsize=hopsize,

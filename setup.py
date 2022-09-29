@@ -17,6 +17,7 @@ setup(
         'humanfriendly',
         'librosa',
         'numpy',
+        'pyfoal',
         'pypar',
         'pyyaml',
         'tensorboard',
