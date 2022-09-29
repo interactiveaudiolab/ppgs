@@ -49,7 +49,7 @@ class Dataset(torch.utils.data.Dataset):
         # Convert alignment to framewise indices
         # TODO - this might use a different phoneme map
         # (see https://github.com/maxrmorrison/pyfoal/blob/dev/pyfoal/convert.py)
-        indices = pyfoal.alignment_to_indices(
+        indices, word_breaks = pyfoal.alignment_to_indices(
             alignment,
             hopsize=hopsize,
             return_word_breaks=True,
@@ -59,7 +59,7 @@ class Dataset(torch.utils.data.Dataset):
         # Also load audio for evaluation purposes
         audio = torchaudio.load(self.cache / f'{stem}.wav')
 
-        return input_ppgs, indices, alignment, audio
+        return input_ppgs, indices, alignment, word_breaks, audio
 
     def __len__(self):
         """Length of the dataset"""

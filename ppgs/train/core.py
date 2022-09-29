@@ -166,12 +166,7 @@ def train(
         for batch in train_loader:
 
             # Unpack batch
-            (
-                input_ppgs,
-                indices,
-                _,
-                _
-            ) = (item.to(device) for item in batch[1:])
+            input_ppgs, indices = (item.to(device) for item in batch[:2])
 
             with torch.cuda.amp.autocast():
 
@@ -288,6 +283,7 @@ def evaluate(directory, step, model, valid_loader, gpu):
                     input_ppgs,
                     indices,
                     alignments,
+                    word_breaks,
                     waveforms
                 ) = (item.to(device) for item in batch[1:])
 
