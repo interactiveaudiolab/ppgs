@@ -67,7 +67,7 @@ def align_sequences(seq0, seq1):
     return interp_path(path, seq0, seq1)
 
 
-def align_one_to_many(one_seq, one_to_many_mapping, many_seq):
+def align_one_to_many(one_seq, one_to_many_mapping, many_seq, as_splits=False):
     """
     Align two sequences in a one-to-many context. Align spaces A and B where one symbol in A can map to a sequence of symbols in B.
     Uses Needleman-Wunsch in the B domain.
@@ -76,6 +76,7 @@ def align_one_to_many(one_seq, one_to_many_mapping, many_seq):
         one_seq: sequence containing fewer symbols
         one_to_many_mapping: dictionary mapping one symbol from A to a squence of symbols in B
         many_seq: sequence containing many symbols
+        as_splits: if false (default) returns as a list of lists. If true returns as a list of indices to split at.
     """
 
     # print(one_seq)
@@ -87,16 +88,33 @@ def align_one_to_many(one_seq, one_to_many_mapping, many_seq):
     alignment = align_sequences(one_as_many_seq, many_seq)
 
     split_indices = []
-    for idx, token in enumerate(alignment[0]):
-        if token == '<end>':
-            if alignment[1][idx] is None:
-                split_indices.append(idx)
-            else:
+    idx = 0
+    while idx < len(alignment[0]):
+        if alignment[0][idx] == '<end>':
+            if alignment[1][idx] is not None:
                 raise ValueError('Failed alignment')
+            split_indices.append(idx)
+            del alignment[0][idx]
+            del alignment[1][idx]
+        elif alignment[1][idx] is None: #ignore gaps in many_seq
+            del alignment[0][idx]
+            del alignment[1][idx]
+        else:
+            idx += 1
+    # for idx, token in enumerate(alignment[0]):
+    #     if token == '<end>':
+    #         if alignment[1][idx] is None:
+    #             split_indices.append(idx)
+    #         else:
+    #             raise ValueError('Failed alignment')
+
+    if as_splits:
+        return split_indices
 
     new_alignment = []
     for i in range(1, len(split_indices)):
-        new_alignment.append(alignment[1][split_indices[i-1]+1:split_indices[i]])
+        # new_alignment.append(alignment[1][split_indices[i-1]+1:split_indices[i]])
+        new_alignment.append(many_seq[split_indices[i-1]:split_indices[i]])
 
     return new_alignment
 
