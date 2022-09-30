@@ -48,7 +48,9 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None):
 
 def from_files_to_files(
     output_directory,
-    audio_files,
+    audio_files=None,
+    sentences_file=None,
+    phonetic_files=None,
     text_files=None,
     features=ALL_FEATURES,
     gpu=None):
