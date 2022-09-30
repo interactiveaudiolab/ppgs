@@ -8,20 +8,53 @@ gap_score = -2
 
 #TODO maybe different mismatches can have different scores
 
-def create_table(seq0, seq1):
+def w2p_directional_score(phone0, phone1, direction_idx):
+    """Takes two phones and a direction index [up, left, diag] and computes a score.
+    Assumes that the first sequence is the one generated from the dict and the second is ground truth."""
+    if direction_idx == 0: #moving in just first sequence
+        #represents putting a gap in first sequence
+        if phone0 == '<end>': #word boundary gap
+            return 0
+        else: #normal gap
+            return -2
+    elif direction_idx == 1: #moving in just second sequence
+        #represents putting a gap in second sequence
+        return -2
+    elif direction_idx == 2: #moving in both sequences
+        if phone0 == '<end>': #very bad mismatch
+            return -2
+        elif phone0 == phone1: #match
+            return 1
+        else: #mismatch
+            return -1
+    else:
+        raise ValueError('expected direction_idx in range(0,3)')
+
+
+def w2p_score(phone0, phone1):
+    """returns the table entry generated from two phonemes"""
+    return np.array([w2p_directional_score(phone0, phone1, direction) for direction in range(0, 3)])
+
+def create_table(seq0, seq1, score_function):
     """Create Needleman-Wunsch table and fill in using sequences provided as arguments"""
     #order of third dim is up, left, diag
+    #TODO change this to match scoring function
     table = np.fromfunction(lambda x,y,z: -2*(x+y), (len(seq0)+1, len(seq1)+1, 3))
+
 
     #fill in table
     for i in range(1, len(seq0)+1):
         for j in range(1, len(seq1)+1):
-            table[i,j,0] = np.max(table[i-1,j]) + gap_score #up
-            table[i,j,1] = np.max(table[i,j-1]) + gap_score #left
-            if seq0[i-1] == seq1[j-1]:
-                table[i,j,2] = np.max(table[i-1,j-1]) + match_score
-            else:
-                table[i,j,2] = np.max(table[i-1,j-1]) + mismatch_score
+            phone0 = seq0[i-1]
+            phone1 = seq1[j-1]
+            table[i,j] = table[[i-1,i,i-1], [j,j-1,j-1]].max(axis=1) + score_function(phone0, phone1)
+            # table[i,j,0] = np.max(table[i-1,j]) + gap_score #up
+            # table[i,j,1] = np.max(table[i,j-1]) + gap_score #left
+            # if seq0[i-1] == seq1[j-1]:
+            #     table[i,j,2] = np.max(table[i-1,j-1]) + match_score
+            # else:
+            #     table[i,j,2] = np.max(table[i-1,j-1]) + mismatch_score
+    # print(table.max(axis=2))
     return table
 
 def trace_table(table):
@@ -59,9 +92,9 @@ def interp_path(path, seq0, seq1):
     return out0, out1
 
 
-def align_sequences(seq0, seq1):
+def align_sequences(seq0, seq1, score_function):
     """Align two sequences using Needleman-Wunsch"""
-    table = create_table(seq0, seq1)
+    table = create_table(seq0, seq1, score_function)
     # print(np.max(table, axis=2))
     path = trace_table(table)
     return interp_path(path, seq0, seq1)
@@ -85,13 +118,15 @@ def align_one_to_many(one_seq, one_to_many_mapping, many_seq, as_splits=False):
 
     one_as_many_seq = sum([one_to_many_mapping[symbol] + ['<end>'] for symbol in one_seq], ['<end>'])
 
-    alignment = align_sequences(one_as_many_seq, many_seq)
+    alignment = align_sequences(one_as_many_seq, many_seq, w2p_score)
 
     split_indices = []
     idx = 0
     while idx < len(alignment[0]):
         if alignment[0][idx] == '<end>':
             if alignment[1][idx] is not None:
+                print(alignment[0])
+                print(alignment[1])
                 raise ValueError('Failed alignment')
             split_indices.append(idx)
             del alignment[0][idx]

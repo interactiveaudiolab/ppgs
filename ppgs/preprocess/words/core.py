@@ -51,7 +51,7 @@ def from_sequence_data(phone_seq, phone_start, phone_stop, word_seq=None):
     if word_seq:
 
         last_stop = phone_stop[-1]
-        
+
         idx = 0
         while idx < len(phone_seq):
             if phone_seq[idx] == 'pau':
@@ -73,23 +73,21 @@ def from_sequence_data(phone_seq, phone_start, phone_stop, word_seq=None):
             word_object.validate()
             word_objects.append(word_object)
 
+        #add silences back in
         silences = []
         for i in range(0, len(word_objects)+1):
-            if i==0:
+            if i==0: #for preceding silence
                 prior = 0
             else:
                 prior = word_objects[i-1].end()
-            if i == len(word_objects):
+            if i == len(word_objects): #for trailing silence
                 current = last_stop
-                print(prior, current)
             else:
                 current = word_objects[i].start()
             if current - prior > 1e-3:
                 silences.append((pypar.Word(pypar.SILENCE, [pypar.Phoneme(pypar.SILENCE, prior, current)]), i))
         for silence, idx in reversed(silences):
             word_objects.insert(idx, silence)
-
-        #TODO fix for trailing silence
 
         # for word_obj in word_objects:
             # print(word_obj.word, word_obj.start(), word_obj.end())
