@@ -49,6 +49,18 @@ def word_align_phones(word_seq, phone_seq):
 
 def from_sequence_data(phone_seq, phone_start, phone_stop, word_seq=None):
     if word_seq:
+
+        last_stop = phone_stop[-1]
+        
+        idx = 0
+        while idx < len(phone_seq):
+            if phone_seq[idx] == 'pau':
+                del phone_seq[idx]
+                del phone_start[idx]
+                del phone_stop[idx]
+            else:
+                idx += 1
+
         alignment = word_align_phones(word_seq, phone_seq)
         assert len(alignment) == len(word_seq) + 1
         word_objects = []
@@ -58,22 +70,26 @@ def from_sequence_data(phone_seq, phone_start, phone_stop, word_seq=None):
                 phone_object = pypar.Phoneme(phone_seq[j], phone_start[j], phone_stop[j])
                 phone_objects.append(phone_object)
             word_object = pypar.Word(word_seq[i-1], phone_objects)
+            word_object.validate()
             word_objects.append(word_object)
 
         silences = []
-        for i in range(0, len(word_objects)):
+        for i in range(0, len(word_objects)+1):
             if i==0:
                 prior = 0
             else:
                 prior = word_objects[i-1].end()
-            current = word_objects[i].start()
+            if i == len(word_objects):
+                current = last_stop
+                print(prior, current)
+            else:
+                current = word_objects[i].start()
             if current - prior > 1e-3:
                 silences.append((pypar.Word(pypar.SILENCE, [pypar.Phoneme(pypar.SILENCE, prior, current)]), i))
         for silence, idx in reversed(silences):
             word_objects.insert(idx, silence)
 
         #TODO fix for trailing silence
-        #TODO fix for silence between phones in middle of word?
 
         # for word_obj in word_objects:
             # print(word_obj.word, word_obj.start(), word_obj.end())
@@ -100,15 +116,6 @@ def from_file(phone_file, prompt=None):
         phone_stop, phone_seq = list(map(list, zip(*reader)))
         phone_stop = [float(stop) for stop in phone_stop]
         phone_start = [0] + phone_stop[:-1]
-        #TODO fix this so that pauses are not deleted
-        idx = 0
-        while idx < len(phone_seq):
-            if phone_seq[idx] == 'pau':
-                del phone_seq[idx]
-                del phone_start[idx]
-                del phone_stop[idx]
-            else:
-                idx += 1
 
     # print(phone_start)
     # print(phone_stop)
