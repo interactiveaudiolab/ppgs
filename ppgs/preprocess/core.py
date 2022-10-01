@@ -4,6 +4,7 @@
 import ppgs
 from os import listdir, makedirs
 from os.path import join, isfile, isdir
+from pathlib import Path
 
 ###############################################################################
 # Constants
@@ -69,8 +70,6 @@ def from_files_to_files(
 
         if 'phonemes' in features:
             alignment_files = [f'{file.stem}.TextGrid' for file in phone_files]
-            # print(phone_files[:10])
-            # print(sentences_file)
             ppgs.preprocess.words.from_files_to_files(
                 phone_files,
                 alignment_files,
@@ -91,4 +90,5 @@ def from_files_to_files(
             ppgs.preprocess.ppg.from_files_to_files(
                 audio_files,
                 ppg_files,
-                gpu)
+                gpu
+            )

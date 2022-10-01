@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 from nltk import download, corpus, data
 from nltk.tokenize import TweetTokenizer
 from ppgs.preprocess.words.align import align_one_to_many
@@ -22,12 +23,26 @@ tokenizer = TweetTokenizer()
 def remove_non_alpha(string):
     return ''.join([char for char in string if char.isalpha()])
 
+
+
 def get_word_phones(word):
-    pronunciations = lookup[word.lower()]
+    #TODO handle hyphens and unusual compound words
+    #TODO figure out what to do for unusual names
+    try:
+        pronunciations = lookup[word.lower()]
+    except KeyError:
+        if '-' in word:
+            word_parts = word.split('-')
+            return get_word_phones(word_parts[0]) + get_word_phones(word_parts[1])
+        elif word[-2:] == "'s":
+            return get_word_phones(word[:-2]) + ['S']
+        else:
+            raise KeyError(word)
 
     pronunciations_cleaned = [[remove_non_alpha(phn).lower() for phn in pro] for pro in pronunciations]
 
     return pronunciations_cleaned
+
 
 
 def word_align_phones(word_seq, phone_seq):
@@ -38,6 +53,9 @@ def word_align_phones(word_seq, phone_seq):
     word_seq_phones = [phones[0] for phones in word_seq_phones]
     #TODO explore using multiple phonetic transcriptions per word
 
+    # print(word_seq_phones)
+    # print(phone_seq)
+
     alignment = align_one_to_many(
         word_seq,
         {word_seq[i]: word_seq_phones[i] for i in range(len(word_seq))},
@@ -46,6 +64,8 @@ def word_align_phones(word_seq, phone_seq):
     )
 
     return alignment
+
+
 
 def from_sequence_data(phone_seq, phone_start, phone_stop, word_seq=None):
     if word_seq:
@@ -93,6 +113,8 @@ def from_sequence_data(phone_seq, phone_start, phone_stop, word_seq=None):
             # print(word_obj.word, word_obj.start(), word_obj.end())
 
         alignment_object = pypar.Alignment(word_objects)
+        # for word_obj in word_objects:
+            # print(word_obj.word, word_obj.start(), word_obj.end())
         return alignment_object
         
     else:
@@ -101,6 +123,8 @@ def from_sequence_data(phone_seq, phone_start, phone_stop, word_seq=None):
             word_objects.append(pypar.Word(phone_seq[i], 
                                 [pypar.Phoneme(phone_seq[i], phone_start[i], phone_stop[i])]))
         return pypar.Alignment(word_objects)
+
+
 
 def from_file(phone_file, prompt=None):
     words = None
@@ -114,18 +138,18 @@ def from_file(phone_file, prompt=None):
         phone_stop, phone_seq = list(map(list, zip(*reader)))
         phone_stop = [float(stop) for stop in phone_stop]
         phone_start = [0] + phone_stop[:-1]
-
-    # print(phone_start)
-    # print(phone_stop)
         
     alignment = from_sequence_data(phone_seq, phone_start, phone_stop, word_seq=words)
     return alignment
 
+
+
 def from_file_to_file(phone_file, output_file, prompt=None):
     alignment = from_file(phone_file, prompt=prompt)
-    alignment.save(output_file)
+    # alignment.save(output_file)
 
 def from_files_to_files(phone_files, output_files, prompt_file=None):
+    print(phone_files[0], output_files[0], prompt_file)
     prompts = None
     if prompt_file is not None:
         with open(prompt_file, 'r') as f:
@@ -141,11 +165,26 @@ def from_files_to_files(phone_files, output_files, prompt_file=None):
         dynamic_ncols=True
     )
 
+    failed_alignments = []
     for phone_file, output_file in iterator:
         prompt = None
         if prompts:
-            prompt = prompts[Path(phone_file).stem]
-        from_file_to_file(phone_file, output_file, prompt=prompt)
+            try:
+                prompt = prompts[phone_file.stem]
+            except KeyError:
+                failed_alignments.append((phone_file.stem, 'Prompt lookup'))
+                continue
+        try:
+            from_file_to_file(phone_file, output_file, prompt=prompt)
+        except KeyError as e:
+            failed_alignments.append((phone_file.stem, e))
+        except ValueError:
+            failed_alignments.append((phone_file.stem, 'Alignment failure'))
+    # print(failed_alignments)
+    with open('/home/cameron/ppgs/logs.csv', 'w') as f:
+        writer = csv.writer(f)
+        for failure in failed_alignments:
+            writer.writerow(list(failure))
 
             
 
@@ -181,10 +220,10 @@ if __name__ == '__main__':
     #     ],
     # )
 
-    test_path = '/home/cameron/ppgs/data/datasets/arctic/cmu_us_awb_arctic/'
+    test_path = Path('/home/cameron/ppgs/data/datasets/arctic/cmu_us_jmk_arctic/')
     # print(from_file('/home/cameron/ppgs/data/datasets/arctic/cmu_us_awb_arctic/lab/arctic_a0186.csv', "Don't you see., I'm chewing this thing in two."))
     from_files_to_files(
-    [test_path + 'lab/arctic_a0001.csv'], 
-    ['/home/cameron/ppgs/arctic_a0001.json'], 
-    test_path + 'sentences.csv')
+    [test_path / 'lab/arctic_a0046.csv'], 
+    ['/home/cameron/ppgs/arctic_test.json'], 
+    test_path / 'sentences.csv')
     

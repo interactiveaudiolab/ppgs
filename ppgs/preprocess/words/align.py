@@ -22,9 +22,9 @@ def w2p_directional_score(phone0, phone1, direction_idx):
         return -2
     elif direction_idx == 2: #moving in both sequences
         if phone0 == '<end>': #very bad mismatch
-            return -2
+            return -4
         elif phone0 == phone1: #match
-            return 1
+            return 2
         else: #mismatch
             return -1
     else:
