@@ -6,3 +6,5 @@ data/*/*
 *.egg-info
 
 .pytest_cache
+
+tmp/
