@@ -6,9 +6,6 @@ from pathlib import Path
 import re
 
 from ppgs import SOURCES_DIR, DATA_DIR
-#DEBUG
-SOURCES_DIR = Path('/home/cameron/ppgs/tmp/data/sources/')
-DATA_DIR = Path('/home/cameron/ppgs/tmp/data/datasets/')
 
 from .sph import pcm_sph_to_wav
 from .utils import files_with_extension, download_file, download_tar_bz2
