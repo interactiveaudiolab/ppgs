@@ -48,13 +48,6 @@ def create_table(seq0, seq1, score_function):
             phone0 = seq0[i-1]
             phone1 = seq1[j-1]
             table[i,j] = table[[i-1,i,i-1], [j,j-1,j-1]].max(axis=1) + score_function(phone0, phone1)
-            # table[i,j,0] = np.max(table[i-1,j]) + gap_score #up
-            # table[i,j,1] = np.max(table[i,j-1]) + gap_score #left
-            # if seq0[i-1] == seq1[j-1]:
-            #     table[i,j,2] = np.max(table[i-1,j-1]) + match_score
-            # else:
-            #     table[i,j,2] = np.max(table[i-1,j-1]) + mismatch_score
-    # print(table.max(axis=2))
     return table
 
 def trace_table(table):
@@ -112,10 +105,6 @@ def align_one_to_many(one_seq, one_to_many_mapping, many_seq, as_splits=False):
         as_splits: if false (default) returns as a list of lists. If true returns as a list of indices to split at.
     """
 
-    # print(one_seq)
-    # print(one_to_many_mapping)
-    # print(many_seq)
-
     one_as_many_seq = sum([one_to_many_mapping[symbol] + ['<end>'] for symbol in one_seq], ['<end>'])
 
     alignment = align_sequences(one_as_many_seq, many_seq, w2p_score)
@@ -125,8 +114,6 @@ def align_one_to_many(one_seq, one_to_many_mapping, many_seq, as_splits=False):
     while idx < len(alignment[0]):
         if alignment[0][idx] == '<end>':
             if alignment[1][idx] is not None:
-                print(alignment[0])
-                print(alignment[1])
                 raise ValueError('Failed alignment')
             split_indices.append(idx)
             del alignment[0][idx]
@@ -136,63 +123,12 @@ def align_one_to_many(one_seq, one_to_many_mapping, many_seq, as_splits=False):
             del alignment[1][idx]
         else:
             idx += 1
-    # for idx, token in enumerate(alignment[0]):
-    #     if token == '<end>':
-    #         if alignment[1][idx] is None:
-    #             split_indices.append(idx)
-    #         else:
-    #             raise ValueError('Failed alignment')
 
     if as_splits:
         return split_indices
 
     new_alignment = []
     for i in range(1, len(split_indices)):
-        # new_alignment.append(alignment[1][split_indices[i-1]+1:split_indices[i]])
         new_alignment.append(many_seq[split_indices[i-1]:split_indices[i]])
 
     return new_alignment
-
-
-if __name__ == '__main__':
-    # alignment = align_sequences(
-    #     list('ABCDEFBG'),
-    #     list('ABCBHEFIG')
-    # )
-    # print(alignment[0])
-    # print(alignment[1])
-
-    alignment = align_one_to_many([
-        'author',
-        'of',
-        'the',
-        'danger',
-        'trail'
-    ],
-    {
-        'author': ['AO', 'TH', 'ER'],
-        'of': ['AH', 'V'],
-        'the': ['DH', 'AH'],
-        'danger': ['D', 'EY', 'N', 'JH', 'ER'],
-        'trail': ['T', 'R', 'EY', 'L']
-    },
-    [
-        'AO',
-        'TH',
-        'ER',
-        'AH',
-        'V',
-        'DH',
-        'AX',
-        'D',
-        'EY',
-        'N',
-        'JH',
-        'ER',
-        'T',
-        'R',
-        'EY',
-        'L'
-    ])
-
-    print(alignment)

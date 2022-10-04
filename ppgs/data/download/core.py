@@ -5,11 +5,13 @@ import tqdm
 from pathlib import Path
 import re
 
+import ppgs
 from ppgs import SOURCES_DIR, DATA_DIR
 
 from .sph import pcm_sph_to_wav
 from .utils import files_with_extension, download_file, download_tar_bz2
 from .phones import timit_to_arctic
+from .arctic_version import v0_90_to_v0_95
 
 def datasets(datasets, format_only, timit_source, arctic_speakers):
     """Downloads the datasets passed in"""
@@ -23,9 +25,9 @@ def datasets(datasets, format_only, timit_source, arctic_speakers):
     if 'arctic' in datasets:
         if not format_only:
             download_arctic(arctic_speakers)
-            format_arctic()
+            format_arctic(arctic_speakers)
         else:
-            format_arctic()
+            format_arctic(arctic_speakers)
 
 ###############################################################################
 # Downloading
@@ -153,7 +155,7 @@ def format_timit():
         with open(new_file, 'w') as f:
             writer = csv.writer(f)
             writer.writerow(['start', 'end', 'word'])
-            writer.writerows(rows)
+            writer.writerows([[float(row[0])/16000, float(row[1])/16000, row[2]] for row in rows])
 
     #Prompt file
     prompt_file = timit_sources / 'DOC' / 'PROMPTS.TXT'
@@ -168,16 +170,32 @@ def format_timit():
     
 
 
-def format_arctic():
+def format_arctic(speakers=None):
     """Formats the CMU Arctic database"""
 
     arctic_sources = SOURCES_DIR / 'arctic'
     arctic_data = DATA_DIR / 'arctic'
     if not arctic_sources.exists():
         raise FileNotFoundError(f"'{arctic_sources}' does not exist")
+    if not arctic_data.exists():
+        arctic_data.mkdir(parents=True, exist_ok=True)
+
+    #transfer sentences file
+    sentences_file = arctic_sources / 'sentences.txt'
+    new_sentences_file = arctic_data / 'sentences.csv'
+    if not sentences_file.exists():
+        raise FileNotFoundError(f'could not find sentences file {sentences_file}')
+    with open(sentences_file, 'r') as f:
+        content = f.read()
+    rows = [match for match in re.findall(r'\( (arctic_[ab][0-9][0-9][0-9][0-9]) \"(.+)\" \)', content, re.MULTILINE)]
+    with open(new_sentences_file, 'w') as f:
+        writer = csv.writer(f)
+        writer.writerow(['id','prompt'])
+        writer.writerows(rows)
 
     #get arctic speakers
-    speakers = list(arctic_sources.glob('cmu_us_*_arctic'))
+    speakers = list(arctic_sources.glob('cmu_us_*_arctic')) if speakers is None \
+        else [arctic_sources / f"cmu_us_{speaker}_arctic" for speaker in speakers]
 
     iterator = tqdm.tqdm(
         speakers,
@@ -185,9 +203,18 @@ def format_arctic():
         total = len(speakers),
         dynamic_ncols=True
     )
-
     #iterate speakers and copy
     for speaker in iterator:
+        if speaker.name == 'cmu_us_awb_arctic': #map version 0.90 ids to version 0.95 ids
+            v90 = speaker / 'etc' / 'txt.done.data'
+            v95 = sentences_file
+            with open(v90) as f:
+                cv90 = f.read()
+            with open(v95) as f:
+                cv95 = f.read()
+            id_map = lambda id: v0_90_to_v0_95(id, cv90, cv95)
+        else:
+            id_map = lambda id: id
         new_speaker_dir = arctic_data / speaker.name
 
         #transfer phoneme label files
@@ -202,6 +229,7 @@ def format_arctic():
 
         #get label files
         lab_files = files_with_extension('lab', lab_dir_path)
+        new_phone_files = []
 
         nested_iterator = tqdm.tqdm(
             lab_files,
@@ -218,7 +246,12 @@ def format_arctic():
                 timestamps, _, phonemes = zip(*[line.split() for line in non_header_lines if len(line) >= 5])
                 rows = zip(timestamps, phonemes)
             #write new label file as CSV
-            with open(new_lab_dir_path / (lab_file.stem + '.csv'), 'w') as f:
+            try:
+                new_phone_file = new_lab_dir_path / (id_map(lab_file.stem) + '.csv')
+            except TypeError:
+                continue
+            new_phone_files.append(new_phone_file)
+            with open(new_phone_file, 'w') as f:
                 writer = csv.writer(f)
                 writer.writerow(['timestamp', 'phoneme'])
                 writer.writerows(rows)
@@ -240,18 +273,17 @@ def format_arctic():
             dynamic_ncols=True
         )
         for wav_file in nested_iterator:
-            cp(wav_file, new_wav_dir_path / (wav_file.stem + '.wav'))
+            try:
+                cp(wav_file, new_wav_dir_path / (id_map(wav_file.stem) + '.wav'))
+            except TypeError:
+                continue
 
-    #transfer sentences file
-    sentences_file = arctic_sources / 'sentences.txt'
-    new_sentences_file = arctic_data / 'sentences.csv'
-    if not sentences_file.exists():
-        raise FileNotFoundError(f'could not find sentences file {sentences_file}')
-    with open(sentences_file, 'r') as f:
-        content = f.read()
-    rows = [match for match in re.findall(r'\( (arctic_[ab][0-9][0-9][0-9][0-9]) \"(.+)\" \)', content, re.MULTILINE)]
-    with open(new_sentences_file, 'w') as f:
-        writer = csv.writer(f)
-        writer.writerow(['id','prompt'])
-        writer.writerows(rows)
+        #create word alignment files
+        new_word_dir = new_speaker_dir / 'word'
+        new_word_files = [new_word_dir / (file.stem + '.csv') for file in new_phone_files]
+
+        if not new_word_dir.exists():
+            new_word_dir.mkdir(parents=True, exist_ok=True)
+
+        ppgs.data.download.words.from_files_to_files(new_phone_files, new_word_files, new_sentences_file)
     
