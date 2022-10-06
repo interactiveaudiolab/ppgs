@@ -118,10 +118,10 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'axr': 'er',
     'ay': 'ay',
     'b': 'b',
-    'bcl': 'bck', #backfill
+    'bcl': 'bck<b>', #backfill
     'ch': 'ch',
     'd': 'd',
-    'dcl': 'bck', #backfill
+    'dcl': 'bck<d,jh>', #backfill
     'dh': 'dh',
     'dx': 'd', #assumption
     'eh': 'eh',
@@ -134,7 +134,7 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'ey': 'ey',
     'f': 'f',
     'g': 'g',
-    'gcl': 'bck', #backfill
+    'gcl': 'bck<g>', #backfill
     'h#': 'pau', #differs from Kaldi (pau instead of sil)
     'hh': 'hh',
     'hv': 'hh',
@@ -143,7 +143,7 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'iy': 'iy',
     'jh': 'jh',
     'k': 'k',
-    'kcl': 'bck', #backfill
+    'kcl': 'bck<k>', #backfill
     'l': 'l',
     'm': 'm',
     'n': 'n',
@@ -153,13 +153,13 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'oy': 'oy',
     'p': 'p',
     'pau': 'pau', #differs from Kaldi (pau instead of sil)
-    'pcl': 'bck', #backfill
-    'q': 'bck', #backfill TODO check the validity of doing this?
+    'pcl': 'bck<p>', #backfill
+    'q': 't', #map to its allophone TODO check the validity of doing this?
     'r': 'r',
     's': 's',
     'sh': 'sh',
     't': 't',
-    'tcl': 'bck', #backfill
+    'tcl': 'bck<t,ch>', #backfill
     'th': 'th',
     'uh': 'uh',
     'uw': 'uw',
