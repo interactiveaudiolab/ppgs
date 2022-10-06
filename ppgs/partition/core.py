@@ -18,10 +18,34 @@ def datasets(datasets, overwrite=False):
         # Random seed
         random.seed(ppgs.RANDOM_SEED)
 
-        # TODO - make partition
-        partition = None
+        if dataset.lower() == 'arctic':
+            partition = arctic()
+        else:
+            raise NotImplementedError
 
         # Save to disk
-        file.parent.mkdir(exist_ok=True, parents=True)
-        with open(file, 'w') as file:
-            json.dump(partition, file, ensure_ascii=False, indent=4)
+        # file.parent.mkdir(exist_ok=True, parents=True)
+        # with open(file, 'w') as file:
+        #     json.dump(partition, file, ensure_ascii=False, indent=4)
+
+def arctic():
+    # Get list of speakers
+    directory = ppgs.CACHE_DIR / 'arctic'
+    # stems = {
+    #     f'{file.parent.name}/{file.stem[:-4]}'
+    #     for file in directory.rglob('*.json')}
+    # stems = {
+    #     f'{file.parent.name}/{file.stem}'
+    #     for file in directory.rglob('*')
+    # }
+
+    speakers = [file.stem for file in directory.glob('*')]
+
+    for speaker in speakers:
+        if speaker[7:10] in ppgs.ARCTIC_UNSEEN: #test split
+            pass
+        else: #train split
+            pass
+
+def TIMIT():
+    pass
