@@ -12,7 +12,7 @@ def loader(dataset, partition):
     """Retrieve a data loader"""
     return torch.utils.data.DataLoader(
         dataset=ppgs.data.Dataset(dataset, partition),
-        batch_size=ppgs.BATCH_SIZE,
+        batch_size=1 if partition == 'test' else ppgs.BATCH_SIZE,
         shuffle=partition == 'train',
         num_workers=ppgs.NUM_WORKERS,
         pin_memory=True,
