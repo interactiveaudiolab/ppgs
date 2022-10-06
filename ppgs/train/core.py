@@ -166,22 +166,17 @@ def train(
         for batch in train_loader:
 
             # Unpack batch
-            (
-                #TODO - unpack batch
-            ) = (item.to(device) for item in batch[1:])
-
-            # Bundle training input
-            model_input = (""" TODO - pack network input""")
+            input_ppgs, indices = (item.to(device) for item in batch[:2])
 
             with torch.cuda.amp.autocast():
 
                 # Forward pass
-                (
-                    #TODO - unpack network output
-                ) = model(*model_input)
+                predicted_ppgs = model(input_ppgs)
 
-                # TODO - compute losses
-                losses = 0.
+                # Compute loss
+                loss = torch.nn.functional.cross_entropy(
+                    predicted_ppgs,
+                    indices)
 
             ######################
             # Optimize model #
@@ -190,7 +185,7 @@ def train(
             optimizer.zero_grad()
 
             # Backward pass
-            scaler.scale(losses).backward()
+            scaler.scale(loss).backward()
 
             # Update weights
             scaler.step(optimizer)
@@ -206,9 +201,9 @@ def train(
 
                 if step % ppgs.LOG_INTERVAL == 0:
 
-                    # Log losses
+                    # Log loss
                     scalars = {
-                        'loss/total': losses,
+                        'train/loss': loss,
                         'learning_rate': optimizer.param_groups[0]['lr']}
                     ppgs.write.scalars(log_directory, step, scalars)
 
@@ -275,8 +270,35 @@ def evaluate(directory, step, model, valid_loader, gpu):
     # Turn off gradient computation
     with torch.no_grad():
 
-        # TODO - evaluate
-        pass
+        # Automatic mixed precision
+        with torch.cuda.amp.autocast():
+
+            # Setup evaluation metrics
+            metrics = ppgs.evaluate.Metrics()
+
+            for i, batch in enumerate(valid_loader):
+
+                # Unpack batch
+                (
+                    input_ppgs,
+                    indices,
+                    alignments,
+                    word_breaks,
+                    waveforms
+                ) = (item.to(device) for item in batch[1:])
+
+                # Forward pass
+                predicted_ppgs = model(input_ppgs)
+
+                # Update metrics
+                metrics.update(predicted_ppgs, indices)
+
+                # Finish when we have completed all or enough batches
+                if i == ppgs.EVALUATION_BATCHES:
+                    break
+
+    # Write to tensorboard
+    ppgs.write.scalars(directory, step, metrics())
 
     # Prepare model for training
     model.train()
