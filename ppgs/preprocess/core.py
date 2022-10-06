@@ -11,7 +11,7 @@ from pathlib import Path
 ###############################################################################
 
 
-ALL_FEATURES = ['ppg', 'phonemes', 'spectrogram']
+ALL_FEATURES = ['ppg', 'phonemes']
 
 
 ###############################################################################
@@ -41,19 +41,18 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None):
 
             audio_dir = speaker_dir / 'wav'
             phoneme_dir = speaker_dir / 'lab'
+            word_dir = speaker_dir / 'word'
 
             audio_files = sorted(list(audio_dir.glob('*.wav')))
             phoneme_files = sorted(list(phoneme_dir.glob('*.csv')))
 
-            sentences_file = speaker_dir / 'sentences.csv'
-
             from_files_to_files(
                 speaker_output_dir, 
                 audio_files, 
-                phoneme_files, 
-                sentences_file=sentences_file, 
-                features=features, gpu=gpu)
-            break
+                phoneme_files,
+                word_dir,
+                features=features, 
+                gpu=gpu)
 
 
 
@@ -61,19 +60,19 @@ def from_files_to_files(
     output_directory,
     audio_files,
     phone_files,
-    sentences_file=None,
+    word_directory,
     features=ALL_FEATURES,
     gpu=None):
     """Preprocess from files"""
     # Change directory
     with ppgs.data.chdir(output_directory):
 
+
         if 'phonemes' in features:
-            alignment_files = [f'{file.stem}.TextGrid' for file in phone_files]
-            ppgs.preprocess.words.from_files_to_files(
+            ppgs.preprocess.align.from_files_to_files(
                 phone_files,
-                alignment_files,
-                sentences_file
+                word_directory,
+                output_directory
             )
 
         # Preprocess spectrograms
