@@ -19,33 +19,31 @@ def datasets(datasets, overwrite=False):
         random.seed(ppgs.RANDOM_SEED)
 
         if dataset.lower() == 'arctic':
-            partition = arctic()
+            arctic()
+        elif dataset.lower() == 'timit':
+            timit()
         else:
             raise NotImplementedError
 
-        # Save to disk
-        # file.parent.mkdir(exist_ok=True, parents=True)
-        # with open(file, 'w') as file:
-        #     json.dump(partition, file, ensure_ascii=False, indent=4)
+def partition_dataset(data_dir, unseen_speakers, partition_file):
+    unseen_speakers = set(unseen_speakers)
+    all_textgrid = list(data_dir.rglob('*.textgrid'))
+    train = (f'{file.parents[0].name}/{file.stem}' for file in all_textgrid if file.parents[0].name not in unseen_speakers)
+    test = (f'{file.parents[0].name}/{file.stem}' for file in all_textgrid if file.parents[0].name in unseen_speakers)
+    partition = {'train': list(train), 'test': list(test)}
+    partition_file.parents[0].mkdir(parents=True, exist_ok=True)
+    with open(partition_file, 'w') as f:
+        json.dump(partition, f, ensure_ascii=False, indent=4)
+
 
 def arctic():
-    # Get list of speakers
-    directory = ppgs.CACHE_DIR / 'arctic'
-    # stems = {
-    #     f'{file.parent.name}/{file.stem[:-4]}'
-    #     for file in directory.rglob('*.json')}
-    # stems = {
-    #     f'{file.parent.name}/{file.stem}'
-    #     for file in directory.rglob('*')
-    # }
+    data_dir = ppgs.CACHE_DIR / 'arctic'
+    unseen_speakers = [f'cmu_us_{speaker}_arctic' for speaker in ppgs.ARCTIC_UNSEEN]
+    partition_file = ppgs.PARTITION_DIR / 'arctic.json'
+    partition_dataset(data_dir, unseen_speakers, partition_file)
 
-    speakers = [file.stem for file in directory.glob('*')]
-
-    for speaker in speakers:
-        if speaker[7:10] in ppgs.ARCTIC_UNSEEN: #test split
-            pass
-        else: #train split
-            pass
-
-def TIMIT():
-    pass
+def timit():
+    data_dir = ppgs.CACHE_DIR / 'timit'
+    unseen_speakers = ppgs.TIMIT_UNSEEN
+    partition_file = ppgs.PARTITION_DIR / 'timit.json'
+    partition_dataset(data_dir, unseen_speakers, partition_file)
