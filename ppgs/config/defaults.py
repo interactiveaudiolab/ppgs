@@ -30,7 +30,7 @@ NUM_FFT = 1024
 
 # Audio sample rate
 # SAMPLE_RATE = 22050  # Hz
-SAMPLE_RATE = 16000 #TODO check on this
+SAMPLE_RATE = 16000
 
 # Number of spectrogram channels
 WINDOW_SIZE = 1024
@@ -100,7 +100,7 @@ RANDOM_SEED = 1234
 
 
 ###############################################################################
-# Partition parameters
+# Partition parameters #TODO extract to separate config file
 ###############################################################################
 
 ARCTIC_UNSEEN = ['bdl', 'slt']
@@ -297,10 +297,10 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'dh': 'dh',
     'dx': 'd', #assumption
     'eh': 'eh',
-    'el': 'l', #TODO check if sufficient
-    'em': 'm', #TODO check if sufficient
-    'en': 'n', #TODO check if sufficient
-    'eng': 'ng', #TODO check if sufficient
+    'el': 'l', 
+    'em': 'm', 
+    'en': 'n', 
+    'eng': 'ng', 
     'epi': 'pau', #differs from Kaldi (pau instead of sil)
     'er': 'er',
     'ey': 'ey',
