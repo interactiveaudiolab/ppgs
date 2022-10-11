@@ -22,7 +22,7 @@ def from_sequence_data(phone_timings_seq, word_timings_seq):
     #no gaps at rear
     if word_timings_seq[-1][1] < phone_timings_seq[-1][1]: #here we assume last phone is silence
         try:
-            assert phone_timings_seq[-1][2] == pypar.SILENCE #TODO resolve
+            assert phone_timings_seq[-1][2] == pypar.SILENCE
         except AssertionError:
             raise ValueError(phone_timings_seq, word_timings_seq)
         word_timings_seq.append([word_timings_seq[-1][1], phone_timings_seq[-1][1], pypar.SILENCE])

@@ -28,8 +28,7 @@ All preprocessed data are saved in `data/cache/DATASET`.
 
 ### Train
 
-Complete all TODOs in `data/` and `model.py`, then run `python -m ppgs.train --config <config> --dataset
-DATASET --gpus <gpus>`.
+`python -m ppgs.train --config <config> --dataset DATASET --gpus <gpus>`.
 
 
 ### Evaluate

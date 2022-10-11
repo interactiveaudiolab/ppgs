@@ -64,7 +64,6 @@ def download_timit(timit_source=None):
     if chosen_source_idx > 0:
         print(f"unzipping {chosen_source} to '{SOURCES_DIR}'")
         with tarfile.open(chosen_source) as tf:
-            #TODO technically unsafe if infected timit source is used (low probability event)
             tf.extractall(SOURCES_DIR)
             if not (SOURCES_DIR / 'timit').exists():
                 raise FileNotFoundError(f"'{SOURCES_DIR}/timit' should exist now, but it does not")

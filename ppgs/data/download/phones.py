@@ -31,7 +31,6 @@ def timit_to_arctic(rows, backfill=True):
                 mapped_phones[idx] = 'bck'
             else:
                 mapped_phones[idx] = possible_replacements[0]
-        #TODO smarter backfill
         for i in range(0, len(mapped_phones)):
             if mapped_phones[i] == 'bck':
                 try:
