@@ -21,7 +21,7 @@ def from_audio(
         from_audio.checkpoint != checkpoint or
         from_audio.gpu != gpu):
         model = ppgs.model.BaselineModel()
-        model.load_state_dict(torch.load(checkpoint, map_location='cpu'))
+        # model.load_state_dict(torch.load(checkpoint, map_location='cpu'))
         device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
         from_audio.model = model.to(device)
         from_audio.gpu = gpu
