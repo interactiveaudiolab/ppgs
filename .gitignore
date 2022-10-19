@@ -2,6 +2,7 @@ __pycache__/
 
 data/*/*
 !data/*/.gitkeep
+runs/*
 
 *.egg-info
 

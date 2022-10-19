@@ -105,6 +105,110 @@ RANDOM_SEED = 1234
 ###############################################################################
 
 ARCTIC_UNSEEN = ['bdl', 'slt']
+ARCTIC_VALIDATION_IDS = [ #sampled randomly
+    'arctic_a0349',
+    'arctic_a0268',
+    'arctic_a0470',
+    'arctic_a0464',
+    'arctic_a0573',
+    'arctic_a0379',
+    'arctic_a0448',
+    'arctic_a0456',
+    'arctic_a0428',
+    'arctic_a0326',
+    'arctic_a0578',
+    'arctic_a0446',
+    'arctic_a0141',
+    'arctic_a0408',
+    'arctic_a0238',
+    'arctic_a0162',
+    'arctic_a0083',
+    'arctic_a0579',
+    'arctic_a0024',
+    'arctic_a0234',
+    'arctic_a0245',
+    'arctic_a0129',
+    'arctic_a0291',
+    'arctic_a0158',
+    'arctic_a0026',
+    'arctic_a0290',
+    'arctic_a0585',
+    'arctic_a0254',
+    'arctic_a0132',
+    'arctic_a0414',
+    'arctic_a0218',
+    'arctic_a0406',
+    'arctic_a0116',
+    'arctic_a0567',
+    'arctic_a0556',
+    'arctic_a0226',
+    'arctic_a0161',
+    'arctic_a0222',
+    'arctic_a0528',
+    'arctic_a0389',
+    'arctic_a0252',
+    'arctic_a0175',
+    'arctic_a0376',
+    'arctic_a0479',
+    'arctic_a0391',
+    'arctic_a0086',
+    'arctic_a0339',
+    'arctic_a0249',
+    'arctic_a0472',
+    'arctic_a0518',
+    'arctic_b0383',
+    'arctic_b0166',
+    'arctic_b0411',
+    'arctic_b0072',
+    'arctic_b0081',
+    'arctic_b0534',
+    'arctic_b0321',
+    'arctic_b0343',
+    'arctic_b0097',
+    'arctic_b0282',
+    'arctic_b0493',
+    'arctic_b0159',
+    'arctic_b0131',
+    'arctic_b0344',
+    'arctic_b0254',
+    'arctic_b0458',
+    'arctic_b0216',
+    'arctic_b0329',
+    'arctic_b0405',
+    'arctic_b0327',
+    'arctic_b0435',
+    'arctic_b0126',
+    'arctic_b0367',
+    'arctic_b0088',
+    'arctic_b0537',
+    'arctic_b0280',
+    'arctic_b0002',
+    'arctic_b0015',
+    'arctic_b0452',
+    'arctic_b0503',
+    'arctic_b0143',
+    'arctic_b0104',
+    'arctic_b0496',
+    'arctic_b0205',
+    'arctic_b0337',
+    'arctic_b0538',
+    'arctic_b0390',
+    'arctic_b0045',
+    'arctic_b0362',
+    'arctic_b0437',
+    'arctic_b0093',
+    'arctic_b0252',
+    'arctic_b0462',
+    'arctic_b0117',
+    'arctic_b0172',
+    'arctic_b0269',
+    'arctic_b0294',
+    'arctic_b0464',
+    'arctic_b0054',
+    'arctic_b0466'
+]
+
+
 TIMIT_UNSEEN = [
 	'MABW0',
 	'FADG0',
@@ -274,6 +378,24 @@ TIMIT_UNSEEN = [
 	'MWEW0',
 	'MWJG0',
 	'MWVW0',
+]
+TIMIT_VALID_SPEAKERS = [
+    'FCJF0', #DR1
+    'MCPM0', #DR1
+    'FAEM0', #DR2
+    'MARC0', #DR2
+    'FALK0', #DR3
+    'MADC0', #DR3
+    'FALR0', #DR4
+    'MAEB0', #DR4
+    'FBJL0', #DR5
+    'MBGT0', #DR5
+    'FAPB0', #DR6
+    'MABC0', #DR6
+    'FBLV0', #DR7
+    'MADD0', #DR7
+    'FBCG1', #DR8
+    'MBCG0', #DR8
 ]
 
 
