@@ -25,6 +25,7 @@ def datasets(datasets, overwrite=False):
         else:
             raise NotImplementedError
 
+#TODO check if SA1, SA2 should be filtered out
 def partition_dataset(data_dir, unseen_speakers, partition_file):
     unseen_speakers = set(unseen_speakers)
     all_textgrid = list(data_dir.rglob('*.textgrid'))

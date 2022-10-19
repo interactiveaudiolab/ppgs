@@ -28,6 +28,9 @@ class Dataset(torch.utils.data.Dataset):
         self.cache = ppgs.CACHE_DIR / name
         self.stems = ppgs.load.partition(name)[partition]
 
+        #prep phoneme mapping in pyfoal
+        pyfoal.convert.phoneme_to_index.map = ppgs.PHONEME_TO_INDEX_MAPPING
+
     def __getitem__(self, index):
         """Retrieve the indexth item"""
         stem = self.stems[index]
@@ -44,16 +47,21 @@ class Dataset(torch.utils.data.Dataset):
         # Load alignment
         # Assumes alignment is saved as a textgrid file, but
         # pypar can also handle json and mfa
-        alignment = pypar.Alignment(self.cache / f'{stem}.TextGrid')
+        alignment = pypar.Alignment(self.cache / f'{stem}.textgrid')
+
+        #Fix last time to be within duration
+        if times[-1] > alignment.duration():
+            times[-1] = alignment.duration() - 1e-10
 
         # Convert alignment to framewise indices
-        # TODO - this might use a different phoneme map
-        # (see https://github.com/maxrmorrison/pyfoal/blob/dev/pyfoal/convert.py)
-        indices, word_breaks = pyfoal.alignment_to_indices(
-            alignment,
-            hopsize=hopsize,
-            return_word_breaks=True,
-            times=times)
+        try:
+            indices, word_breaks = pyfoal.convert.alignment_to_indices(
+                alignment,
+                hopsize=hopsize,
+                return_word_breaks=True,
+                times=times)
+        except ValueError:
+            raise ValueError(f'error processing alignment for stem {stem}')
         indices = torch.tensor(indices, dtype=torch.long)
 
         # Also load audio for evaluation purposes

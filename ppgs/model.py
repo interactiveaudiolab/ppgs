@@ -14,8 +14,8 @@ class BaselineModel(torch.nn.Sequential):
 
     def __init__(
         self,
-        input_channels,
-        output_channels,
+        input_channels=1, #TODO check what this should be senones
+        output_channels=1, #phonemes
         hidden_channels=128,
         kernel_size=5):
         conv_fn = functools.partial(

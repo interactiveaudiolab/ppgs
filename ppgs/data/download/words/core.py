@@ -4,7 +4,6 @@ from .align import align_one_to_many
 # import pypar
 import csv
 import tqdm
-from pathlib import Path
 
 try:
     data.find('tokenizers/punkt')
