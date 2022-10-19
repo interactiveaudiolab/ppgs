@@ -278,6 +278,7 @@ def evaluate(directory, step, model, valid_loader, gpu):
 
             for i, batch in enumerate(valid_loader):
 
+
                 # Unpack batch
                 (
                     input_ppgs,
@@ -285,7 +286,7 @@ def evaluate(directory, step, model, valid_loader, gpu):
                     alignments,
                     word_breaks,
                     waveforms
-                ) = (item.to(device) for item in batch[1:])
+                ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
                 # Forward pass
                 predicted_ppgs = model(input_ppgs)

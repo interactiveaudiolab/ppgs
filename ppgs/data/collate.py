@@ -7,8 +7,9 @@ def collate(batch):
     input_ppgs, indices, alignments, word_breaks, waveforms = zip(*batch)
 
     # Get padded tensor dimensions
-    batch, channels, _ = input_ppgs[0].shape
+    channels, _ = input_ppgs[0].shape
     max_length = max([ppg.shape[-1] for ppg in input_ppgs])
+    batch = len(input_ppgs)
 
     # Allocate padded input ppgs
     padded_ppgs = torch.zeros(
