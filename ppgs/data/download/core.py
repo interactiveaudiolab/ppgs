@@ -243,6 +243,7 @@ def format_arctic(speakers=None):
                 lines = f.readlines()
                 non_header_lines = lines[lines.index('#\n')+1:] #get rid of useless headers
                 timestamps, _, phonemes = zip(*[line.split() for line in non_header_lines if len(line) >= 5])
+                phonemes = [phone if phone in ppgs.PHONEME_LIST else '<unk>' for phone in phonemes]
                 rows = zip(timestamps, phonemes)
             #write new label file as CSV
             try:

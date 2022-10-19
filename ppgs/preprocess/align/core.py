@@ -1,7 +1,7 @@
-from copy import copy
 import csv
 import pypar
 import tqdm
+import numpy as np
 
 def from_sequence_data(phone_timings_seq, word_timings_seq):
     #convert pau to sp (or is it vice versa?)
@@ -77,14 +77,20 @@ def from_sequence_data(phone_timings_seq, word_timings_seq):
         try:
             start_phone_idx = phone_bucket_indices.index(i)
         except ValueError:
-            # raise ValueError ("word has no corresponding phones", phone_timings_seq, word_timings_seq, i)
             continue
+            raise ValueError ("word has no corresponding phones", phone_timings_seq, word_timings_seq, i)
         end_phone_idx = -1 * list(reversed(phone_bucket_indices)).index(i) - 1
 
         phone_slice = slice(start_phone_idx, end_phone_idx+1 if end_phone_idx < -1 else None)
         word_objects.append(pypar.Word(word_timings_seq[i][2], phone_objects[phone_slice]))
 
-    return pypar.Alignment(word_objects)
+    alignment_obj = pypar.Alignment(word_objects)
+    
+    #Check for missing phones
+    for timestep in np.arange(0, alignment_obj.duration(), 0.001):
+        if alignment_obj.phoneme_at_time is None:
+            raise ValueError(f'no phone at time {timestep}, {alignment_obj.words()}, {alignment_obj.phonemes()}')
+    return alignment_obj
 
 
 

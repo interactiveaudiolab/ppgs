@@ -5,7 +5,8 @@ import ppgs
 
 def loaders(dataset):
     """Retrieve data loaders for training and evaluation"""
-    return loader(dataset, 'train'), loader(dataset, 'valid')
+    #TODO validation vs test?
+    return loader(dataset, 'train'), loader(dataset, 'test')
 
 
 def loader(dataset, partition):

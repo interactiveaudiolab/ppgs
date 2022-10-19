@@ -4,7 +4,7 @@ def timit_to_arctic_phone(timit_phone):
     try:
         return ppgs.TIMIT_TO_ARCTIC_MAPPING[timit_phone.lower()]
     except KeyError:
-        return 'unk' #unknown
+        return '<unk>' #unknown
 
 
 def timit_to_arctic_phone_seq(timit_phone_seq):

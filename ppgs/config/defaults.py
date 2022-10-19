@@ -21,6 +21,7 @@ FMAX = 550.  # Hz
 
 # Audio hopsize
 HOPSIZE = 256  # samples
+HOPSIZE = 160 # samples
 
 # Maximum sample value of 16-bit audio
 MAX_SAMPLE_VALUE = 32768
@@ -279,6 +280,53 @@ TIMIT_UNSEEN = [
 ###############################################################################
 # Phoneme parameters
 ###############################################################################
+
+PHONEME_LIST = [
+	'aa',
+	'ae',
+	'ah',
+	'ao',
+	'aw',
+	'ay',
+	'b',
+	'ch',
+	'd',
+	'dh',
+	'eh',
+	'er',
+	'ey',
+	'f',
+	'g',
+	'hh',
+	'ih',
+	'iy',
+	'jh',
+	'k',
+	'l',
+	'm',
+	'n',
+	'ng',
+	'ow',
+	'oy',
+	'p',
+	'r',
+	's',
+	'sh',
+	't',
+	'th',
+	'uh',
+	'uw',
+	'v',
+	'w',
+	'y',
+	'z',
+	'zh',
+	'ax',
+	'sp',
+	'<unk>'
+]
+
+PHONEME_TO_INDEX_MAPPING = {phone: i for i, phone in enumerate(PHONEME_LIST)}
 
 TIMIT_TO_ARCTIC_MAPPING = {
     'aa': 'aa',

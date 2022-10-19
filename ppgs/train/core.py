@@ -74,13 +74,16 @@ def train(
     #######################
 
     torch.manual_seed(ppgs.RANDOM_SEED)
-    train_loader, valid_loader = ppgs.data.loaders(dataset, gpu)
+    #TODO check this 
+    # train_loader, valid_loader = ppgs.data.loaders(dataset, gpu)
+    train_loader, valid_loader = ppgs.data.loaders(dataset)
 
     #################
     # Create models #
     #################
 
-    model = ppgs.model.Model().to(device)
+    #TODO config?
+    model = ppgs.model.BaselineModel().to(device)
 
     ##################################################
     # Maybe setup distributed data parallelism (DDP) #
@@ -158,9 +161,6 @@ def train(
             dynamic_ncols=True,
             desc=f'Training {ppgs.CONFIG}')
     while step < steps:
-
-        # Seed sampler
-        train_loader.batch_sampler.set_epoch(step // len(train_loader.dataset))
 
         model.train()
         for batch in train_loader:
