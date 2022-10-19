@@ -20,6 +20,12 @@ def dataset():
 
 
 @pytest.fixture(scope='session')
+def file():
+    """Retrieve the audio file path"""
+    return TEST_ASSETS_DIR / 'test.wav'
+
+
+@pytest.fixture(scope='session')
 def model():
     """Preload the model"""
     return ppgs.model.Model()
