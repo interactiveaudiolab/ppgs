@@ -218,6 +218,7 @@ def train(
                         step,
                         model,
                         valid_loader,
+                        train_loader,
                         gpu)
 
                 ###################
@@ -260,7 +261,7 @@ def train(
 ###############################################################################
 
 
-def evaluate(directory, step, model, valid_loader, gpu):
+def evaluate(directory, step, model, valid_loader, train_loader, gpu):
     """Perform model evaluation"""
     device = 'cpu' if gpu is None else f'cuda:{gpu}'
 
@@ -274,10 +275,10 @@ def evaluate(directory, step, model, valid_loader, gpu):
         with torch.cuda.amp.autocast():
 
             # Setup evaluation metrics
-            metrics = ppgs.evaluate.Metrics()
+            training_metrics = ppgs.evaluate.Metrics()
+            validation_metrics = ppgs.evaluate.Metrics()
 
             for i, batch in enumerate(valid_loader):
-
 
                 # Unpack batch
                 (
@@ -292,14 +293,36 @@ def evaluate(directory, step, model, valid_loader, gpu):
                 predicted_ppgs = model(input_ppgs)
 
                 # Update metrics
-                metrics.update(predicted_ppgs, indices)
+                validation_metrics.update(predicted_ppgs, indices)
+
+                # Finish when we have completed all or enough batches
+                if i == ppgs.EVALUATION_BATCHES:
+                    break
+
+            for i, batch in enumerate(train_loader):
+
+                # Unpack batch
+                (
+                    input_ppgs,
+                    indices,
+                    alignments,
+                    word_breaks,
+                    waveforms
+                ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
+
+                # Forward pass
+                predicted_ppgs = model(input_ppgs)
+
+                # Update metrics
+                training_metrics.update(predicted_ppgs, indices)
 
                 # Finish when we have completed all or enough batches
                 if i == ppgs.EVALUATION_BATCHES:
                     break
 
     # Write to tensorboard
-    ppgs.write.scalars(directory, step, metrics())
+    ppgs.write.scalars(directory, step, validation_metrics())
+    ppgs.write.scalars(directory, step, training_metrics())
 
     # Prepare model for training
     model.train()
