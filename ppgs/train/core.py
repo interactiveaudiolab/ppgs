@@ -275,8 +275,8 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
         with torch.cuda.amp.autocast():
 
             # Setup evaluation metrics
-            training_metrics = ppgs.evaluate.Metrics()
-            validation_metrics = ppgs.evaluate.Metrics()
+            training_metrics = ppgs.evaluate.Metrics('training')
+            validation_metrics = ppgs.evaluate.Metrics('validation')
 
             for i, batch in enumerate(valid_loader):
 
