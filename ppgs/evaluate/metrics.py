@@ -8,8 +8,8 @@ import torch
 
 class Metrics:
 
-    def __init__(self):
-        self.metrics = [Accuracy(), Loss()]
+    def __init__(self, display_prefix):
+        self.metrics = [Accuracy(display_prefix), Loss(display_prefix)]
 
     def __call__(self):
         results = {}
@@ -33,11 +33,12 @@ class Metrics:
 
 class Accuracy:
 
-    def __init__(self):
+    def __init__(self, display_prefix):
+        self.display_prefix = display_prefix
         self.reset()
 
     def __call__(self):
-        return {'accuracy': self.true_positives / self.count}
+        return {f'{self.display_prefix}_accuracy': self.true_positives / self.count}
 
     def reset(self):
         self.count = 0
@@ -56,11 +57,12 @@ class Accuracy:
 
 class Loss:
 
-    def __init__(self):
+    def __init__(self, display_prefix):
+        self.display_prefix = display_prefix
         self.reset()
 
     def __call__(self):
-        return {'loss': self.total / self.count}
+        return {f'{self.display_prefix}_loss': self.total / self.count}
 
     def reset(self):
         self.total = 0.
