@@ -24,7 +24,8 @@ class Dataset(torch.utils.data.Dataset):
             The name of the data partition
     """
 
-    def __init__(self, name, partition):
+    def __init__(self, name, partition, representation='ppg'):
+        self.representation = representation
         self.cache = ppgs.CACHE_DIR / name
         self.stems = ppgs.load.partition(name)[partition]
 
@@ -36,7 +37,7 @@ class Dataset(torch.utils.data.Dataset):
         stem = self.stems[index]
 
         # Load ppgs
-        input_ppgs = torch.load(self.cache / f'{stem}-ppg.pt')
+        input_ppgs = torch.load(self.cache / f'{stem}-{self.representation}.pt')
 
         # This assumes that frame zero of ppgs is centered on sampled zero,
         # frame one is centered on sample ppgs.HOPSIZE, frame two is centered
