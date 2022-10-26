@@ -11,7 +11,7 @@ from shutil import copy as cp
 ###############################################################################
 
 
-ALL_FEATURES = ['ppg', 'phonemes', 'wav']
+ALL_FEATURES = ['ppg', 'phonemes', 'wav', 'w2v2']
 
 
 ###############################################################################
@@ -94,5 +94,14 @@ def from_files_to_files(
             ppgs.preprocess.ppg.from_files_to_files(
                 audio_files,
                 ppg_files,
+                gpu
+            )
+
+        # Preprocess wav2vec2 latents
+        if 'w2v2' in features:
+            w2v2_files = [f'{file.stem}-w2v2.pt' for file in audio_files]
+            ppgs.preprocess.w2v2.from_files_to_files(
+                audio_files,
+                w2v2_files,
                 gpu
             )
