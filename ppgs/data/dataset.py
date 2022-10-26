@@ -61,8 +61,8 @@ class Dataset(torch.utils.data.Dataset):
                 hopsize=hopsize,
                 return_word_breaks=True,
                 times=times)
-        except ValueError:
-            raise ValueError(f'error processing alignment for stem {stem}')
+        except ValueError as e:
+            raise ValueError(f'error processing alignment for stem {stem} with error: {e}')
         indices = torch.tensor(indices, dtype=torch.long)
 
         # Also load audio for evaluation purposes

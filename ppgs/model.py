@@ -1,7 +1,7 @@
 """model.py - model definition"""
 
 import functools
-
+import ppgs
 import torch
 
 
@@ -14,8 +14,8 @@ class BaselineModel(torch.nn.Sequential):
 
     def __init__(
         self,
-        input_channels=144, #TODO have this filled in dynamically
-        output_channels=42, #phonemes
+        input_channels=ppgs.INPUT_CHANNELS, #dimensionality of input time series
+        output_channels=ppgs.OUTPUT_CHANNELS, #phoneme time series dimensionality
         hidden_channels=128,
         kernel_size=5):
         conv_fn = functools.partial(
