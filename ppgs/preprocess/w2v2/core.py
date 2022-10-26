@@ -1,4 +1,5 @@
 from transformers import Wav2Vec2FeatureExtractor, Wav2Vec2Model
+from transformers.utils import logging
 import torch
 import torchaudio
 import tqdm
@@ -20,6 +21,7 @@ SAMPLE_RATE = 16000
 # Phonetic posteriorgram
 ###############################################################################
 
+logging.set_verbosity_error()
 
 def from_audio(
     audio,
@@ -44,7 +46,7 @@ def from_audio(
 
     # Infer W2V2 latents
     with torch.no_grad():
-        return from_audio.model(**inputs).last_hidden_state
+        return from_audio.model(**inputs).last_hidden_state.squeeze().T
 
 
 def from_file(audio_file, gpu=None):

@@ -83,6 +83,8 @@ EVALUATION_INTERVAL = 2500  # steps
 # Training parameters
 ###############################################################################
 
+# Input representation
+REPRESENTATION = 'ppg'
 
 # Batch size (per gpu)
 BATCH_SIZE = 64
@@ -99,6 +101,12 @@ NUM_WORKERS = 2
 # Seed for all random number generators
 RANDOM_SEED = 1234
 
+###############################################################################
+# Model parameters #TODO extract to separate config file?
+###############################################################################
+
+INPUT_CHANNELS = 144 #dimensionality of input representation
+OUTPUT_CHANNELS = 42 #number of phonemes
 
 ###############################################################################
 # Partition parameters #TODO extract to separate config file

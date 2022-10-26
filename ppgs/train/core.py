@@ -35,7 +35,6 @@ def run(
             join=True)
 
     else:
-
         # Single GPU or CPU training
         train(
             dataset,
@@ -74,9 +73,7 @@ def train(
     #######################
 
     torch.manual_seed(ppgs.RANDOM_SEED)
-    #TODO check this 
-    # train_loader, valid_loader = ppgs.data.loaders(dataset, gpu)
-    train_loader, valid_loader = ppgs.data.loaders(dataset)
+    train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION)
 
     #################
     # Create models #
