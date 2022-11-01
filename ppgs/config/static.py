@@ -13,7 +13,7 @@ import ppgs
 PARTITION_DIR = ppgs.ASSETS_DIR / 'partitions'
 
 # Default checkpoint for generation
-DEFAULT_CHECKPOINT = ppgs.ASSETS_DIR / 'checkpoints'
+DEFAULT_CHECKPOINT = ppgs.ASSETS_DIR / 'checkpoints' / 'default.pt'
 
 # Default configuration file
 DEFAULT_CONFIGURATION = ppgs.ASSETS_DIR / 'configs' / 'ppgs.py'
