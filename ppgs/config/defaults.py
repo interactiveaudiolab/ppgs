@@ -20,7 +20,6 @@ FMIN = 50.  # Hz
 FMAX = 550.  # Hz
 
 # Audio hopsize
-HOPSIZE = 256  # samples
 HOPSIZE = 160 # samples
 
 # Maximum sample value of 16-bit audio
@@ -30,7 +29,6 @@ MAX_SAMPLE_VALUE = 32768
 NUM_FFT = 1024
 
 # Audio sample rate
-# SAMPLE_RATE = 22050  # Hz
 SAMPLE_RATE = 16000
 
 # Number of spectrogram channels
