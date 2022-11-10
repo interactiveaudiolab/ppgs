@@ -4,7 +4,7 @@ import torch
 def collate(batch):
     """Batch collation"""
     # Unpack
-    input_ppgs, indices, alignments, word_breaks, waveforms = zip(*batch)
+    input_ppgs, indices, alignments, word_breaks, waveforms, stems = zip(*batch)
 
     # Get padded tensor dimensions
     channels, _ = input_ppgs[0].shape
@@ -25,4 +25,4 @@ def collate(batch):
         padded_ppgs[i, :, :ppg.shape[-1]] = ppg
         padded_indices[i, :ppg.shape[-1]] = index
 
-    return padded_ppgs, padded_indices, alignments, word_breaks, waveforms
+    return padded_ppgs, padded_indices, alignments, word_breaks, waveforms, stems

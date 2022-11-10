@@ -38,7 +38,7 @@ class Accuracy:
         self.reset()
 
     def __call__(self):
-        return {f'{self.display_prefix}_accuracy': self.true_positives / self.count}
+        return {f'{self.display_prefix}_accuracy': float((self.true_positives / self.count).cpu())}
 
     def reset(self):
         self.count = 0
@@ -62,7 +62,7 @@ class Loss:
         self.reset()
 
     def __call__(self):
-        return {f'{self.display_prefix}_loss': self.total / self.count}
+        return {f'{self.display_prefix}_loss': float((self.total / self.count).cpu().numpy())}
 
     def reset(self):
         self.total = 0.
