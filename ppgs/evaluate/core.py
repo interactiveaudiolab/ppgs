@@ -11,12 +11,9 @@ import tqdm
 ###############################################################################
 
 
-def datasets(datasets, config, gpu=None):
+def datasets(datasets, checkpoint=None, gpu=None):
     """Perform evaluation"""
-    if representation is None:
-        representation = ppgs.REPRESENTATION
-
-
+    
     # Start benchmarking
     ppgs.BENCHMARK = True
     #TODO restore functionality
@@ -52,28 +49,29 @@ def datasets(datasets, config, gpu=None):
         )
 
         # Iterate over test set
-        for audio, bins, pitch, voiced, stem in iterator:
+        for input_ppgs, indices, alignment, word_breaks, audio, stems in iterator:
 
             # Reset file metrics
             file_metrics.reset()
 
             # Infer
-            # _, _, logits = ppgs.from_audio(
-            #     audio[0],
-            #     ppgs.SAMPLE_RATE,
-            #     model=ppgs.MODEL,
-            #     checkpoint=checkpoint,
-            #     batch_size=2048,
-            #     gpu=gpu)
+            logits = ppgs.from_audio(
+                audio[0][0], #get only audio, and ignore sample rate (audio[0][1])
+                ppgs.SAMPLE_RATE,
+                checkpoint=checkpoint,
+                # batch_size=2048, #TODO determine why this is here?
+                gpu=gpu).T.cpu()
 
+            indices = indices.squeeze()
 
             # Update metrics
-            file_metrics.update(logits, bins, pitch, voiced)
-            dataset_metrics.update(logits, bins, pitch, voiced)
-            aggregate_metrics.update(logits, bins, pitch, voiced)
+            file_metrics.update(logits, indices)
+            dataset_metrics.update(logits, indices)
+            aggregate_metrics.update(logits, indices)
 
             # Copy results
-            granular[f'{dataset}/{stem[0]}'] = file_metrics()
+            stem = stems[0]
+            granular[f'{dataset}/{stem}'] = file_metrics()
         overall[dataset] = dataset_metrics()
     overall['aggregate'] = aggregate_metrics()
 
@@ -96,9 +94,14 @@ def datasets(datasets, config, gpu=None):
     benchmark['elapsed'] = time.time() - start
 
     # Get total number of frames, samples, and seconds in test data
-    frames = aggregate_metrics.loss.count
-    samples = ppgs.convert.frames_to_samples(frames)
-    seconds = ppgs.convert.frames_to_seconds(frames)
+    #TODO make better way of accessing loss
+    frames = aggregate_metrics.metrics[1].count
+    #TODO check this
+    # samples = ppgs.convert.frames_to_samples(frames)
+    samples = int(frames * ppgs.HOPSIZE)
+    # TODO check this
+    # seconds = ppgs.convert.frames_to_seconds(frames)
+    seconds = float(samples / ppgs.SAMPLE_RATE)
 
     # Format benchmarking results
     results = {

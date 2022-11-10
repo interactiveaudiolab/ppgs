@@ -283,7 +283,8 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                     indices,
                     alignments,
                     word_breaks,
-                    waveforms
+                    waveforms,
+                    stems
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
                 # Forward pass
@@ -304,7 +305,8 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                     indices,
                     alignments,
                     word_breaks,
-                    waveforms
+                    waveforms,
+                    stems
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
                 # Forward pass

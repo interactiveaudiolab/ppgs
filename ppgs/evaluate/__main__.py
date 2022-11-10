@@ -30,7 +30,7 @@ def parse_args():
         type=int,
         help='The index of the GPU to use for evaluation')
 
-    return parser.parse_args()
+    return parser.parse_known_args()[0]
 
 
 if __name__ == '__main__':
