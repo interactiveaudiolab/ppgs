@@ -108,7 +108,8 @@ class Stft(torch.nn.Module):
                 pad = self.win_length // 2
                 ilens = ilens + 2 * pad
 
-            olens = (ilens - self.win_length) // self.hop_length + 1
+            # olens = (ilens - self.win_length) // self.hop_length + 1
+            olens = (ilens - self.n_fft + self.hop_length) // self.hop_length
             output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
         else:
             olens = None
