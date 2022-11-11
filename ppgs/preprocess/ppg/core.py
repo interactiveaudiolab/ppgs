@@ -45,7 +45,9 @@ def from_audio(
 
     # Setup features
     audio = audio.to(device)
-    length = torch.tensor([audio.shape[-1]], dtype=torch.long, device=device)
+    pad = ppgs.WINDOW_SIZE//2 - ppgs.HOPSIZE//2
+    length = torch.tensor([audio.shape[-1]], dtype=torch.long, device=device) + 2*pad #needs to be caluclated prior to padding
+    audio = torch.nn.functional.pad(audio, (pad, pad))
 
     # Infer ppgs
     with torch.no_grad():

@@ -182,6 +182,7 @@ non_linguistic_symbols: null
 frontend: default
 frontend_conf:
     fs: 16000
+    center: false
 specaug: specaug
 specaug_conf:
     apply_time_warp: true

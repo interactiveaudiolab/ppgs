@@ -41,6 +41,11 @@ class Dataset(torch.utils.data.Dataset):
 
         # Also load audio for evaluation purposes
         audio = torchaudio.load(self.cache / f'{stem}.wav')
+        num_frames = audio[0].shape[-1]//ppgs.HOPSIZE
+
+        # Pad audio
+        pad = ppgs.WINDOW_SIZE//2 - ppgs.HOPSIZE//2
+        audio = torch.nn.functional.pad(audio[0], (pad, pad))
 
         # Load alignment
         # Assumes alignment is saved as a textgrid file, but
@@ -51,29 +56,11 @@ class Dataset(torch.utils.data.Dataset):
         # frame one is centered on sample ppgs.HOPSIZE, frame two is centered
         # on sample 2 * ppgs.HOPSIZE, etc. Adjust accordingly.
         hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
-        #TODO investigate -1
-        # times = np.arange(input_ppgs.shape[-1]) * hopsize
-        # if not input_ppgs.shape[-1]*hopsize <= alignment.duration():
-        #     raise ValueError(input_ppgs.shape[-1]*hopsize, alignment.duration())
-        
-        # times = np.arange(0, input_ppgs.shape[-1]*hopsize, hopsize)
-        # if not input_ppgs.shape[-1] == times.shape[0]:
-        #     raise ValueError(input_ppgs.shape[-1], times.shape[0], list(times), alignment.duration(), input_ppgs.shape[-1]*hopsize, hopsize)
+        times = np.linspace(hopsize/2, (num_frames-1)*hopsize+hopsize/2, num_frames)
+        times[-1] = alignment.duration()
 
-        # samples = np.arange(0, audio[0].shape[-1], ppgs.HOPSIZE, dtype=np.longdouble)
-        # times = samples / ppgs.SAMPLE_RATE
-
-        percentages = np.arange(0, 1, ppgs.HOPSIZE / audio[0].shape[-1], dtype=np.longdouble)
-        times = percentages * alignment.duration()
-
-
-        #Fix last time to be within duration
-        # if times[-1] > alignment.duration():
-        #     times[-1] = alignment.duration() - 1e-6
-        # if stem == 'cmu_us_bdl_arctic/arctic_a0481':
-        #     print(times[-1], alignment.duration())
-        #     print(list(times))
-        #     print(times[-1] <= times[-2])
+        if times.shape[0] != input_ppgs.shape[-1]:
+            import pdb; pdb.set_trace()
 
         # Convert alignment to framewise indices
         try:
