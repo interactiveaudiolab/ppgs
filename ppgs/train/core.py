@@ -331,7 +331,7 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
 # Distributed data parallelism
 ###############################################################################
 
-
+#TODO look in updated template
 def train_ddp(rank, dataset, directory, gpus):
     """Train with distributed data parallelism"""
     with ddp_context(rank, len(gpus)):
