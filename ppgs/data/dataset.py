@@ -1,5 +1,6 @@
 """dataset.py - data loading"""
 
+import contextlib
 import numpy as np
 import pyfoal
 import pypar
@@ -13,6 +14,13 @@ import ppgs
 # Dataset
 ###############################################################################
 
+@contextlib.contextmanager
+def ppgs_phoneme_list():
+    try:
+        setattr(pyfoal.convert.phoneme_to_index, 'map', ppgs.PHONEME_TO_INDEX_MAPPING)
+        yield
+    finally:
+        delattr(pyfoal.convert.phoneme_to_index, 'map')
 
 class Dataset(torch.utils.data.Dataset):
     """PyTorch dataset
@@ -28,9 +36,6 @@ class Dataset(torch.utils.data.Dataset):
         self.representation = representation
         self.cache = ppgs.CACHE_DIR / name
         self.stems = ppgs.load.partition(name)[partition]
-
-        #prep phoneme mapping in pyfoal
-        pyfoal.convert.phoneme_to_index.map = ppgs.PHONEME_TO_INDEX_MAPPING
 
     def __getitem__(self, index):
         """Retrieve the indexth item"""
@@ -64,11 +69,13 @@ class Dataset(torch.utils.data.Dataset):
 
         # Convert alignment to framewise indices
         try:
-            indices, word_breaks = pyfoal.convert.alignment_to_indices(
-                alignment,
-                hopsize=hopsize,
-                return_word_breaks=True,
-                times=times)
+            #prep phoneme mapping in pyfoal
+            with ppgs_phoneme_list():
+                indices, word_breaks = pyfoal.convert.alignment_to_indices(
+                    alignment,
+                    hopsize=hopsize,
+                    return_word_breaks=True,
+                    times=times)
         except ValueError as e:
             raise ValueError(f'error processing alignment for stem {stem} with error: {e}')
         indices = torch.tensor(indices, dtype=torch.long)

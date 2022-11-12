@@ -332,10 +332,10 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
 ###############################################################################
 
 #TODO look in updated template
-def train_ddp(rank, dataset, directory, gpus):
+def train_ddp(rank, dataset, checkpoint_directory, output_directory, log_directory, gpus):
     """Train with distributed data parallelism"""
     with ddp_context(rank, len(gpus)):
-        train(dataset, directory, gpus)
+        train(dataset, checkpoint_directory, output_directory, log_directory, gpus[rank])
 
 
 @contextlib.contextmanager
