@@ -11,7 +11,8 @@ import ppgs
 ###############################################################################
 
 # W2V2 pretrained model config name
-W2V2_CONFIG = "facebook/wav2vec2-base-960h"
+# W2V2_CONFIG = "facebook/wav2vec2-base-960h"
+W2V2_CONFIG = "charsiu/en_w2v2_fs_10ms"
 
 # Sample rate of the PPG model
 SAMPLE_RATE = 16000
@@ -34,19 +35,27 @@ def from_audio(
     # Cache model
     if not hasattr(from_audio, 'model'):
         from_audio.model = Wav2Vec2Model.from_pretrained(config).to(device)
-    if not hasattr(from_audio, 'processor'):
-        from_audio.processor = Wav2Vec2FeatureExtractor.from_pretrained(config)
+    # if not hasattr(from_audio, 'processor'):
+    #     from_audio.processor = Wav2Vec2FeatureExtractor.from_pretrained(config)
 
     # Maybe resample
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
 
     # Setup features
-    inputs = from_audio.processor(audio, sampling_rate=sample_rate, return_tensors='pt')
+    # inputs = from_audio.processor(audio, sampling_rate=sample_rate, return_tensors='pt')
+    pad = 400//2 - ppgs.HOPSIZE//2
+    inputs = torch.nn.functional.pad(audio, (pad, pad+1)).unsqueeze(dim=0)
+    # inputs = audio.unsqueeze(dim=0)
     inputs = inputs.to(device)
 
     # Infer W2V2 latents
     with torch.no_grad():
-        return from_audio.model(**inputs).last_hidden_state.squeeze().T
+        output = from_audio.model(inputs).last_hidden_state.squeeze().T
+        try:
+            assert output.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct
+        except AssertionError:
+            import pdb; pdb.set_trace()
+        return output
 
 
 def from_file(audio_file, gpu=None):
