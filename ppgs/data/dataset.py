@@ -65,7 +65,7 @@ class Dataset(torch.utils.data.Dataset):
         times[-1] = alignment.duration()
 
         if times.shape[0] != input_ppgs.shape[-1]:
-            import pdb; pdb.set_trace()
+            raise ValueError('Non-matching data shapes!')
 
         # Convert alignment to framewise indices
         try:
