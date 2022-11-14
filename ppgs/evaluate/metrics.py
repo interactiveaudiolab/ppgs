@@ -111,10 +111,10 @@ class JensenShannon:
         target_onehot = torch.nn.functional.one_hot(target_indices, num_classes=predicted_logits.shape[-1])
 
         #compute logits for targets
-        target_logits = torch.special.logit(target_onehot, eps=1e-6)
+        target_logits = torch.special.logit(target_onehot, eps=1e-5)
 
         #calculate JSD and update totals
-        self.total += jensenShannonDivergence(predicted_logits, target_logits)
+        self.total += jensenShannonDivergence(predicted_logits, target_logits, as_logits=True)
         self.count += (target_indices != -100).sum() #TODO investigate if -100 needs to be used in JSD THE ANSWER IS YES!!
 
 ###############################################################################
@@ -126,14 +126,14 @@ def jensenShannonDivergence(p_tensor, q_tensor, as_logits=False):
     unless as_logits=True, in which case BOTH p_tensor and q_tensor are taken as probability logits"""
     m_tensor = (p_tensor+q_tensor)/2
     if not as_logits:
-        kl_pm = torch.nn.functional.kl_div(torch.log(p_tensor), m_tensor, reduction="none")
+        kl_pm = torch.nn.functional.kl_div(torch.log(m_tensor), p_tensor, reduction="none")
         kl_pm = torch.nan_to_num(kl_pm).sum(dim=-1)
-        kl_qm = torch.nn.functional.kl_div(torch.log(q_tensor), m_tensor, reduction="none")
+        kl_qm = torch.nn.functional.kl_div(torch.log(m_tensor), q_tensor, reduction="none")
         kl_qm = torch.nan_to_num(kl_qm).sum(dim=-1)
     else:
-        kl_pm = torch.nn.functional.kl_div(p_tensor, m_tensor, log_target=True, reduction="none")
+        kl_pm = torch.nn.functional.kl_div(m_tensor, p_tensor, log_target=True, reduction="none")
         kl_pm = torch.nan_to_num(kl_pm).sum(dim=-1)
-        kl_qm = torch.nn.functional.kl_div(q_tensor, m_tensor, log_target=True, reduction='none')
+        kl_qm = torch.nn.functional.kl_div(m_tensor, q_tensor, log_target=True, reduction='none')
         kl_qm = torch.nan_to_num(kl_qm).sum(dim=-1)
     return torch.sqrt((kl_pm+kl_qm)/2).sum(dim=0)
 
@@ -158,3 +158,9 @@ if __name__ == '__main__':
         torch.tensor([1e-9, 9.0, 1.9]),
         torch.tensor([1e-9, -9.0+1e-9, 10.0]),
     ))
+
+    JSMetric = JensenShannon('test')
+    input_logits = torch.special.logit(torch.tensor([[0.8, 0.15, 0.05]]))
+    input_indices = torch.tensor([1])
+    JSMetric.update(input_logits, input_indices)
+    print(JSMetric.total)
