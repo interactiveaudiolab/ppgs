@@ -68,12 +68,6 @@ def train(
     # Get torch device
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
-    #######################
-    # Create data loaders #
-    #######################
-
-    torch.manual_seed(ppgs.RANDOM_SEED)
-    train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION)
 
     #################
     # Create models #
@@ -129,6 +123,14 @@ def train(
 
         # Train from scratch
         step = 0
+
+    #######################
+    # Create data loaders #
+    #######################
+
+    torch.manual_seed(ppgs.RANDOM_SEED)
+    train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION)
+
 
     #####################
     # Create schedulers #
