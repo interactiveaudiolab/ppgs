@@ -9,7 +9,7 @@ import ppgs
 from ppgs import SOURCES_DIR, DATA_DIR
 
 from .sph import pcm_sph_to_wav
-from .utils import files_with_extension, download_file, download_tar_bz2
+from .utils import files_with_extension, download_file, download_tar_bz2, download_google_drive_zip, download_tar_gz
 from .phones import timit_to_arctic
 from .arctic_version import v0_90_to_v0_95
 
@@ -28,6 +28,13 @@ def datasets(datasets, format_only, timit_source, arctic_speakers):
             format_arctic(arctic_speakers)
         else:
             format_arctic(arctic_speakers)
+    if 'charsiu' in datasets:
+        if not format_only:
+            download_charsiu()
+            format_charsiu()
+        else:
+            format_charsiu()
+
 
 ###############################################################################
 # Downloading
@@ -85,6 +92,18 @@ def download_arctic(arctic_speakers):
             download_tar_bz2(url, arctic_sources)
     download_file('http://festvox.org/cmu_arctic/cmuarctic.data', arctic_sources / 'sentences.txt')
 
+def download_charsiu():
+    """Downloads the Charsiu MFA aligned dataset, which includes a subset of Common Voice"""
+    charsiu_sources = SOURCES_DIR / 'charsiu'
+    charsiu_sources.mkdir(parents=True, exist_ok=True)
+
+    #download TextGrid files
+    alignments_dir = charsiu_sources / 'alignments'
+    alignments_dir.mkdir(parents=True, exist_ok=True)
+    download_google_drive_zip('https://drive.google.com/uc?id=1J_IN8HWPXaKVYHaAf7IXzUd6wyiL9VpP', alignments_dir)
+
+    #download Common Voice
+    pass
 
 ###############################################################################
 # Formatting
@@ -287,3 +306,7 @@ def format_arctic(speakers=None):
 
         ppgs.data.download.words.from_files_to_files(new_phone_files, new_word_files, new_sentences_file)
     
+
+def format_charsiu():
+    """Formats the charsiu dataset"""
+    pass
