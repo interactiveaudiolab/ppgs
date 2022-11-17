@@ -13,7 +13,7 @@ from .utils import files_with_extension, download_file, download_tar_bz2, downlo
 from .phones import timit_to_arctic
 from .arctic_version import v0_90_to_v0_95
 
-def datasets(datasets, format_only, timit_source, arctic_speakers):
+def datasets(datasets, format_only, timit_source, common_voice_source, arctic_speakers):
     """Downloads the datasets passed in"""
     datasets = [dataset.lower() for dataset in datasets]
     if 'timit' in datasets:
@@ -30,7 +30,7 @@ def datasets(datasets, format_only, timit_source, arctic_speakers):
             format_arctic(arctic_speakers)
     if 'charsiu' in datasets:
         if not format_only:
-            download_charsiu()
+            download_charsiu(common_voice_source)
             format_charsiu()
         else:
             format_charsiu()
@@ -92,18 +92,42 @@ def download_arctic(arctic_speakers):
             download_tar_bz2(url, arctic_sources)
     download_file('http://festvox.org/cmu_arctic/cmuarctic.data', arctic_sources / 'sentences.txt')
 
-def download_charsiu():
+def download_charsiu(common_voice_source=None):
     """Downloads the Charsiu MFA aligned dataset, which includes a subset of Common Voice"""
     charsiu_sources = SOURCES_DIR / 'charsiu'
     charsiu_sources.mkdir(parents=True, exist_ok=True)
 
     #download TextGrid files
     alignments_dir = charsiu_sources / 'alignments'
-    alignments_dir.mkdir(parents=True, exist_ok=True)
-    download_google_drive_zip('https://drive.google.com/uc?id=1J_IN8HWPXaKVYHaAf7IXzUd6wyiL9VpP', alignments_dir)
+    # alignments_dir.mkdir(parents=True, exist_ok=True)
+    # download_google_drive_zip('https://drive.google.com/uc?id=1J_IN8HWPXaKVYHaAf7IXzUd6wyiL9VpP', alignments_dir)
 
-    #download Common Voice
-    pass
+    #download Common Voice Subset
+    if common_voice_source is None:
+        #TODO make this work with directories (who would ever want that?)
+        cv_corpus_files = list(SOURCES_DIR.glob('cv-corpus*.tar.gz')) + list(SOURCES_DIR.glob('cv-corpus*.tgz'))
+        if len(cv_corpus_files) >= 1:
+            corpus_file = sorted(cv_corpus_files)[-1]
+            stems = [file.stem for file in files_with_extension('textgrid', alignments_dir)]
+            corpus = tarfile.open(corpus_file, 'r|gz')
+            base_path = Path(list(Path(corpus.next().path).parents)[-2]) #get base directory of tarfile
+            clips_path = base_path / 'en' / 'clips' #TODO make language configurable?
+            iterator = tqdm.tqdm(
+                stems,
+                desc="Extracting common voice clips with corresponding Charsiu alignments",
+                total=len(stems),
+                dynamic_ncols=True
+            )
+            for stem in iterator:
+                import pdb; pdb.set_trace()
+                file_info = corpus.getmember(str(clips_path / (stem + '.wav')))
+                print(file_info)
+
+        else:
+            raise FileNotFoundError(f"""The Common Voice Dataset can only be officially downloaded via https://commonvoice.mozilla.org/en,
+            please download this resource and place it in '{SOURCES_DIR}'. This command expects a tar.gz or tgz to be present
+            or a user provided path using '--common-voice-source' argument""")
+    
 
 ###############################################################################
 # Formatting
@@ -237,6 +261,7 @@ def format_arctic(speakers=None):
 
         #transfer phoneme label files
         lab_dir_path = speaker / 'lab'
+        wav_dir_path = speaker / 'wav'
         new_lab_dir_path = new_speaker_dir / 'lab'
 
         if not lab_dir_path.exists():
@@ -256,14 +281,25 @@ def format_arctic(speakers=None):
             dynamic_ncols=True
         )
         for lab_file in nested_iterator:
-            if lab_file.stem == '*':
+            if lab_file.stem == '*': #necessary for weird extra file included in some arctic versions
                 continue
             with open(lab_file, 'r') as f:
                 lines = f.readlines()
                 non_header_lines = lines[lines.index('#\n')+1:] #get rid of useless headers
                 timestamps, _, phonemes = zip(*[line.split() for line in non_header_lines if len(line) >= 5])
+                #Map special case of silence map from pau to sp
+                phonemes = ['sp' if phone == 'pau' else phone for phone in phonemes]
+                #Map errors to <unk>
                 phonemes = [phone if phone in ppgs.PHONEME_LIST else '<unk>' for phone in phonemes]
-                rows = zip(timestamps, phonemes)
+            with open(wav_dir_path / (lab_file.stem + '.wav'), 'rb') as f:
+                audio = ppgs.load.audio(f)
+                audio_duration = audio[0].shape[0] / ppgs.SAMPLE_RATE
+                if not abs(audio_duration - float(timestamps[-1])) <= 1e-1:
+                    print(f'failed with stem {lab_file.stem}')
+                    continue
+                timestamps = list(timestamps)
+                timestamps[-1] = str(audio_duration)
+            rows = zip(timestamps, phonemes)
             #write new label file as CSV
             try:
                 new_phone_file = new_lab_dir_path / (id_map(lab_file.stem) + '.csv')
@@ -276,9 +312,7 @@ def format_arctic(speakers=None):
                 writer.writerows(rows)
 
         #transfer wav files
-        wav_dir_path = speaker / 'wav'
         new_wav_dir_path = new_speaker_dir / 'wav'
-
         if not wav_dir_path.exists():
             raise FileNotFoundError(f'could not find directory {wav_dir_path}')
 

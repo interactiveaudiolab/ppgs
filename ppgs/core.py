@@ -15,6 +15,7 @@ def from_audio(
     sample_rate,
     model=None,
     checkpoint=ppgs.DEFAULT_CHECKPOINT,
+    representation=ppgs.REPRESENTATION,
     gpu=None):
     """Compute phonetic posteriorgram features from audio"""
     with torch.no_grad():
@@ -26,15 +27,20 @@ def from_audio(
             from_audio.checkpoint != checkpoint or
             from_audio.gpu != gpu):
             # model = ppgs.model.BaselineModel()
-            model.load_state_dict(torch.load(checkpoint, map_location='cpu')['model'])
+            state_dict = torch.load(checkpoint, map_location='cpu')['model']
+            try:
+                model.load_state_dict(state_dict)
+            except RuntimeError:
+                print('Failed to load model, trying again with assumption that model was trained using ddp')
+                state_dict = ppgs.load.ddp_to_single_state_dict(state_dict)
+                model.load_state_dict(state_dict)
             device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
             from_audio.model = model.to(device)
             from_audio.checkpoint = checkpoint
             from_audio.gpu = gpu
 
         # Preprocess audio
-        #TODO move representation type to config
-        features = ppgs.preprocess.ppg.from_audio(audio, sample_rate, gpu=gpu)
+        features = ppgs.preprocess.from_audio(audio.unsqueeze(dim=0), representation=representation, sample_rate=sample_rate, gpu=gpu)
 
         # Compute PPGs
         return from_audio.model(features)

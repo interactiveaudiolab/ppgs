@@ -1,5 +1,5 @@
 from .core import *
 
-from .ppg import *
-from .w2v2 import *
-from .align import *
+from . import ppg
+from . import w2v2
+from . import align

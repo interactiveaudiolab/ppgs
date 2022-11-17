@@ -38,7 +38,6 @@ def datasets(datasets, checkpoint=None, gpu=None):
         # Reset dataset metrics
         dataset_metrics.reset()
 
-        print(dataset)
         # Setup test dataset
         dataloader = ppgs.data.loader.loader(dataset, 'test', representation=ppgs.REPRESENTATION)
         iterator = tqdm.tqdm(
