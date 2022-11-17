@@ -14,7 +14,7 @@ def parse_args():
     parser.add_argument(
         '--datasets',
         nargs='+',
-        default=['timit', 'arctic'],
+        default=['timit', 'arctic', 'charsiu'],
         help='The datasets to download'
     )
     parser.add_argument(
@@ -28,6 +28,13 @@ def parse_args():
         default=None,
         type=str,
         help='path to the timit source that should be used'
+    )
+    parser.add_argument(
+        '--common-voice-source',
+        nargs=1,
+        default=None,
+        type=str,
+        help='path to the common voice source that should be used'
     )
     parser.add_argument(
         '--arctic-speakers',

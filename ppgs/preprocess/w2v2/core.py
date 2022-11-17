@@ -17,6 +17,9 @@ W2V2_CONFIG = "charsiu/en_w2v2_fs_10ms"
 # Sample rate of the PPG model
 SAMPLE_RATE = 16000
 
+#Window size of the model
+WINDOW_SIZE = 400
+
 
 ###############################################################################
 # Phonetic posteriorgram
@@ -26,10 +29,12 @@ logging.set_verbosity_error()
 
 def from_audio(
     audio,
-    sample_rate=ppgs.SAMPLE_RATE,
-    config=W2V2_CONFIG,
+    sample_rate=None,
+    config=None,
     gpu=None):
     """Compute W2V2 latents from audio"""
+    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
+    if config is None: config=W2V2_CONFIG
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Cache model
@@ -43,7 +48,7 @@ def from_audio(
 
     # Setup features
     # inputs = from_audio.processor(audio, sampling_rate=sample_rate, return_tensors='pt')
-    pad = 400//2 - ppgs.HOPSIZE//2
+    pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
     inputs = torch.nn.functional.pad(audio, (pad, pad+1)).unsqueeze(dim=0)
     # inputs = audio.unsqueeze(dim=0)
     inputs = inputs.to(device)

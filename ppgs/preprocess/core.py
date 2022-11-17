@@ -105,3 +105,25 @@ def from_files_to_files(
                 w2v2_files,
                 gpu
             )
+
+
+def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=None, gpu=None):
+    """Preprocess audio using given or configured representation"""
+
+    #Cache model/function
+    if representation is None:
+        representation = ppgs.REPRESENTATION
+    try:
+        representation_module = ppgs.REPRESENTATION_MAP[representation]
+    except KeyError:
+        raise ValueError(f'given representation "{representation}" does not exist')
+    if not hasattr(from_audio, representation):
+        setattr(from_audio, representation, representation_module.from_audio)
+    
+    #Compute representation
+    return getattr(from_audio, representation)(
+        audio, 
+        sample_rate=sample_rate,
+        config=config,
+        gpu=gpu
+    )

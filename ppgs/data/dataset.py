@@ -37,6 +37,9 @@ class Dataset(torch.utils.data.Dataset):
         self.cache = ppgs.CACHE_DIR / name
         self.stems = ppgs.load.partition(name)[partition]
 
+        #calculate window size based on representation #TODO consider removing
+        self.WINDOW_SIZE = getattr(ppgs.preprocess, representation).WINDOW_SIZE
+
     def __getitem__(self, index):
         """Retrieve the indexth item"""
         stem = self.stems[index]
@@ -49,8 +52,8 @@ class Dataset(torch.utils.data.Dataset):
         num_frames = audio[0].shape[-1]//ppgs.HOPSIZE
 
         # Pad audio
-        pad = ppgs.WINDOW_SIZE//2 - ppgs.HOPSIZE//2
-        audio = torch.nn.functional.pad(audio[0], (pad, pad))
+        # pad = self.WINDOW_SIZE//2 - ppgs.HOPSIZE//2
+        # audio = torch.nn.functional.pad(audio[0], (pad, pad))
 
         # Load alignment
         # Assumes alignment is saved as a textgrid file, but

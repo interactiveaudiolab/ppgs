@@ -3,6 +3,7 @@
 
 import ppgs
 from ppgs.model import BaselineModel
+from ppgs.preprocess import *
 
 
 ###############################################################################
@@ -25,3 +26,11 @@ DEFAULT_CONFIGURATION = ppgs.ASSETS_DIR / 'configs' / 'ppgs.py'
 ###############################################################################
 
 MODEL = BaselineModel()
+
+###############################################################################
+# Representation
+###############################################################################
+REPRESENTATION_MAP = {
+    'ppg': ppgs.preprocess.ppgs,
+    'w2v2': ppgs.preprocess.w2v2
+}
