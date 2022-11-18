@@ -110,18 +110,32 @@ def download_charsiu(common_voice_source=None):
             corpus_file = sorted(cv_corpus_files)[-1]
             stems = [file.stem for file in files_with_extension('textgrid', alignments_dir)]
             corpus = tarfile.open(corpus_file, 'r|gz')
-            base_path = Path(list(Path(corpus.next().path).parents)[-2]) #get base directory of tarfile
-            clips_path = base_path / 'en' / 'clips' #TODO make language configurable?
-            iterator = tqdm.tqdm(
-                stems,
-                desc="Extracting common voice clips with corresponding Charsiu alignments",
-                total=len(stems),
-                dynamic_ncols=True
-            )
-            for stem in iterator:
-                import pdb; pdb.set_trace()
-                file_info = corpus.getmember(str(clips_path / (stem + '.wav')))
-                print(file_info)
+            common_voice_dir = charsiu_sources / 'common_voices'
+            corpus.extractall(path=common_voice_dir)
+            # base_path = Path(list(Path(corpus.next().path).parents)[-2]) #get base directory of tarfile
+            # clips_path = base_path / 'en' / 'clips' #TODO make language configurable?
+            # mp3_dir = charsiu_sources / 'mp3'
+            # mp3_dir.mkdir(exist_ok=True, parents=True)
+            # print('Scanning tar contents, this can take a long time (>10 minutes)')
+            # contents = corpus.getnames()
+            # iterator = tqdm.tqdm(
+            #     stems,
+            #     desc="Extracting common voice clips with corresponding Charsiu alignments",
+            #     total=len(stems),
+            #     dynamic_ncols=True
+            # )
+            # stems_not_found = []
+            # for stem in iterator:
+            #     mp3_path = str(clips_path / (stem + '.mp3'))
+            #     mp3_info = corpus.getmember(mp3_path)
+            #     try:
+            #         mp3_file = corpus.extractfile(mp3_info)
+            #         with open(mp3_dir / (stem + '.mp3'), 'wb') as new_mp3_file:
+            #             import pdb; pdb.set_trace()
+            #             new_mp3_file.write(mp3_file.read())
+            #         mp3_file.close()
+            #     except:
+            #         stems_not_found.append(stem)
 
         else:
             raise FileNotFoundError(f"""The Common Voice Dataset can only be officially downloaded via https://commonvoice.mozilla.org/en,
@@ -172,10 +186,21 @@ def format_timit():
         output_dir = timit_data / phone_file.parent.name / 'lab'
         output_dir.mkdir(parents=True, exist_ok=True)
         new_file = output_dir / (phone_file.stem + '.csv')
-        with open(phone_file, 'r') as f:
+        corresponding_audio_file = output_dir.parents[0] / 'wav' / (phone_file.stem + '.wav')
+        with open(phone_file, 'r') as f: #Get phone file contents
             reader = csv.reader(f, delimiter=' ')
             rows = list(reader)
-        with open(new_file, 'w') as f:
+            start_times, end_times, phonemes = zip(*rows)
+        with open(corresponding_audio_file, 'rb') as f:
+            audio = ppgs.load.audio(f)
+            audio_duration = audio[0].shape[0] / ppgs.SAMPLE_RATE
+            if not abs(audio_duration - (float(end_times[-1])/ppgs.SAMPLE_RATE)) <= 2.5e-1:
+                print(f'failed with stem {phone_file.stem}')
+                continue
+            end_times = list(end_times)
+            end_times[-1] = str(audio[0].shape[0])
+        rows = zip(start_times, end_times, phonemes)
+        with open(new_file, 'w') as f: #Write phone csv file
             writer = csv.writer(f)
             writer.writerow(['timestamp', 'phoneme'])
             writer.writerows(timit_to_arctic(rows))

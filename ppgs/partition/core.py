@@ -28,7 +28,7 @@ def datasets(datasets, overwrite=False):
 #TODO check if SA1, SA2 should be filtered out
 def partition_dataset(data_dir, unseen_speakers, validation_files, partition_file):
     unseen_speakers = set(unseen_speakers)
-    all_textgrid = list(data_dir.rglob('*.textgrid'))
+    all_textgrid = list(data_dir.rglob('*.textgrid')) #TODO merge with wav rglob
     valid = [f'{file.parents[0].name}/{file.stem}' for file in all_textgrid if file in validation_files]
     train = [f'{file.parents[0].name}/{file.stem}' for file in all_textgrid if (file.parents[0].name not in unseen_speakers) and file not in validation_files]
     test = [f'{file.parents[0].name}/{file.stem}' for file in all_textgrid if (file.parents[0].name in unseen_speakers) and file not in validation_files]
