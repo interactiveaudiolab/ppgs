@@ -33,8 +33,7 @@ All preprocessed data are saved in `data/cache/DATASET`.
 
 ### Evaluate
 
-Complete all TODOs in `evaluate/`, then run `python -m ppgs.evaluate
---datasets <datasets> --checkpoint <checkpoint> --gpu <gpu>`.
+`python -m ppgs.evaluate --datasets <datasets> --checkpoint <checkpoint> --gpu <gpu>`.
 
 
 ### Monitor
