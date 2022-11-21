@@ -40,7 +40,8 @@ def from_audio(
             from_audio.gpu = gpu
 
         # Preprocess audio
-        features = ppgs.preprocess.from_audio(audio.unsqueeze(dim=0), representation=representation, sample_rate=sample_rate, gpu=gpu)
+        #TODO investigate unsqueeze on dim 0
+        features = ppgs.preprocess.from_audio(audio, representation=representation, sample_rate=sample_rate, gpu=gpu)
 
         # Compute PPGs
         return from_audio.model(features)
@@ -50,9 +51,10 @@ def from_file(file, checkpoint=ppgs.DEFAULT_CHECKPOINT, gpu=None):
     """Compute phonetic posteriorgram features from audio file"""
     # Load audio
     audio = ppgs.load.audio(file)
+    print(audio.shape)
 
     # Compute PPGs
-    return from_audio(audio, ppgs.SAMPLE_RATE, checkpoint, gpu)
+    return from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, checkpoint=checkpoint, gpu=gpu)
 
 
 def from_file_to_file(

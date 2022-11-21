@@ -94,7 +94,7 @@ def datasets(datasets, checkpoint=None, gpu=None):
 
     # Get total number of frames, samples, and seconds in test data
     #TODO make better way of accessing loss
-    frames = aggregate_metrics.metrics[1].count
+    frames = aggregate_metrics.metrics[2].count
     #TODO check this
     # samples = ppgs.convert.frames_to_samples(frames)
     samples = int(frames * ppgs.HOPSIZE)

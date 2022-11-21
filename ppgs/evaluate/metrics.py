@@ -1,5 +1,5 @@
 import torch
-
+import ppgs
 
 ###############################################################################
 # Aggregate batch metric state
@@ -11,6 +11,7 @@ class Metrics:
     def __init__(self, display_prefix):
         self.metrics = [
             Accuracy(display_prefix),
+            CategoricalAccuracy(display_prefix),
             Loss(display_prefix),
             JensenShannon(display_prefix)
         ]
@@ -58,6 +59,64 @@ class Accuracy:
         # Update count
         self.count += (target_indices != -100).sum()
 
+class CategoricalAccuracy:
+    
+    def __init__(self, display_prefix):
+        self.display_prefix = display_prefix
+        self.reset()
+        self.map = {i: phoneme for i, phoneme in enumerate(ppgs.PHONEME_LIST)}
+
+    def __call__(self):
+        if self.totals is not None:
+            assert self.totals.shape == self.counts.shape
+        else:
+            return None
+        output = {}
+        for i in range(0, self.totals.shape[0]):
+            output[f"{self.display_prefix}_phoneme_{self.map[i]}_accuracy"] = (self.totals[i] / self.counts[i]).item()
+            output[f"{self.display_prefix}_phoneme_{self.map[i]}_total"] = self.totals[i].item()
+            output[f"{self.display_prefix}_phoneme_{self.map[i]}_count"] = self.counts[i].item()
+        return output
+
+    def reset(self):
+        self.totals = None
+        self.counts = None
+    
+    def update(self, predicted_logits, target_indices):
+        """Update per-category accuracy"""
+
+        #Unroll time dimensionality
+        if len(predicted_logits.shape) == 3: #handle batched input
+            predicted_logits = torch.transpose(predicted_logits, 1, 2) #Batch,Class,Time->Batch,Time,Class
+            predicted_logits = torch.flatten(predicted_logits, 0, 1) #Batch,Time,Class->Batch*Time,Class
+            target_indices = torch.flatten(target_indices) #Batch,Time->Batch*Time (1D)
+
+        #deal with -100 ignore values
+        keep_indices = (target_indices != -100)
+        target_indices = target_indices[keep_indices]
+        predicted_logits = predicted_logits[keep_indices]
+
+        #convert logits to onehot
+        predicted_indices = predicted_logits.argmax(dim=1)
+        predicted_onehots = torch.nn.functional.one_hot(predicted_indices, num_classes=predicted_logits.shape[-1])
+
+        #convert targets to onehot
+        target_onehots = torch.nn.functional.one_hot(target_indices, num_classes=predicted_logits.shape[-1])
+
+        #update (or set) totals
+        marginal_totals = torch.mul(predicted_onehots, target_onehots).sum(dim=0)
+        if self.totals is None:
+            self.totals = marginal_totals
+        else:
+            self.totals += marginal_totals
+
+        #update (or set) counts
+        marginal_counts = target_onehots.sum(dim=0)
+        if self.counts is None:
+            self.counts = marginal_counts
+        else:
+            self.counts += marginal_counts
+
 
 class Loss:
 
@@ -73,7 +132,7 @@ class Loss:
         self.count = 0
 
     def update(self, predicted_logits, target_indices):
-        # Update the total cross entropy loss
+        """Update the total cross entropy loss"""
         self.total += torch.nn.functional.cross_entropy(
             predicted_logits,
             target_indices,

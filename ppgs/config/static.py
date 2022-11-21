@@ -31,6 +31,6 @@ MODEL = BaselineModel()
 # Representation
 ###############################################################################
 REPRESENTATION_MAP = {
-    'ppg': ppgs.preprocess.ppgs,
+    'ppg': ppgs.preprocess.ppg,
     'w2v2': ppgs.preprocess.w2v2
 }
