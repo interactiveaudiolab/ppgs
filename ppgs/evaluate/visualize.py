@@ -7,6 +7,8 @@ from moviepy import editor as mpy
 import numpy as np
 import cv2
 from pathlib import Path
+import tempfile
+import os
 
 #TODO make config safe (get values dynamically)
 
@@ -23,7 +25,7 @@ scalefactor = 8
 text_vertical_offset = 1
 
 
-def logits_to_video_file(logits, audio_filename, video_filename, labels=ppgs.PHONEME_LIST):
+def from_logits_to_video_file(logits, audio_filename, video_filename, labels=ppgs.PHONEME_LIST):
     """Takes logits of shape time,categories and creates a visualization"""
     audio = torchaudio.load(audio_filename)[0][0]
     audio_clip = mpy.AudioFileClip(audio_filename, fps=ppgs.SAMPLE_RATE)
@@ -44,7 +46,7 @@ def logits_to_video_file(logits, audio_filename, video_filename, labels=ppgs.PHO
     clip = mpy.ImageSequenceClip(frames, fps=display_window_size//display_hopsize) #create clip
     clip = clip.fl_image(lambda frame: resizer(frame, scalefactor)) #apply scaler filter
     
-    if not hasattr(logits_to_video_file, 'overlay'):
+    if not hasattr(from_logits_to_video_file, 'overlay'):
         #Create overlay on first call, then cache
 
         #Create labels only once
@@ -73,16 +75,21 @@ def logits_to_video_file(logits, audio_filename, video_filename, labels=ppgs.PHO
         overlay_mask = mpy.ImageClip(np.where(overlay_mask.get_frame(0)>0, 1.0, 0.0), ismask=True).set_duration(clip.duration) #make mask all-or-nothing
         overlay = overlay.set_mask(overlay_mask) #apply mask
 
-        logits_to_video_file.overlay = overlay
+        from_logits_to_video_file.overlay = overlay
 
-    composite = mpy.CompositeVideoClip([clip, logits_to_video_file.overlay])
+    composite = mpy.CompositeVideoClip([clip, from_logits_to_video_file.overlay])
+    overlay.close()
+    clip.close()
     composite = composite.set_audio(audio_clip)
 
     composite.write_videofile(video_filename, logger=None)
+    composite.close()
+
 
 def from_file_to_file(audio_filename, video_filename, checkpoint=ppgs.DEFAULT_CHECKPOINT, gpu=None):
-    logits = ppgs.from_file(audio_filename, checkpoint=checkpoint, gpu=None).T
-    logits_to_video_file(logits.cpu(), audio_filename, video_filename)
+    logits = ppgs.from_file(audio_filename, checkpoint=checkpoint, gpu=gpu).T
+    from_logits_to_video_file(logits.cpu(), audio_filename, video_filename)
+
 
 def from_files_to_files(audio_filenames, output_dir, checkpoint=ppgs.DEFAULT_CHECKPOINT, gpu=None):
     iterator = tqdm.tqdm(
@@ -95,6 +102,31 @@ def from_files_to_files(audio_filenames, output_dir, checkpoint=ppgs.DEFAULT_CHE
         output_filename = str(Path(output_dir) / (Path(audio_filename).stem + '.mp4'))
         from_file_to_file(audio_filename, output_filename, checkpoint=checkpoint, gpu=gpu)
 
+
+def from_logits_to_video(logits, audio_filename, labels=ppgs.PHONEME_LIST):
+    temp_filename = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False).name
+    from_logits_to_video_file(
+        logits=logits,
+        audio_filename=audio_filename,
+        video_filename=temp_filename,
+        labels=labels
+    )
+    with open(temp_filename, 'rb') as video_file:
+        video = video_file.read()
+    
+    try:
+        os.remove(temp_filename)
+    except OSError:
+        print(f'Failed to delete temporary file {temp_filename}')
+
+    return video
+
+
+def from_logits_to_videos(batched_logits, audio_filenames, labels=ppgs.PHONEME_LIST):
+    videos = []
+    for logits, audio_filename in zip(batched_logits, audio_filenames):
+        videos.append(from_logits_to_video(logits, audio_filename, labels=labels))
+    return videos
 
 if __name__ == '__main__':
     audio_filenames = [f'data/cache/arctic/cmu_us_bdl_arctic/arctic_a000{i}.wav' for i in range(1,10)]
