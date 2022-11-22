@@ -9,12 +9,12 @@ import ppgs
 
 def parse_args():
     """Parse command-line arguments"""
-    parser = argparse.ArgumentParser(description='Download datasets')
+    parser = argparse.ArgumentParser(description='Validate datasets')
     parser.add_argument(
         '--datasets',
         nargs='+',
         default=['timit', 'arctic', 'charsiu'],
-        help='The datasets to download'
+        help='The datasets to purge'
     )
     parser.add_argument(
         '--representation',
