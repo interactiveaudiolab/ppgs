@@ -4,6 +4,7 @@ import csv
 import tqdm
 from pathlib import Path
 import re
+import torchaudio
 
 import ppgs
 from ppgs import SOURCES_DIR, DATA_DIR
@@ -12,6 +13,8 @@ from .sph import pcm_sph_to_wav
 from .utils import files_with_extension, download_file, download_tar_bz2, download_google_drive_zip, download_tar_gz
 from .phones import timit_to_arctic
 from .arctic_version import v0_90_to_v0_95
+
+#TODO this file could use a refactor
 
 def datasets(datasets, format_only, timit_source, common_voice_source, arctic_speakers):
     """Downloads the datasets passed in"""
@@ -368,4 +371,58 @@ def format_arctic(speakers=None):
 
 def format_charsiu():
     """Formats the charsiu dataset"""
-    pass
+    charsiu_sources = SOURCES_DIR / 'charsiu'
+    
+    print("Scanning charsiu for textgrid files (operation may be slow)")
+    textgrid_files = files_with_extension('textgrid', charsiu_sources)
+
+    stems = set([f.stem for f in textgrid_files])
+
+    mp3_files = list(files_with_extension('mp3', charsiu_sources))
+
+    found_stems = []
+    mp3_found = []
+    iterator = tqdm.tqdm(
+        mp3_files,
+        desc="Scanning Common Voice for mp3 files matching charsiu textgrid labels",
+        total=len(mp3_files),
+        dynamic_ncols=True
+    )
+
+    for mp3_file in iterator:
+        if mp3_file.stem in stems:
+            found_stems.append(mp3_file.stem)
+            mp3_found.append(mp3_file)
+
+    num_not_found = len(stems.difference(set(found_stems)))
+    
+    print(f"Failed to find {num_not_found}/{len(stems)} mp3 files ({num_not_found/len(stems)*100}%)!")
+
+    charsiu_data_dir = ppgs.DATA_DIR / 'charsiu'
+    charsiu_wav_dir = charsiu_data_dir / 'wav'
+    charsiu_textgrid_dir = charsiu_data_dir / 'textgrid'
+
+    charsiu_wav_dir.mkdir(exist_ok=True, parents=True)
+    charsiu_textgrid_dir.mkdir(exist_ok=True, parents=True)
+
+    iterator = tqdm.tqdm(
+        textgrid_files,
+        desc="Copying charsiu textgrid files to datasets directory",
+        total=len(textgrid_files),
+        dynamic_ncols=True
+    )
+
+    for textgrid_file in iterator: #TODO this is unbearably slow, can we make it faster please?
+        if textgrid_file.stem in found_stems:
+            cp(textgrid_file, charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'))
+    
+    iterator = tqdm.tqdm(
+        mp3_found,
+        desc="Converting charsiu mp3 files to wav, and writing to datasets directory",
+        total=len(mp3_found),
+        dynamic_ncols=True
+    )
+
+    for mp3_file in iterator:
+        audio = ppgs.load.audio(mp3_file)
+        torchaudio.save(charsiu_wav_dir / (mp3_file.stem + '.wav'), audio, sample_rate=ppgs.SAMPLE_RATE)
