@@ -29,10 +29,15 @@ def parse_args():
         default=ppgs.DEFAULT_CHECKPOINT,
         help='The files to save PPGs')
     parser.add_argument(
+        '--preprocess-only',
+        action='store_true',
+        help='Instead of returning the PPGs, return the input representation output by the preprocessor (which can be specified with a config)'
+    )
+    parser.add_argument(
         '--gpu',
         type=int,
         help='The index of the GPU to use for inference. Defaults to CPU.')
-    return parser.parse_args()
+    return parser.parse_known_args()[0]
 
 
 if __name__ == '__main__':
