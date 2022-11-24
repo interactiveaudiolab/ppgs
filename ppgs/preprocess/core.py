@@ -5,6 +5,7 @@ import ppgs
 from os import listdir, makedirs
 from os.path import join, isdir
 from shutil import copy as cp
+from ppgs.preprocess.charsiu import charsiu
 
 ###############################################################################
 # Constants
@@ -29,6 +30,10 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None):
     for dataset in datasets:
         input_directory = ppgs.DATA_DIR / dataset
         output_directory = ppgs.CACHE_DIR / dataset
+
+        if dataset == 'charsiu':
+            charsiu(features=features, gpu=gpu)
+            continue
 
         speakers = [speaker for speaker in listdir(input_directory) if isdir(join(input_directory, speaker))]
 
@@ -119,7 +124,7 @@ def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=
         raise ValueError(f'given representation "{representation}" does not exist')
     if not hasattr(from_audio, representation):
         setattr(from_audio, representation, representation_module.from_audio)
-    
+
     #Compute representation
     return getattr(from_audio, representation)(
         audio, 

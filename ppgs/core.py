@@ -14,6 +14,7 @@ def from_audio(
     audio,
     sample_rate,
     model=None,
+    preprocess_only=False,
     checkpoint=ppgs.DEFAULT_CHECKPOINT,
     representation=ppgs.REPRESENTATION,
     gpu=None):
@@ -40,31 +41,33 @@ def from_audio(
             from_audio.gpu = gpu
 
         # Preprocess audio
-        #TODO investigate unsqueeze on dim 0
         features = ppgs.preprocess.from_audio(audio, representation=representation, sample_rate=sample_rate, gpu=gpu)
+
+        if preprocess_only:
+            return features
 
         # Compute PPGs
         return from_audio.model(features)
 
 
-def from_file(file, checkpoint=ppgs.DEFAULT_CHECKPOINT, gpu=None):
+def from_file(file, checkpoint=ppgs.DEFAULT_CHECKPOINT, preprocess_only=False, gpu=None):
     """Compute phonetic posteriorgram features from audio file"""
     # Load audio
     audio = ppgs.load.audio(file)
-    print(audio.shape)
 
     # Compute PPGs
-    return from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, checkpoint=checkpoint, gpu=gpu)
+    return from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, preprocess_only=preprocess_only, checkpoint=checkpoint, gpu=gpu)
 
 
 def from_file_to_file(
     audio_file,
     output_file,
+    preprocess_only=False,
     checkpoint=ppgs.DEFAULT_CHECKPOINT,
     gpu=None):
     """Compute phonetic posteriorgram and save as torch tensor"""
     # Compute PPGs
-    result = from_file(audio_file, checkpoint, gpu).detach().cpu()
+    result = from_file(audio_file, checkpoint, preprocess_only=preprocess_only, gpu=gpu).detach().cpu()
 
     # Save to disk
     torch.save(result, output_file)
@@ -73,6 +76,7 @@ def from_file_to_file(
 def from_files_to_files(
     audio_files,
     output_files=None,
+    preprocess_only=False,
     checkpoint=ppgs.DEFAULT_CHECKPOINT,
     gpu=None):
     """Compute phonetic posteriorgrams and save as torch tensors"""
@@ -84,6 +88,7 @@ def from_files_to_files(
     ppg_fn = functools.partial(
         from_file_to_file,
         checkpoint=checkpoint,
+        preprocess_only=preprocess_only,
         gpu=gpu)
 
     # Compute PPGs
