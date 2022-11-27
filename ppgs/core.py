@@ -1,6 +1,7 @@
 import functools
 import torch
 import torchaudio
+import tqdm
 
 import ppgs
 
@@ -92,13 +93,28 @@ def from_files_to_files(
         gpu=gpu)
 
     # Compute PPGs
-    for (audio_file, output_file) in zip(audio_files, output_files):
+    iterable = iterator(
+        zip(audio_files, output_files),
+        'ppgs',
+        total=len(audio_files))
+    for audio_file, output_file in iterable:
         ppg_fn(audio_file, output_file)
 
 
 ###############################################################################
 # Utilities
 ###############################################################################
+
+
+def iterator(iterable, message, initial=0, total=None):
+    """Create a tqdm iterator"""
+    total = len(iterable) if total is None else total
+    return tqdm.tqdm(
+        iterable,
+        desc=message,
+        dynamic_ncols=True,
+        initial=initial,
+        total=total)
 
 
 def resample(audio, sample_rate, target_rate=ppgs.SAMPLE_RATE):
