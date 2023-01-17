@@ -6,7 +6,7 @@ import torch
 import tqdm
 
 import ppgs
-
+from ppgs.evaluate import visualize
 
 ###############################################################################
 # Training interface
@@ -205,6 +205,10 @@ def train(
                         'train/loss': loss,
                         'learning_rate': optimizer.param_groups[0]['lr']}
                     ppgs.write.scalars(log_directory, step, scalars)
+
+                    # Log visualizations
+                    # visualization_batch = batch[:ppgs.VISUALIZATION_SAMPLES]
+                    # audio_filenames = [f + '.wav' for f in visualization_batch]
 
                 ############
                 # Evaluate #

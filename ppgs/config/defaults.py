@@ -76,6 +76,9 @@ EVALUATION_BATCHES = 4
 # Number of steps between evaluation
 EVALUATION_INTERVAL = 2500  # steps
 
+# Maximum number of samples to create visualizations for during training
+VISUALIZATION_SAMPLES = 10
+
 
 ###############################################################################
 # Training parameters

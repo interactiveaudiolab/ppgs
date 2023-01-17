@@ -49,6 +49,7 @@ def from_audio(
     # Setup features
     # inputs = from_audio.processor(audio, sampling_rate=sample_rate, return_tensors='pt')
     pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
+    #TODO investigate +1 here
     inputs = torch.nn.functional.pad(audio, (pad, pad+1)).unsqueeze(dim=0)
     # inputs = audio.unsqueeze(dim=0)
     inputs = inputs.to(device)
