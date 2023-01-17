@@ -18,7 +18,6 @@ def parse_args():
     )
     parser.add_argument(
         '--representation',
-        nargs=1,
         default=None,
         help="Which representation to validate"
     )
