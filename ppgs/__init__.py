@@ -1,3 +1,6 @@
+# This line is necessary because the tensorboard devs have no idea how to code
+from torch.utils.tensorboard import SummaryWriter
+
 ###############################################################################
 # Configuration
 ###############################################################################
@@ -8,7 +11,7 @@ from .config import defaults
 
 # Modify configuration
 import yapecs
-yapecs.configure(defaults)
+yapecs.configure('ppgs', defaults)
 
 # Import configuration parameters
 from .config.defaults import *
