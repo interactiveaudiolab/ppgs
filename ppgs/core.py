@@ -47,7 +47,7 @@ def from_audio(
             return features
 
         # Compute PPGs
-        return from_audio.model(features)
+        return from_audio.model(features[None])[0]
 
 
 def from_file(file, checkpoint=ppgs.DEFAULT_CHECKPOINT, preprocess_only=False, gpu=None):
