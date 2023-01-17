@@ -38,7 +38,7 @@ class Dataset(torch.utils.data.Dataset):
         self.stems = ppgs.load.partition(name)[partition]
 
         #calculate window size based on representation #TODO consider removing
-        self.WINDOW_SIZE = getattr(ppgs.preprocess, representation).WINDOW_SIZE
+        # self.WINDOW_SIZE = getattr(ppgs.preprocess, representation).WINDOW_SIZE
 
     def __getitem__(self, index):
         """Retrieve the indexth item"""
