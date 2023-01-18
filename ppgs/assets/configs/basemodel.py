@@ -1,4 +1,4 @@
 CONFIG = 'basemodel'
 MODULE = 'ppgs'
 
-NUM_WORKERS=0
+NUM_WORKERS=8
