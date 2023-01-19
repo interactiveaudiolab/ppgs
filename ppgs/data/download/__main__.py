@@ -59,6 +59,11 @@ def parse_args():
         ],
         help='specify for which speakers data should be downloaded'
     )
+    parser.add_argument(
+        '--purge-sources',
+        action='store_true',
+        help='automatically remove original download of dataset upon completion of formatting (free up space)'
+    )
     return parser.parse_args()
 
 

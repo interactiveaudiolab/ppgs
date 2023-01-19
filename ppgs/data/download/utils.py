@@ -19,18 +19,17 @@ def download_google_drive_zip(url, path, skip_first=True):
     f = NamedTemporaryFile(mode='r+b', suffix=".zip", delete=False)
     f.close()
     gdown.download(url, f.name)
-    with open(f.name, 'r+b') as f:
-        with ZipFile(f) as zf:
-            iterator = tqdm(
-                zf.infolist()[1 if skip_first else 0:],
-                desc="Extracting zip contents",
-                total=len(zf.infolist()),
-                dynamic_ncols=True
-            )
-            for zipinfo in iterator:
-                fname = Path(zipinfo.filename).name
-                with zf.open(zipinfo, 'r') as in_file, open(path / fname, 'wb') as out_file:
-                    out_file.write(in_file.read())
+    with ZipFile(f.name) as zf:
+        iterator = tqdm(
+            zf.infolist()[1 if skip_first else 0:],
+            desc="Extracting zip contents",
+            total=len(zf.infolist()),
+            dynamic_ncols=True
+        )
+        for zipinfo in iterator:
+            fname = Path(zipinfo.filename).name
+            with zf.open(zipinfo, 'r') as in_file, open(path / fname, 'wb') as out_file:
+                out_file.write(in_file.read())
     #TODO delete temp file
 
 def download_zip(url, path):
