@@ -1,14 +1,17 @@
 import ppgs
 import pypar
 import tqdm
+from shutil import copy as cp
 
 def charsiu(features=None, gpu=None):
     """Perform preprocessing for charsiu dataset"""
 
+    print(features)
+
     data_dir = ppgs.DATA_DIR / 'charsiu'
     wav_dir = data_dir / 'wav'
     textgrid_dir = data_dir / 'textgrid'
-    output_dir = ppgs.SOURCES_DIR / 'charsiu'
+    output_dir = ppgs.CACHE_DIR / 'charsiu'
 
     output_dir.mkdir(exist_ok=True, parents=True)
 
@@ -29,7 +32,16 @@ def charsiu(features=None, gpu=None):
                 alignment = pypar.Alignment(textgrid_file)
 
         if 'wav' in features: #copy wav files
-            raise NotImplementedError('wav preprocessing for charsiu not fully implemented')
+            print(len(audio_files))
+            iterator = tqdm.tqdm(
+                audio_files[:5],
+                desc="copying audio files",
+                total=len(audio_files),
+                dynamic_ncols=True
+            )
+            for audio_file in iterator:
+                print(audio_file)
+                cp(audio_file, audio_file.name)
 
         if 'ppg' in features: #compute ppgs
             ppg_files = [f'{file.stem}-ppg.pt' for file in audio_files]

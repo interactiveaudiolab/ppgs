@@ -8,6 +8,7 @@ import torchaudio
 
 import ppgs
 from ppgs import SOURCES_DIR, DATA_DIR
+import ppgs.data.purge
 
 from .sph import pcm_sph_to_wav
 from .utils import files_with_extension, download_file, download_tar_bz2, download_google_drive_zip, download_tar_gz
@@ -16,7 +17,7 @@ from .arctic_version import v0_90_to_v0_95
 
 #TODO this file could use a refactor
 
-def datasets(datasets, format_only, timit_source, common_voice_source, arctic_speakers):
+def datasets(datasets, format_only, timit_source, common_voice_source, arctic_speakers, purge_sources):
     """Downloads the datasets passed in"""
     datasets = [dataset.lower() for dataset in datasets]
     if 'timit' in datasets:
@@ -25,18 +26,24 @@ def datasets(datasets, format_only, timit_source, common_voice_source, arctic_sp
             format_timit()
         else:
             format_timit()
+        if purge_sources:
+            ppgs.data.purge.datasets(datasets=['timit'], kinds=['sources'])
     if 'arctic' in datasets:
         if not format_only:
             download_arctic(arctic_speakers)
             format_arctic(arctic_speakers)
         else:
             format_arctic(arctic_speakers)
+        if purge_sources:
+            ppgs.data.purge.datasets(datasets=['arctic'], kinds=['sources'])
     if 'charsiu' in datasets:
         if not format_only:
             download_charsiu(common_voice_source)
             format_charsiu()
         else:
             format_charsiu()
+        if purge_sources:
+            ppgs.data.purge.datasets(datasets=['charsiu'], kinds=['sources'])
 
 
 ###############################################################################
@@ -102,8 +109,8 @@ def download_charsiu(common_voice_source=None):
 
     #download TextGrid files
     alignments_dir = charsiu_sources / 'alignments'
-    # alignments_dir.mkdir(parents=True, exist_ok=True)
-    # download_google_drive_zip('https://drive.google.com/uc?id=1J_IN8HWPXaKVYHaAf7IXzUd6wyiL9VpP', alignments_dir)
+    alignments_dir.mkdir(parents=True, exist_ok=True)
+    download_google_drive_zip('https://drive.google.com/uc?id=1J_IN8HWPXaKVYHaAf7IXzUd6wyiL9VpP', alignments_dir)
 
     #download Common Voice Subset
     if common_voice_source is None:
@@ -111,7 +118,7 @@ def download_charsiu(common_voice_source=None):
         cv_corpus_files = list(SOURCES_DIR.glob('cv-corpus*.tar.gz')) + list(SOURCES_DIR.glob('cv-corpus*.tgz'))
         if len(cv_corpus_files) >= 1:
             corpus_file = sorted(cv_corpus_files)[-1]
-            stems = [file.stem for file in files_with_extension('textgrid', alignments_dir)]
+            # stems = [file.stem for file in files_with_extension('textgrid', alignments_dir)]
             corpus = tarfile.open(corpus_file, 'r|gz')
             common_voice_dir = charsiu_sources / 'common_voices'
             corpus.extractall(path=common_voice_dir)
@@ -396,7 +403,7 @@ def format_charsiu():
 
     num_not_found = len(stems.difference(set(found_stems)))
     
-    print(f"Failed to find {num_not_found}/{len(stems)} mp3 files ({num_not_found/len(stems)*100}%)!")
+    print(f"Failed to find {num_not_found}/{len(stems)} mp3 files ({num_not_found/(len(stems)+1e-6)*100}%)!")
 
     charsiu_data_dir = ppgs.DATA_DIR / 'charsiu'
     charsiu_wav_dir = charsiu_data_dir / 'wav'

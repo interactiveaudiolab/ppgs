@@ -1,5 +1,7 @@
 __pycache__/
 
+.vscode
+
 data/*/*
 !data/*/.gitkeep
 runs/*
