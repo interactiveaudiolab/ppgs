@@ -414,14 +414,21 @@ def format_charsiu():
 
     iterator = tqdm.tqdm(
         textgrid_files,
-        desc="Copying charsiu textgrid files to datasets directory",
+        desc="Copying charsiu textgrid files to datasets directory (agonizingly slow)",
         total=len(textgrid_files),
         dynamic_ncols=True
     )
 
     for textgrid_file in iterator: #TODO this is unbearably slow, can we make it faster please?
         if textgrid_file.stem in found_stems:
-            cp(textgrid_file, charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'))
+            #Need to fix short format because the textgrid library doesn't understand without
+            with open(textgrid_file, 'r', encoding='utf-8') as infile:
+                lines = infile.readlines()
+            lines[0] = 'File type = "ooTextFile short"'
+            lines[1] = 'TextGrid'
+            with open(charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'), 'w', encoding='utf-8') as outfile:
+                outfile.writelines(lines)
+            # cp(textgrid_file, charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'))
     
     iterator = tqdm.tqdm(
         mp3_found,
