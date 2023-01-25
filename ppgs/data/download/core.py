@@ -424,8 +424,8 @@ def format_charsiu():
             #Need to fix short format because the textgrid library doesn't understand without
             with open(textgrid_file, 'r', encoding='utf-8') as infile:
                 lines = infile.readlines()
-            lines[0] = 'File type = "ooTextFile short"'
-            lines[1] = 'TextGrid'
+            lines[0] = 'File type = "ooTextFile short"\n'
+            lines[1] = '"TextGrid"\n'
             with open(charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'), 'w', encoding='utf-8') as outfile:
                 outfile.writelines(lines)
             # cp(textgrid_file, charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'))
