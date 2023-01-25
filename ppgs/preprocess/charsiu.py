@@ -6,8 +6,6 @@ from shutil import copy as cp
 def charsiu(features=None, gpu=None):
     """Perform preprocessing for charsiu dataset"""
 
-    print(features)
-
     data_dir = ppgs.DATA_DIR / 'charsiu'
     wav_dir = data_dir / 'wav'
     textgrid_dir = data_dir / 'textgrid'
@@ -20,8 +18,8 @@ def charsiu(features=None, gpu=None):
     with ppgs.data.chdir(output_dir):
 
         if 'phonemes' in features: #convert textgrid and transfer
-            raise NotImplementedError('phoneme preprocessing for charsiu not fully implemented')
-            textgrid_files = textgrid_dir.glob('*.textgrid')
+            # raise NotImplementedError('phoneme preprocessing for charsiu not fully implemented')
+            textgrid_files = list(textgrid_dir.glob('*.textgrid'))
             iterator = tqdm.tqdm(
                 textgrid_files,
                 desc="Converting textgrid phone dialect for charsiu dataset",
@@ -30,17 +28,24 @@ def charsiu(features=None, gpu=None):
             )
             for textgrid_file in iterator:
                 alignment = pypar.Alignment(textgrid_file)
+                for word in alignment._words:
+                    if word.word == '[SIL]':
+                        word.word = 'sp'
+                    for phoneme in word.phonemes:
+                        if phoneme.phoneme == '[SIL]':
+                            phoneme.phoneme = 'sil'
+                        else:
+                            phoneme.phoneme = phoneme.phoneme.lower()
+                alignment.save(textgrid_file.name)
 
         if 'wav' in features: #copy wav files
-            print(len(audio_files))
             iterator = tqdm.tqdm(
-                audio_files[:5],
+                audio_files,
                 desc="copying audio files",
                 total=len(audio_files),
                 dynamic_ncols=True
             )
             for audio_file in iterator:
-                print(audio_file)
                 cp(audio_file, audio_file.name)
 
         if 'ppg' in features: #compute ppgs
