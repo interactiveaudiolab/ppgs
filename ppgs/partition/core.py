@@ -22,6 +22,8 @@ def datasets(datasets, overwrite=False):
             arctic()
         elif dataset.lower() == 'timit':
             timit()
+        elif dataset.lower() == 'charsiu':
+            charsiu()
         else:
             raise NotImplementedError
 
@@ -61,3 +63,25 @@ def timit():
         validation_files += list((data_dir / speaker).glob('*.textgrid'))
 
     partition_dataset(data_dir, unseen_speakers, validation_files, partition_file)
+
+def charsiu():
+    """Partition dataset"""
+    data_dir = ppgs.CACHE_DIR / 'charsiu'
+    partition_file = ppgs.PARTITION_DIR / 'charsiu.json'
+    stems = [file.stem for file in data_dir.glob('*.textgrid')]
+    # Get dataset stems
+    random.seed(ppgs.RANDOM_SEED)
+    random.shuffle(stems)
+
+    # Get split points
+    left, right = int(.70 * len(stems)), int(.85 * len(stems))
+
+    # Perform partition
+    partition = {
+        'train': sorted(stems[:left]),
+        'valid': sorted(stems[left:right]),
+        'test': sorted(stems[right:])}
+
+    # Write partition file
+    with open(partition_file, 'w') as file:
+        json.dump(partition, file, indent=4)

@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import torchaudio
 
+import pypar
 import ppgs
 from ppgs import SOURCES_DIR, DATA_DIR
 import ppgs.data.purge
@@ -413,22 +414,37 @@ def format_charsiu():
     charsiu_textgrid_dir.mkdir(exist_ok=True, parents=True)
 
     iterator = tqdm.tqdm(
-        textgrid_files,
-        desc="Copying charsiu textgrid files to datasets directory (agonizingly slow)",
+        mp3_found,
+        desc="Copying charsiu textgrid files to datasets directory and converting mp3 to wav",
         total=len(textgrid_files),
         dynamic_ncols=True
     )
 
-    for textgrid_file in iterator: #TODO this is unbearably slow, can we make it faster please?
-        if textgrid_file.stem in found_stems:
-            #Need to fix short format because the textgrid library doesn't understand without
-            with open(textgrid_file, 'r', encoding='utf-8') as infile:
-                lines = infile.readlines()
-            lines[0] = 'File type = "ooTextFile short"\n'
-            lines[1] = '"TextGrid"\n'
-            with open(charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'), 'w', encoding='utf-8') as outfile:
-                outfile.writelines(lines)
-            # cp(textgrid_file, charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'))
+    for mp3_file in iterator: #TODO this is unbearably slow, can we make it faster please?
+
+        audio = ppgs.load.audio(mp3_file)
+        torchaudio.save(charsiu_wav_dir / (mp3_file.stem + '.wav'), audio, sample_rate=ppgs.SAMPLE_RATE)
+
+        duration = audio.shape[-1] / ppgs.SAMPLE_RATE
+
+        try:
+            textgrid_file = charsiu_sources / 'alignments' / (mp3_file.stem + '.TextGrid')
+        except:
+            textgrid_file = charsiu_sources / 'alignments' / (mp3_file.stem + '.textgrid')
+
+        output_textgrid = charsiu_textgrid_dir / textgrid_file.name
+
+        #Need to fix short format because the textgrid library doesn't understand without
+        with open(textgrid_file, 'r', encoding='utf-8') as infile:
+            lines = infile.readlines()
+        lines[0] = 'File type = "ooTextFile short"\n'
+        lines[1] = '"TextGrid"\n'
+        with open(output_textgrid, 'w', encoding='utf-8') as outfile:
+            outfile.writelines(lines)
+        alignment = pypar.Alignment(output_textgrid)
+        alignment[-1][-1]._end = duration
+        alignment.save(output_textgrid)
+        # cp(textgrid_file, charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'))
     
     iterator = tqdm.tqdm(
         mp3_found,

@@ -49,6 +49,7 @@ def from_logits_to_video_file(logits, audio_filename, video_filename, preprocess
     audio_clip = mpy.AudioFileClip(audio_filename, fps=ppgs.SAMPLE_RATE)
 
     pixels = torch.nn.functional.softmax(logits, dim=1) * 255 #softmax to get nice distribution
+    # pixels = torch.nn.functional.one_hot(torch.argmax(logits, dim=1), logits.shape[-1]) * 255
     pixels = torch.nn.functional.pad(pixels, (0, 0, pad, pad)) #pad so playhead is centered
     pixels = pixels.unsqueeze(-1).repeat(1,1,3) #unsqueeze and convert form greyscale to rgb
 
@@ -152,8 +153,9 @@ def from_logits_to_videos(batched_logits, audio_filenames, labels=ppgs.PHONEME_L
     return videos
 
 if __name__ == '__main__':
-    audio_filenames = [f'data/cache/arctic/cmu_us_bdl_arctic/arctic_a000{i}.wav' for i in range(1,2)]
+    # audio_filenames = [f'data/cache/arctic/cmu_us_bdl_arctic/arctic_a000{i}.wav' for i in range(1,2)]
+    audio_filenames = ['tmp/arctic_a0001.wav']
 
-    from_files_to_files(audio_filenames, './tmp/', checkpoint='runs/basemodel/00300000.pt', preprocess_only=True, gpu=0)
+    from_files_to_files(audio_filenames, './tmp/', checkpoint='runs/basemodel/00300000.pt', preprocess_only=False, gpu=0)
 
     
