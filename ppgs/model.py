@@ -10,6 +10,14 @@ import ppgs
 # Model
 ###############################################################################
 
+def getModelFromString(type='baseline'):
+    if type == 'baseline':
+        return BaselineModel
+    elif type == 'transformer':
+        return TransformerModel
+    else:
+        raise ValueError('unknown model type:', type)
+
 
 class BaselineModel(torch.nn.Sequential):
     """Create a baseline model to compare with. Basedon on torch Sequential superclass."""
@@ -39,20 +47,22 @@ class BaselineModel(torch.nn.Sequential):
 
 
 class MultiHeadAttention(torch.nn.Module):
+    """Basic implementation of Multi-head attention"""
 
     def __init__(
         self,
         channels,
         out_channels,
-        n_heads,
+        n_heads=4,
         p_dropout=0.,
-        window_size=4):
+        window_size=4,
+        ):
         super().__init__()
         assert channels % n_heads == 0
         # Setup layers
         self.n_heads = n_heads
         self.window_size = window_size
-        self.conv_q = torch.nn.Conv1d(channels, channels, 1)
+        self.conv_q = torch.nn.Conv1d(channels, channels, 1) #TODO investigate kernel size here
         self.conv_k = torch.nn.Conv1d(channels, channels, 1)
         self.conv_v = torch.nn.Conv1d(channels, channels, 1)
         self.conv_o = torch.nn.Conv1d(channels, out_channels, 1)
@@ -77,10 +87,10 @@ class MultiHeadAttention(torch.nn.Module):
         torch.nn.init.xavier_uniform_(self.conv_k.weight)
         torch.nn.init.xavier_uniform_(self.conv_v.weight)
 
-    def forward(self, x, c, mask=None):
+    def forward(self, x, mask=None): #Modified for self attention
         q = self.conv_q(x)
-        k = self.conv_k(c)
-        v = self.conv_v(c)
+        k = self.conv_k(x)
+        v = self.conv_v(x)
         x, self.attn = self.attention(q, k, v, mask=mask)
         return self.conv_o(x)
 
@@ -181,3 +191,27 @@ class MultiHeadAttention(torch.nn.Module):
         # Add 0's in the beginning that will skew the elements after reshape
         x_flat = torch.nn.functional.pad(x_flat, (length, 0))
         return x_flat.view([batch, heads, length, 2 * length])[:, :, :, 1:]
+
+class TransformerModel(torch.nn.Sequential):
+    """Create a transformer model. Based on on torch Sequential superclass."""
+
+    def __init__(
+        self,
+        input_channels=None, #dimensionality of input time series
+        output_channels=None, #phoneme time series dimensionality
+        hidden_channels=128,
+        # kernel_size=5, //TODO implement?
+        n_heads=4):
+
+        if input_channels is None:
+            input_channels = ppgs.INPUT_CHANNELS
+        if output_channels is None:
+            output_channels = ppgs.OUTPUT_CHANNELS
+
+        super().__init__(
+            MultiHeadAttention(input_channels, hidden_channels, n_heads),
+            torch.nn.ReLU(),
+            MultiHeadAttention(hidden_channels, hidden_channels, n_heads),
+            torch.nn.ReLU(),
+            MultiHeadAttention(hidden_channels, output_channels, n_heads)
+        )
