@@ -106,6 +106,8 @@ RANDOM_SEED = 1234
 # Model parameters #TODO extract to separate config file?
 ###############################################################################
 
+MODEL_TYPE = 'baseline'
+
 INPUT_CHANNELS = 144 #dimensionality of input representation
 OUTPUT_CHANNELS = 42 #number of phonemes
 
