@@ -106,10 +106,22 @@ RANDOM_SEED = 1234
 # Model parameters #TODO extract to separate config file?
 ###############################################################################
 
-MODEL_TYPE = 'baseline'
 
-INPUT_CHANNELS = 144 #dimensionality of input representation
-OUTPUT_CHANNELS = 42 #number of phonemes
+# Number of attention heads
+ATTENTION_HEADS = 2
+
+# Network width
+HIDDEN_CHANNELS = 128
+
+# Dimensionality of input representation
+INPUT_CHANNELS = 144
+
+# Kernel width
+KERNEL_SIZE = 5
+
+# Name of the model to use
+MODEL = 'convolution'
+
 
 ###############################################################################
 # Partition parameters #TODO extract to separate config file
@@ -479,10 +491,10 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'dh': 'dh',
     'dx': 'd', #assumption
     'eh': 'eh',
-    'el': 'l', 
-    'em': 'm', 
-    'en': 'n', 
-    'eng': 'ng', 
+    'el': 'l',
+    'em': 'm',
+    'en': 'n',
+    'eng': 'ng',
     'epi': 'pau', #differs from Kaldi (pau instead of sil)
     'er': 'er',
     'ey': 'ey',

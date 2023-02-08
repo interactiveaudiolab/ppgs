@@ -1,49 +1,55 @@
-"""model.py - model definition"""
-
-import math
 import functools
+import math
+
 import torch
+
 import ppgs
 
 
 ###############################################################################
-# Model
+# Transformer model
 ###############################################################################
 
-def getModelFromString(type='baseline'):
-    if type == 'baseline':
-        return BaselineModel
-    elif type == 'transformer':
-        return TransformerModel
-    else:
-        raise ValueError('unknown model type:', type)
+
+class Transformer(torch.nn.Sequential):
+    """Transformer-based model"""
+
+    def __init__(self):
+        self.layers = (
+            TransformerLayer(ppgs.INPUT_CHANNELS, ppgs.HIDDEN_CHANNELS),
+            torch.nn.ReLU(),
+            TransformerLayer(ppgs.HIDDEN_CHANNELS, ppgs.HIDDEN_CHANNELS),
+            torch.nn.ReLU(),
+            TransformerLayer(ppgs.HIDDEN_CHANNELS, len(ppgs.PHONEME_LIST)))
+
+    def forward(self, x, mask):
+        x = x * mask
+        x = self.layers(x, mask)
+        return x * mask
 
 
-class BaselineModel(torch.nn.Sequential):
-    """Create a baseline model to compare with. Basedon on torch Sequential superclass."""
+###############################################################################
+# Utilities
+###############################################################################
 
-    def __init__(
-        self,
-        input_channels=None, #dimensionality of input time series
-        output_channels=None, #phoneme time series dimensionality
-        hidden_channels=128,
-        kernel_size=5):
 
-        if input_channels is None:
-            input_channels = ppgs.INPUT_CHANNELS
-        if output_channels is None:
-            output_channels = ppgs.OUTPUT_CHANNELS
+class FeedForward(torch.nn.Module):
 
+    def __init__(self, channels, kernel_size):
+        super().__init__()
+        self.kernel_size = kernel_size
         conv_fn = functools.partial(
             torch.nn.Conv1d,
             kernel_size=kernel_size,
             padding='same')
-        super().__init__(
-            conv_fn(input_channels, hidden_channels),
-            torch.nn.ReLU(),
-            conv_fn(hidden_channels, hidden_channels),
-            torch.nn.ReLU(),
-            conv_fn(hidden_channels, output_channels))
+        self.conv_1 = conv_fn(channels, channels)
+        self.conv_2 = conv_fn(channels, channels)
+
+    def forward(self, x, mask):
+        x = self.conv_1(x * mask)
+        x = torch.relu(x)
+        x = self.conv_2(x * mask)
+        return x * mask
 
 
 class MultiHeadAttention(torch.nn.Module):
@@ -53,20 +59,18 @@ class MultiHeadAttention(torch.nn.Module):
         self,
         channels,
         out_channels,
-        n_heads=4,
-        p_dropout=0.,
-        window_size=4,
-        ):
+        n_heads=ppgs.ATTENTION_HEADS,
+        window_size=4):
         super().__init__()
         assert channels % n_heads == 0
         # Setup layers
         self.n_heads = n_heads
         self.window_size = window_size
-        self.conv_q = torch.nn.Conv1d(channels, channels, 1) #TODO investigate kernel size here
+        # TODO investigate kernel size here
+        self.conv_q = torch.nn.Conv1d(channels, channels, 1)
         self.conv_k = torch.nn.Conv1d(channels, channels, 1)
         self.conv_v = torch.nn.Conv1d(channels, channels, 1)
         self.conv_o = torch.nn.Conv1d(channels, out_channels, 1)
-        self.dropout = torch.nn.Dropout(p_dropout)
 
         # Setup relative positional embedding
         self.k_channels = channels // n_heads
@@ -87,7 +91,7 @@ class MultiHeadAttention(torch.nn.Module):
         torch.nn.init.xavier_uniform_(self.conv_k.weight)
         torch.nn.init.xavier_uniform_(self.conv_v.weight)
 
-    def forward(self, x, mask=None): #Modified for self attention
+    def forward(self, x, mask=None):  # Modified for self attention
         q = self.conv_q(x)
         k = self.conv_k(x)
         v = self.conv_v(x)
@@ -132,7 +136,7 @@ class MultiHeadAttention(torch.nn.Module):
 
         # Compute output activation
         # (batch, heads, t_t, t_s)
-        attention = self.dropout(torch.nn.functional.softmax(scores, dim=-1))
+        attention = torch.nn.functional.softmax(scores, dim=-1)
         output = torch.matmul(attention, value)
 
         # Convert to absolute positional representation to adjust output
@@ -192,26 +196,22 @@ class MultiHeadAttention(torch.nn.Module):
         x_flat = torch.nn.functional.pad(x_flat, (length, 0))
         return x_flat.view([batch, heads, length, 2 * length])[:, :, :, 1:]
 
-class TransformerModel(torch.nn.Sequential):
-    """Create a transformer model. Based on on torch Sequential superclass."""
 
-    def __init__(
-        self,
-        input_channels=None, #dimensionality of input time series
-        output_channels=None, #phoneme time series dimensionality
-        hidden_channels=128,
-        # kernel_size=5, //TODO implement?
-        n_heads=4):
+class TransformerLayer(torch.nn.Sequential):
 
-        if input_channels is None:
-            input_channels = ppgs.INPUT_CHANNELS
-        if output_channels is None:
-            output_channels = ppgs.OUTPUT_CHANNELS
+    def __init__(self, input_channels, output_channels):
+        super().__init__()
+        self.output_channels = output_channels
 
-        super().__init__(
-            MultiHeadAttention(input_channels, hidden_channels, n_heads),
-            torch.nn.ReLU(),
-            MultiHeadAttention(hidden_channels, hidden_channels, n_heads),
-            torch.nn.ReLU(),
-            MultiHeadAttention(hidden_channels, output_channels, n_heads)
-        )
+        # Multihead attention
+        self.attention = MultiHeadAttention(input_channels, output_channels)
+
+        # Feed-forward layer
+        self.feed_forward = FeedForward(output_channels, ppgs.KERNEL_SIZE)
+
+    def forward(self, x, mask):
+        y = self.attention(x, x, mask.unsqueeze(2) * mask.unsqueeze(-1))
+        x = torch.nn.functional.layer_norm(x + y, self.output_channels)
+        y = self.feed_forward(x, mask)
+        x = torch.nn.functional.layer_norm(x + y, self.output_channels)
+        return x
