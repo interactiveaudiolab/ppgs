@@ -71,7 +71,7 @@ def from_file(audio_file, gpu=None):
 
 def from_file_to_file(audio_file, output_file, gpu=None):
     """Compute W2V2 latents from audio file and save to disk"""
-    ppg = from_file(audio_file, gpu)
+    ppg = from_file(audio_file, gpu).to(torch.float16)
     torch.save(ppg, output_file)
 
 
