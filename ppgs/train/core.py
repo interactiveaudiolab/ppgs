@@ -74,7 +74,7 @@ def train(
     #################
 
     #TODO config?
-    model = ppgs.model.getModelFromString(ppgs.MODEL_TYPE)().to(device)
+    model = ppgs.model.getModelFromString(ppgs.MODEL)().to(device)
 
     ##################################################
     # Maybe setup distributed data parallelism (DDP) #

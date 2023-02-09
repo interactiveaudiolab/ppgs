@@ -19,7 +19,7 @@ def charsiu(features=None, gpu=None):
 
         if 'phonemes' in features: #convert textgrid and transfer
             # raise NotImplementedError('phoneme preprocessing for charsiu not fully implemented')
-            textgrid_files = list(textgrid_dir.glob('*.textgrid'))
+            textgrid_files = list(textgrid_dir.glob('*.textgrid')) + list(textgrid_dir.glob('*.TextGrid'))
             iterator = tqdm.tqdm(
                 textgrid_files,
                 desc="Converting textgrid phone dialect for charsiu dataset",
@@ -36,7 +36,7 @@ def charsiu(features=None, gpu=None):
                             phoneme.phoneme = 'sil'
                         else:
                             phoneme.phoneme = phoneme.phoneme.lower()
-                alignment.save(textgrid_file.name)
+                alignment.save(textgrid_file.stem + '.textgrid')
 
         if 'wav' in features: #copy wav files
             iterator = tqdm.tqdm(
