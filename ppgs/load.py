@@ -4,6 +4,7 @@ import torchaudio
 
 import ppgs
 from collections import OrderedDict
+from pathlib import Path
 
 ###############################################################################
 # Loading utilities
@@ -11,7 +12,12 @@ from collections import OrderedDict
 
 def audio(file):
     """Load audio from disk"""
-    audio, sample_rate = torchaudio.load(file)
+    path = Path(file)
+    if path.suffix.lower() == '.mp3':
+        # import pdb; pdb.set_trace()
+        audio, sample_rate = torchaudio.load(path, format='mp3')
+    else:
+        audio, sample_rate = torchaudio.load(file)
 
     # Maybe resample
     return ppgs.resample(audio, sample_rate)

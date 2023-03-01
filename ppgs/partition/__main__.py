@@ -14,7 +14,7 @@ def parse_args():
         '--overwrite',
         action='store_true',
         help='Whether to overwrite existing partitions')
-    return parser.parse_args()
+    return parser.parse_known_args()[0]
 
 
 if __name__ == '__main__':

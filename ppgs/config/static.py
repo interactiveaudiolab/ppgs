@@ -2,7 +2,6 @@
 
 
 import ppgs
-from ppgs.model import BaselineModel
 from ppgs.preprocess import *
 
 
@@ -25,7 +24,7 @@ DEFAULT_CONFIGURATION = ppgs.ASSETS_DIR / 'configs' / 'ppgs.py'
 # Model
 ###############################################################################
 
-MODEL = BaselineModel()
+MODEL = 'convolution'
 
 ###############################################################################
 # Representation

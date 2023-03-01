@@ -1,5 +1,5 @@
 CONFIG = 'charsiubasesenone'
 MODULE = 'ppgs'
 
-NUM_WORKERS=8
-NUM_STEPS = 3000000
+NUM_WORKERS=2
+NUM_STEPS = 1000000

@@ -10,7 +10,7 @@ import ppgs
 ###############################################################################
 
 
-def main(config, dataset, gpus=None):
+def main(config, dataset, gpus=None, eval_only=False):
     # Create output directory
     directory = ppgs.RUNS_DIR / config.stem
     directory.mkdir(parents=True, exist_ok=True)
@@ -24,10 +24,11 @@ def main(config, dataset, gpus=None):
         directory,
         directory,
         directory,
-        gpus)
+        gpus,
+        eval_only)
 
     # Evaluate
-    ppgs.evaluate.datasets([dataset], directory, gpus)
+    # ppgs.evaluate.datasets([dataset], directory, gpus)
 
 
 def parse_args():
@@ -47,6 +48,11 @@ def parse_args():
         type=int,
         nargs='+',
         help='The gpus to run training on')
+    parser.add_argument(
+        '--eval-only',
+        action='store_true',
+        help='Only run evaluation. For debugging purposes.'
+    )
     return parser.parse_args()
 
 

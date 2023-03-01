@@ -48,7 +48,8 @@ class Dataset(torch.utils.data.Dataset):
         input_ppgs = torch.load(self.cache / f'{stem}-{self.representation}.pt')
 
         # Also load audio for evaluation purposes
-        audio = torchaudio.load(self.cache / f'{stem}.wav')
+        #num_frames = torchaudio.info(self.cache/f'{stem.wav').num_frames // ppgs.HOPSIZE #TODO test and implement
+        audio = torchaudio.load(self.cache / f'{stem}.wav') #TODO refactor out?
         num_frames = audio[0].shape[-1]//ppgs.HOPSIZE
 
         # Pad audio

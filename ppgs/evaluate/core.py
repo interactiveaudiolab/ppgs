@@ -11,7 +11,7 @@ import tqdm
 ###############################################################################
 
 
-def datasets(datasets, checkpoint=None, gpu=None):
+def datasets(datasets, checkpoint=None, gpu=None, partition=None):
     """Perform evaluation"""
     
     # Start benchmarking
@@ -39,7 +39,8 @@ def datasets(datasets, checkpoint=None, gpu=None):
         dataset_metrics.reset()
 
         # Setup test dataset
-        dataloader = ppgs.data.loader.loader(dataset, 'test', representation=ppgs.REPRESENTATION)
+        ppgs.BATCH_SIZE = 1
+        dataloader = ppgs.data.loader.loader(dataset, partition, representation=ppgs.REPRESENTATION)
         iterator = tqdm.tqdm(
             dataloader,
             f'Evaluating {ppgs.CONFIG} on {dataset}',
@@ -79,9 +80,9 @@ def datasets(datasets, checkpoint=None, gpu=None):
     directory.mkdir(exist_ok=True, parents=True)
 
     # Write to json files
-    with open(directory / 'overall.json', 'w') as file:
+    with open(directory / f'overall-{partition}.json', 'w') as file:
         json.dump(overall, file, indent=4)
-    with open(directory / 'granular.json', 'w') as file:
+    with open(directory / f'granular-{partition}.json', 'w') as file:
         json.dump(granular, file, indent=4)
 
     # Turn off benchmarking
@@ -112,5 +113,5 @@ def datasets(datasets, checkpoint=None, gpu=None):
         } for key, value in benchmark.items()}
 
     # Write benchmarking information
-    with open(directory / 'time.json', 'w') as file:
+    with open(directory / f'time-{partition}.json', 'w') as file:
         json.dump(results, file, indent=4)
