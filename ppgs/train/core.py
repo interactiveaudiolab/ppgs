@@ -18,7 +18,8 @@ def run(
     checkpoint_directory,
     output_directory,
     log_directory,
-    gpus=None):
+    gpus=None,
+    eval_only=False):
     """Run model training"""
     # Distributed data parallelism
     if gpus and len(gpus) > 1:
@@ -41,7 +42,8 @@ def run(
             checkpoint_directory,
             output_directory,
             log_directory,
-            None if gpus is None else gpus[0])
+            None if gpus is None else gpus[0],
+            eval_only)
 
     # Return path to model checkpoint
     return ppgs.checkpoint.latest_path(output_directory)
@@ -57,7 +59,8 @@ def train(
     checkpoint_directory,
     output_directory,
     log_directory,
-    gpu=None):
+    gpu=None,
+    eval_only=False):
     """Train a model"""
     # Get DDP rank
     if torch.distributed.is_initialized():
@@ -74,7 +77,7 @@ def train(
     #################
 
     #TODO config?
-    model = ppgs.model.getModelFromString(ppgs.MODEL)().to(device)
+    model = ppgs.Model()().to(device)
 
     ##################################################
     # Maybe setup distributed data parallelism (DDP) #
@@ -141,6 +144,17 @@ def train(
         gamma=ppgs.LEARNING_RATE_DECAY,
         last_epoch=step // len(train_loader.dataset) if step else -1)
     scheduler = scheduler_fn(optimizer)
+
+
+    if eval_only:
+        evaluate(
+            log_directory,
+            step,
+            model,
+            valid_loader,
+            train_loader,
+            gpu)
+        return
 
     #########
     # Train #
@@ -324,6 +338,9 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                 # Finish when we have completed all or enough batches
                 if i == ppgs.EVALUATION_BATCHES:
                     break
+
+    print(training_metrics.metrics[0].count, training_metrics.metrics[0].true_positives)
+    return
 
     # Write to tensorboard
     ppgs.write.scalars(directory, step, validation_metrics())

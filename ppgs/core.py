@@ -22,7 +22,7 @@ def from_audio(
     """Compute phonetic posteriorgram features from audio"""
     with torch.no_grad():
         if model is None:
-            model = ppgs.MODEL
+            model = ppgs.Model()()
 
         # Cache model on first call; update when GPU or checkpoint changes
         if (not hasattr(from_audio, 'model') or
@@ -31,7 +31,7 @@ def from_audio(
             # model = ppgs.model.BaselineModel()
             state_dict = torch.load(checkpoint, map_location='cpu')['model']
             try:
-                model.load_state_dict(state_dict)
+                model.load_state_dict(state_dict=state_dict)
             except RuntimeError:
                 print('Failed to load model, trying again with assumption that model was trained using ddp')
                 state_dict = ppgs.load.ddp_to_single_state_dict(state_dict)

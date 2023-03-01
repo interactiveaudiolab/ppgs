@@ -53,8 +53,10 @@ class Accuracy:
         # Predicted category is the maximum logit
         predicted_indices = predicted_logits.argmax(dim=1)
 
+        # import pdb; pdb.set_trace()
+
         # Compare to target indices
-        self.true_positives += (predicted_indices == target_indices).sum()
+        self.true_positives += torch.logical_and(predicted_indices == target_indices, target_indices != -100).sum()
 
         # Update count
         self.count += (target_indices != -100).sum()

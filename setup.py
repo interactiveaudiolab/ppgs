@@ -28,10 +28,11 @@ setup(
         'yapecs',
         'pypar',
         'nltk',
-        'gdown>=4.6.9',
+        'gdown>=4.6.2',
         'opencv-python',
         'moviepy',
-        'transformers'
+        'transformers',
+        'ffmpeg<5'
     ],
     packages=['ppgs'],
     package_data={'ppgs': ['assets/*', 'assets/*/*']},
