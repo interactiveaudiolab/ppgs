@@ -285,6 +285,8 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
     # Prepare model for evaluation
     model.eval()
 
+    print(f'Evaluating model at step {step}')
+
     # Turn off gradient computation
     with torch.no_grad():
 
@@ -295,7 +297,8 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
             training_metrics = ppgs.evaluate.Metrics('training')
             validation_metrics = ppgs.evaluate.Metrics('validation')
 
-            for i, batch in enumerate(valid_loader):
+            # for i, batch in enumerate(valid_loader):
+            for i, batch in enumerate(valid_loader): #TODO change this back
 
                 # Unpack batch
                 (
@@ -339,8 +342,8 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                 if i == ppgs.EVALUATION_BATCHES:
                     break
 
-    print(training_metrics.metrics[0].count, training_metrics.metrics[0].true_positives)
-    return
+    # print(training_metrics.metrics[0].count, training_metrics.metrics[0].true_positives)
+    # return
 
     # Write to tensorboard
     ppgs.write.scalars(directory, step, validation_metrics())

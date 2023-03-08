@@ -32,7 +32,7 @@ class Dataset(torch.utils.data.Dataset):
             The name of the data partition
     """
 
-    def __init__(self, name, partition, representation='ppg'):
+    def __init__(self, name, partition, representation='senone'):
         self.representation = representation
         self.cache = ppgs.CACHE_DIR / name
         self.stems = ppgs.load.partition(name)[partition]

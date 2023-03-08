@@ -48,18 +48,18 @@ def charsiu(features=None, gpu=None):
             for audio_file in iterator:
                 cp(audio_file, audio_file.name)
 
-        if 'ppg' in features: #compute ppgs
-            ppg_files = [f'{file.stem}-ppg.pt' for file in audio_files]
-            ppgs.preprocess.ppg.from_files_to_files(
+        if 'senone' in features: #compute ppgs
+            ppg_files = [f'{file.stem}-senone.pt' for file in audio_files]
+            ppgs.preprocess.senone.from_files_to_files(
                 audio_files,
                 ppg_files,
                 gpu=gpu
             )
 
-        if 'w2v2' in features: #compute w2v2 latents
+        if 'w2v2fs' in features: #compute w2v2 latents
             audio_files = audio_files
-            w2v2_files = [f'{file.stem}-w2v2.pt' for file in audio_files]
-            ppgs.preprocess.w2v2.from_files_to_files(
+            w2v2_files = [f'{file.stem}-w2v2fs.pt' for file in audio_files]
+            ppgs.preprocess.w2v2fs.from_files_to_files(
                 audio_files,
                 w2v2_files,
                 gpu=gpu

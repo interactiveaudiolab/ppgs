@@ -33,7 +33,7 @@ def from_audio(
     config=CONFIG_FILE,
     checkpoint_file=CHECKPOINT_FILE,
     gpu=None):
-    """Compute PPGs from audio"""
+    """Compute Senone PPGs from audio"""
     if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
     if config is None: config=CONFIG_FILE
     if checkpoint_file is None: checkpoint_file=CHECKPOINT_FILE
@@ -41,7 +41,7 @@ def from_audio(
 
     # Cache model
     if not hasattr(from_audio, 'model'):
-        from_audio.model = ppgs.preprocess.ppg.conformer_ppg_model.build_ppg_model.load_ppg_model(
+        from_audio.model = ppgs.preprocess.senone.conformer_ppg_model.build_ppg_model.load_ppg_model(
             config,
             checkpoint_file,
             device)
@@ -55,24 +55,24 @@ def from_audio(
     length = torch.tensor([audio.shape[-1]], dtype=torch.long, device=device) + 2*pad #needs to be caluclated prior to padding
     audio = torch.nn.functional.pad(audio, (pad, pad))
 
-    # Infer ppgs
+    # Infer senone PPGs
     with torch.no_grad():
         return from_audio.model(audio, length)[0].T
 
 
 def from_file(audio_file, gpu=None):
-    """Compute PPGs from audio file"""
+    """Compute Senone PPGs from audio file"""
     return from_audio(ppgs.load.audio(audio_file), gpu=gpu).cpu()
 
 
 def from_file_to_file(audio_file, output_file, gpu=None):
-    """Compute PPGs from audio file and save to disk"""
+    """Compute Senone PPGs from audio file and save to disk"""
     ppg = from_file(audio_file, gpu)
     torch.save(ppg, output_file)
 
 
 def from_files_to_files(audio_files, output_files, gpu=None):
-    """Compute PPGs from audio files and save to disk"""
+    """Compute Senone PPGs from audio files and save to disk"""
     iterator = tqdm.tqdm(
         zip(audio_files, output_files),
         desc='Extracting PPGs',
