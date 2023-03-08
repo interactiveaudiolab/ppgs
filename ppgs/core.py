@@ -15,12 +15,15 @@ def from_audio(
     audio,
     sample_rate,
     model=None,
-    preprocess_only=False,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
     representation=ppgs.REPRESENTATION,
+    preprocess_only=False,
+    checkpoint=None,
     gpu=None):
     """Compute phonetic posteriorgram features from audio"""
     with torch.no_grad():
+        if checkpoint is None:
+            checkpoint = ppgs.CHECKPOINT_DIR / f'{representation}.pt'
+
         if model is None:
             model = ppgs.Model()()
 
@@ -51,24 +54,31 @@ def from_audio(
         return from_audio.model(features[None])[0]
 
 
-def from_file(file, checkpoint=ppgs.DEFAULT_CHECKPOINT, preprocess_only=False, gpu=None):
+def from_file(
+        file,
+        representation=ppgs.REPRESENTATION,
+        preprocess_only=False, 
+        checkpoint=None, 
+        gpu=None
+    ):
     """Compute phonetic posteriorgram features from audio file"""
     # Load audio
     audio = ppgs.load.audio(file)
 
     # Compute PPGs
-    return from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, preprocess_only=preprocess_only, checkpoint=checkpoint, gpu=gpu)
+    return from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, representation=representation, preprocess_only=preprocess_only, checkpoint=checkpoint, gpu=gpu)
 
 
 def from_file_to_file(
     audio_file,
     output_file,
+    representation=ppgs.REPRESENTATION,
     preprocess_only=False,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
+    checkpoint=None,
     gpu=None):
     """Compute phonetic posteriorgram and save as torch tensor"""
     # Compute PPGs
-    result = from_file(audio_file, checkpoint, preprocess_only=preprocess_only, gpu=gpu).detach().cpu()
+    result = from_file(audio_file, representation=representation, preprocess_only=preprocess_only, checkpoint=checkpoint, gpu=gpu).detach().cpu()
 
     # Save to disk
     torch.save(result, output_file)
@@ -77,8 +87,9 @@ def from_file_to_file(
 def from_files_to_files(
     audio_files,
     output_files=None,
+    representation=None,
     preprocess_only=False,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
+    checkpoint=None,
     gpu=None):
     """Compute phonetic posteriorgrams and save as torch tensors"""
     # Default output files are audio paths with ".pt" extension
@@ -88,8 +99,9 @@ def from_files_to_files(
     # Bind common parameters
     ppg_fn = functools.partial(
         from_file_to_file,
-        checkpoint=checkpoint,
+        representation=representation,
         preprocess_only=preprocess_only,
+        checkpoint=checkpoint,
         gpu=gpu)
 
     # Compute PPGs

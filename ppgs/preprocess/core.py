@@ -12,7 +12,7 @@ from ppgs.preprocess.charsiu import charsiu
 ###############################################################################
 
 
-ALL_FEATURES = ['ppg', 'phonemes', 'wav', 'w2v2']
+ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'senone']
 
 
 ###############################################################################
@@ -94,9 +94,9 @@ def from_files_to_files(
                 cp(file, output_directory / file.name)
 
         # Preprocess phonetic posteriorgrams
-        if 'ppg' in features:
-            ppg_files = [f'{file.stem}-ppg.pt' for file in audio_files]
-            ppgs.preprocess.ppg.from_files_to_files(
+        if 'senone' in features:
+            ppg_files = [f'{file.stem}-senone.pt' for file in audio_files]
+            ppgs.preprocess.senone.from_files_to_files(
                 audio_files,
                 ppg_files,
                 gpu
@@ -104,8 +104,8 @@ def from_files_to_files(
 
         # Preprocess wav2vec2 latents
         if 'w2v2' in features:
-            w2v2_files = [f'{file.stem}-w2v2.pt' for file in audio_files]
-            ppgs.preprocess.w2v2.from_files_to_files(
+            w2v2_files = [f'{file.stem}-w2v2fs.pt' for file in audio_files]
+            ppgs.preprocess.w2v2fs.from_files_to_files(
                 audio_files,
                 w2v2_files,
                 gpu

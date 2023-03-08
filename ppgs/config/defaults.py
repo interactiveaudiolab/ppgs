@@ -58,6 +58,8 @@ EVAL_DIR = Path(__file__).parent.parent.parent / 'eval'
 # Location to save training and adaptation artifacts
 RUNS_DIR = Path(__file__).parent.parent.parent / 'runs'
 
+CHECKPOINT_DIR = ASSETS_DIR / 'checkpoints'
+
 
 ###############################################################################
 # Logging parameters
@@ -85,7 +87,7 @@ VISUALIZATION_SAMPLES = 10
 ###############################################################################
 
 # Input representation
-REPRESENTATION = 'ppg'
+REPRESENTATION = 'senone'
 
 # Batch size (per gpu)
 BATCH_SIZE = 64

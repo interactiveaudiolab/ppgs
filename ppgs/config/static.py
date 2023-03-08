@@ -30,6 +30,7 @@ MODEL = 'convolution'
 # Representation
 ###############################################################################
 REPRESENTATION_MAP = {
-    'ppg': ppgs.preprocess.ppg,
-    'w2v2': ppgs.preprocess.w2v2
+    'senone': ppgs.preprocess.senone,
+    'w2v2fs': ppgs.preprocess.w2v2fs,
+    'w2v2fb': ppgs.preprocess.w2v2fb
 }
