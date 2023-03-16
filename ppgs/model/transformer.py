@@ -5,42 +5,30 @@ import torch
 
 import ppgs
 
-
 ###############################################################################
 # Transformer model
 ###############################################################################
 
+class Transformer(torch.nn.Module):
 
-class Transformer(torch.nn.Sequential):
-    """Transformer-based model"""
+    def __init__(self, num_layers=ppgs.NUM_HIDDEN_LAYERS+2, channels=ppgs.INPUT_CHANNELS):
+        super().__init__()
+        self.layers = torch.nn.ModuleList([TransformerLayer(channels) for _ in range(num_layers)])
 
-    def __init__(self):
-        self.layers = (
-            TransformerLayer(ppgs.INPUT_CHANNELS, ppgs.HIDDEN_CHANNELS),
-            torch.nn.ReLU(),
-            TransformerLayer(ppgs.HIDDEN_CHANNELS, ppgs.HIDDEN_CHANNELS),
-            torch.nn.ReLU(),
-            TransformerLayer(ppgs.HIDDEN_CHANNELS, len(ppgs.PHONEME_LIST)))
-
-    def forward(self, x, mask):
-        x = x * mask
-        x = self.layers(x, mask)
-        return x * mask
-
-
-###############################################################################
-# Utilities
-###############################################################################
-
+    def forward(self, x, lengths):
+        mask = mask_from_lengths(lengths)
+        for layer in self.layers[:-1]:
+            x = layer(x, mask)
+            x = torch.relu(x)
+        return self.layers[-1](x, mask), mask
 
 class FeedForward(torch.nn.Module):
 
-    def __init__(self, channels, kernel_size):
+    def __init__(self, channels):
         super().__init__()
-        self.kernel_size = kernel_size
         conv_fn = functools.partial(
             torch.nn.Conv1d,
-            kernel_size=kernel_size,
+            kernel_size=ppgs.KERNEL_SIZE,
             padding='same')
         self.conv_1 = conv_fn(channels, channels)
         self.conv_2 = conv_fn(channels, channels)
@@ -58,19 +46,17 @@ class MultiHeadAttention(torch.nn.Module):
     def __init__(
         self,
         channels,
-        out_channels,
         n_heads=ppgs.ATTENTION_HEADS,
-        window_size=4):
+        window_size=ppgs.ATTENTION_WINDOW_SIZE):
         super().__init__()
         assert channels % n_heads == 0
         # Setup layers
         self.n_heads = n_heads
         self.window_size = window_size
-        # TODO investigate kernel size here
         self.conv_q = torch.nn.Conv1d(channels, channels, 1)
         self.conv_k = torch.nn.Conv1d(channels, channels, 1)
         self.conv_v = torch.nn.Conv1d(channels, channels, 1)
-        self.conv_o = torch.nn.Conv1d(channels, out_channels, 1)
+        self.conv_o = torch.nn.Conv1d(channels, channels, 1)
 
         # Setup relative positional embedding
         self.k_channels = channels // n_heads
@@ -199,19 +185,31 @@ class MultiHeadAttention(torch.nn.Module):
 
 class TransformerLayer(torch.nn.Sequential):
 
-    def __init__(self, input_channels, output_channels):
+    def __init__(self, channels):
         super().__init__()
-        self.output_channels = output_channels
+        self.channels = channels
 
         # Multihead attention
-        self.attention = MultiHeadAttention(input_channels, output_channels)
+        self.attention = MultiHeadAttention(channels)
 
         # Feed-forward layer
-        self.feed_forward = FeedForward(output_channels, ppgs.KERNEL_SIZE)
+        self.feed_forward = FeedForward(channels)
 
     def forward(self, x, mask):
-        y = self.attention(x, x, mask.unsqueeze(2) * mask.unsqueeze(-1))
-        x = torch.nn.functional.layer_norm(x + y, self.output_channels)
+        y = self.attention(x, mask.unsqueeze(2) * mask.unsqueeze(-1))
+        x = self.normalize(x + y)
         y = self.feed_forward(x, mask)
-        x = torch.nn.functional.layer_norm(x + y, self.output_channels)
-        return x
+        return self.normalize(x + y)
+    
+    def normalize(self, x):
+        """Perform per-channel layer normalization"""
+        return torch.nn.functional.layer_norm(
+            x.transpose(1, 2),
+            (self.channels,)
+        ).transpose(1, 2)
+
+
+def mask_from_lengths(lengths):
+    """Create boolean mask from sequence lengths"""
+    x = torch.arange(lengths.max(), dtype=lengths.dtype, device=lengths.device)
+    return (x.unsqueeze(0) < lengths.unsqueeze(1)).unsqueeze(1)

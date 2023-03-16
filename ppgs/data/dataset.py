@@ -1,6 +1,7 @@
 """dataset.py - data loading"""
 
 import contextlib
+import warnings
 import numpy as np
 import pyfoal
 import pypar
@@ -32,10 +33,12 @@ class Dataset(torch.utils.data.Dataset):
             The name of the data partition
     """
 
-    def __init__(self, name, partition, representation='senone'):
+    def __init__(self, name, partition, representation='senone', reduced_features=False):
         self.representation = representation
+        self.metadata = Metadata(name, partition)
         self.cache = ppgs.CACHE_DIR / name
         self.stems = ppgs.load.partition(name)[partition]
+        self.reduced_features = reduced_features
 
         #calculate window size based on representation #TODO consider removing
         # self.WINDOW_SIZE = getattr(ppgs.preprocess, representation).WINDOW_SIZE
@@ -47,19 +50,18 @@ class Dataset(torch.utils.data.Dataset):
         # Load ppgs
         input_ppgs = torch.load(self.cache / f'{stem}-{self.representation}.pt')
 
-        # Also load audio for evaluation purposes
-        #num_frames = torchaudio.info(self.cache/f'{stem.wav').num_frames // ppgs.HOPSIZE #TODO test and implement
-        audio = torchaudio.load(self.cache / f'{stem}.wav') #TODO refactor out?
-        num_frames = audio[0].shape[-1]//ppgs.HOPSIZE
+        if self.reduced_features: #load only features necessary for training
+            audio_num_samples = torchaudio.info(self.cache / f'{stem}.wav').num_frames
+        else: #load all features
+            audio = torchaudio.load(self.cache / f'{stem}.wav') #TODO refactor out?
+            audio_num_samples = audio[0].shape[-1]
 
-        # Pad audio
-        # pad = self.WINDOW_SIZE//2 - ppgs.HOPSIZE//2
-        # audio = torch.nn.functional.pad(audio[0], (pad, pad))
+        num_frames = audio_num_samples//ppgs.HOPSIZE
+
 
         # Load alignment
-        # Assumes alignment is saved as a textgrid file, but
-        # pypar can also handle json and mfa
         alignment = pypar.Alignment(self.cache / f'{stem}.textgrid')
+
 
         # This assumes that frame zero of ppgs is centered on sampled zero,
         # frame one is centered on sample ppgs.HOPSIZE, frame two is centered
@@ -75,17 +77,67 @@ class Dataset(torch.utils.data.Dataset):
         try:
             #prep phoneme mapping in pyfoal
             with ppgs_phoneme_list():
-                indices, word_breaks = pyfoal.convert.alignment_to_indices(
+                indices = pyfoal.convert.alignment_to_indices(
                     alignment,
                     hopsize=hopsize,
-                    return_word_breaks=True,
+                    return_word_breaks=not self.reduced_features,
                     times=times)
+                if not self.reduced_features:
+                    indices, word_breaks = indices
         except ValueError as e:
             raise ValueError(f'error processing alignment for stem {stem} with error: {e}')
         indices = torch.tensor(indices, dtype=torch.long)
 
+        if self.reduced_features:
+            return input_ppgs, indices
+
         return input_ppgs, indices, alignment, word_breaks, audio, stem
+
+    def buckets(self):
+        """Partition indices into buckets based on length for sampling"""
+        # Get the size of a bucket
+        size = len(self) // ppgs.BUCKETS
+
+        # Get indices in order of length
+        lengths = []
+        # for i in range(len(self)):
+        #     index, dataset = self.get_dataset(i)
+        #     lengths.append(dataset.lengths[index])
+        lengths = self.metadata.lengths
+        indices = np.argsort(lengths)
+
+        # Split into buckets based on length
+        buckets = [indices[i:i + size] for i in range(0, len(self), size)]
+
+        # Add max length of each bucket
+        buckets = [(lengths[bucket[-1]], bucket) for bucket in buckets]
+
+        return buckets
 
     def __len__(self):
         """Length of the dataset"""
+        return len(self.stems)
+
+
+###############################################################################
+# Metadata
+###############################################################################
+
+class Metadata:
+
+    def __init__(self, name, partition):
+        self.name = name
+        self.cache = ppgs.CACHE_DIR / name
+        self.stems = ppgs.load.partition(name)[partition]
+
+        print('preparing dataset metadata (operation may be slow)')
+
+        # Store lengths for bucketing
+        audio_files = list([
+            self.cache / f'{stem}.wav' for stem in self.stems])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            self.lengths = [torchaudio.info(audio_file).num_frames // ppgs.HOPSIZE for audio_file in audio_files]
+
+    def __len__(self):
         return len(self.stems)

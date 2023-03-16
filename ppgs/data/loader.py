@@ -3,18 +3,19 @@ import torch
 import ppgs
 
 
-def loaders(dataset, representation='senone'):
+def loaders(dataset, representation='senone', reduced_features=False):
     """Retrieve data loaders for training and evaluation"""
-    return loader(dataset, 'train', representation), loader(dataset, 'valid', representation)
+    return loader(dataset, 'train', representation, reduced_features), loader(dataset, 'valid', representation, reduced_features)
 
 
-def loader(dataset, partition, representation='senone'):
+def loader(dataset, partition, representation='senone', reduced_features=False):
     """Retrieve a data loader"""
-    dataset_object = ppgs.data.Dataset(dataset, partition, representation)
+    dataset_object = ppgs.data.Dataset(dataset, partition, representation, reduced_features)
     return torch.utils.data.DataLoader(
         dataset=dataset_object,
-        batch_size=1 if partition == 'test' else ppgs.BATCH_SIZE,
-        sampler=ppgs.data.sampler(dataset_object, partition),
+        # batch_size=1 if partition == 'test' else ppgs.BATCH_SIZE,
+        # sampler=ppgs.data.sampler(dataset_object, partition),
+        batch_sampler=ppgs.data.sampler(dataset_object, partition),
         num_workers=ppgs.NUM_WORKERS,
         pin_memory=True,
-        collate_fn=ppgs.data.collate)
+        collate_fn=ppgs.data.collate if not reduced_features else ppgs.data.reduced_collate)

@@ -25,6 +25,9 @@ HOPSIZE = 160 # samples
 # Maximum sample value of 16-bit audio
 MAX_SAMPLE_VALUE = 32768
 
+MAX_FRAMES = 100000
+BUCKETS = 8
+
 # Number of spectrogram channels
 NUM_FFT = 1024
 
@@ -86,14 +89,13 @@ VISUALIZATION_SAMPLES = 10
 # Training parameters
 ###############################################################################
 
+MODEL = 'convolution'
+
 # Input representation
 REPRESENTATION = 'senone'
 
 # Batch size (per gpu)
 BATCH_SIZE = 64
-
-# Per-epoch decay rate of the learning rate
-LEARNING_RATE_DECAY = .999875
 
 # Number of training steps
 NUM_STEPS = 300000
@@ -111,6 +113,12 @@ RANDOM_SEED = 1234
 
 # Number of attention heads
 ATTENTION_HEADS = 2
+
+# Attention window size
+ATTENTION_WINDOW_SIZE = 4
+
+# Number of hidden layers
+NUM_HIDDEN_LAYERS = 1
 
 # Network width
 HIDDEN_CHANNELS = 128
