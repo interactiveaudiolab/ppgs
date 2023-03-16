@@ -3,13 +3,18 @@ import pypar
 import tqdm
 from shutil import copy as cp
 
-def charsiu(features=None, gpu=None):
+def charsiu(input_dir, output_dir, features=None, gpu=None):
     """Perform preprocessing for charsiu dataset"""
 
-    data_dir = ppgs.DATA_DIR / 'charsiu'
-    wav_dir = data_dir / 'wav'
-    textgrid_dir = data_dir / 'textgrid'
-    output_dir = ppgs.CACHE_DIR / 'charsiu'
+    print('input_dir:', input_dir)
+    print('output_dir:', output_dir)
+
+    wav_dir = input_dir / 'wav'
+    if not wav_dir.exists():
+        wav_dir = input_dir
+    textgrid_dir = input_dir / 'textgrid'
+    if not textgrid_dir.exists():
+        textgrid_dir = input_dir
 
     output_dir.mkdir(exist_ok=True, parents=True)
 

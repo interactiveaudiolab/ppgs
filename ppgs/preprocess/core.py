@@ -20,19 +20,21 @@ ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'senone']
 ###############################################################################
 
 
-def datasets(datasets, features=ALL_FEATURES, gpu=None):
+def datasets(datasets, features=ALL_FEATURES, gpu=None, use_cached_inputs=False):
     """Preprocess a dataset
 
     Arguments
         name - string
             The name of the dataset to preprocess
     """
+    print(use_cached_inputs)
     for dataset in datasets:
-        input_directory = ppgs.DATA_DIR / dataset
+        input_directory = ppgs.DATA_DIR / dataset if not use_cached_inputs else ppgs.CACHE_DIR / dataset
         output_directory = ppgs.CACHE_DIR / dataset
 
         if dataset == 'charsiu':
-            charsiu(features=features, gpu=gpu)
+            print('charsiu')
+            charsiu(input_directory, output_directory, features=features, gpu=gpu)
             continue
 
         speakers = [speaker for speaker in listdir(input_directory) if isdir(join(input_directory, speaker))]

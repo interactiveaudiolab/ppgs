@@ -132,18 +132,7 @@ def train(
     #######################
 
     torch.manual_seed(ppgs.RANDOM_SEED)
-    train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION)
-
-
-    #####################
-    # Create schedulers #
-    #####################
-
-    scheduler_fn = functools.partial(
-        torch.optim.lr_scheduler.ExponentialLR,
-        gamma=ppgs.LEARNING_RATE_DECAY,
-        last_epoch=step // len(train_loader.dataset) if step else -1)
-    scheduler = scheduler_fn(optimizer)
+    train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION, reduced_features=True)
 
 
     if eval_only:
@@ -179,12 +168,18 @@ def train(
         for batch in train_loader:
 
             # Unpack batch
-            input_ppgs, indices = (item.to(device) for item in batch[:2])
+            # input_ppgs, indices = (item.to(device) for item in batch)
+            input_ppgs = batch[0].to(device)
+            indices = batch[1].to(device)
+            lengths = batch[2].to(device)
 
             with torch.cuda.amp.autocast():
 
                 # Forward pass
-                predicted_ppgs = model(input_ppgs)
+                if ppgs.MODEL == 'transformer':
+                    predicted_ppgs = model(input_ppgs, lengths)
+                else:
+                    predicted_ppgs = model(input_ppgs)
 
                 # Compute loss
                 loss = torch.nn.functional.cross_entropy(
@@ -258,9 +253,6 @@ def train(
             if not rank:
                 progress.update()
 
-        # Update learning rate every epoch
-        scheduler.step()
-
     # Close progress bar
     if not rank:
         progress.close()
@@ -304,14 +296,14 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                 (
                     input_ppgs,
                     indices,
-                    alignments,
-                    word_breaks,
-                    waveforms,
-                    stems
+                    lengths
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
                 # Forward pass
-                predicted_ppgs = model(input_ppgs)
+                if ppgs.MODEL == 'transformer':
+                    predicted_ppgs = model(input_ppgs, lengths)
+                else:
+                    predicted_ppgs = model(input_ppgs)
 
                 # Update metrics
                 validation_metrics.update(predicted_ppgs, indices)
@@ -326,14 +318,14 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                 (
                     input_ppgs,
                     indices,
-                    alignments,
-                    word_breaks,
-                    waveforms,
-                    stems
+                    lengths
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
                 # Forward pass
-                predicted_ppgs = model(input_ppgs)
+                if ppgs.MODEL == 'transformer':
+                    predicted_ppgs = model(input_ppgs, lengths)
+                else:
+                    predicted_ppgs = model(input_ppgs)
 
                 # Update metrics
                 training_metrics.update(predicted_ppgs, indices)

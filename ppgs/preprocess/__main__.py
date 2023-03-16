@@ -27,6 +27,11 @@ def parse_args():
         '--gpu',
         type=int,
         help='The index of the gpu to use')
+    parser.add_argument(
+        '--use-cached-inputs',
+        action='store_true',
+        help='Use cache dir for inputs (more space efficient)'
+    )
     return parser.parse_args()
 
 
