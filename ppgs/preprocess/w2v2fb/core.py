@@ -18,6 +18,7 @@ SAMPLE_RATE = 16000
 
 #Window size of the model
 WINDOW_SIZE = 400
+HOP_SIZE = 320
 
 
 ###############################################################################
@@ -36,24 +37,32 @@ def from_audio(
     if config is None: config=W2V2FB_CONFIG
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
+
     # Cache model
-    # if not hasattr(from_audio, 'model'):
-    #     from_audio.model = Wav2Vec2Model.from_pretrained(config).to(device)
+    if not hasattr(from_audio, 'model'):
+        from_audio.model = Wav2Vec2Model.from_pretrained(config).to(device)
     if not hasattr(from_audio, 'processor'):
         from_audio.processor = Wav2Vec2FeatureExtractor.from_pretrained(config)
 
     # Maybe resample
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
+    upsampled_audio = torch.nn.functional.upsample(
+        audio.reshape(1, 1, len(audio)),
+        scale_factor=2,
+        mode='linear'
+    ).squeeze()
+    pad = WINDOW_SIZE//2 - HOP_SIZE//2
+    padded_upsampled_audio = torch.nn.functional.pad(upsampled_audio, (pad, pad))
 
     # Setup features
-    # inputs = from_audio.processor(audio, sampling_rate=sample_rate, return_tensors='pt')
-    pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
-    inputs = torch.nn.functional.pad(audio, (pad, pad+1)).unsqueeze(dim=0)
-    # inputs = audio.unsqueeze(dim=0)
-    inputs = inputs.to(device)
+    inputs = from_audio.processor(padded_upsampled_audio, sampling_rate=sample_rate, return_tensors='pt')
+    # interpolated_shape = [inputs.shape[0], inputs.shape[1] * 2]
 
-    # Infer W2V2FS latents
+    inputs = inputs['input_values'].to(device)
+
+    # Infer W2V2FB latents
     with torch.no_grad():
+        # import pdb; pdb.set_trace()
         output = from_audio.model(inputs).last_hidden_state.squeeze().T
         try:
             assert output.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct

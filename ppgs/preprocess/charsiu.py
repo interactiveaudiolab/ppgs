@@ -61,11 +61,20 @@ def charsiu(input_dir, output_dir, features=None, gpu=None):
                 gpu=gpu
             )
 
-        if 'w2v2fs' in features: #compute w2v2 latents
+        if 'w2v2fs' in features: #compute w2v2fs latents
             audio_files = audio_files
-            w2v2_files = [f'{file.stem}-w2v2fs.pt' for file in audio_files]
+            w2v2fs_files = [f'{file.stem}-w2v2fs.pt' for file in audio_files]
             ppgs.preprocess.w2v2fs.from_files_to_files(
                 audio_files,
-                w2v2_files,
+                w2v2fs_files,
+                gpu=gpu
+            )
+
+        if 'w2v2fb' in features: #compute w2v2fb latents
+            audio_files = audio_files
+            w2v2fb_files = [f'{file.stem}-w2v2fb.pt' for file in audio_files]
+            ppgs.preprocess.w2v2fb.from_files_to_files(
+                audio_files,
+                w2v2fb_files,
                 gpu=gpu
             )

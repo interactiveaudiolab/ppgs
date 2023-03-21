@@ -12,7 +12,7 @@ from ppgs.preprocess.charsiu import charsiu
 ###############################################################################
 
 
-ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'senone']
+ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'senone', 'w2v2fb']
 
 
 ###############################################################################
@@ -27,13 +27,11 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None, use_cached_inputs=False)
         name - string
             The name of the dataset to preprocess
     """
-    print(use_cached_inputs)
     for dataset in datasets:
         input_directory = ppgs.DATA_DIR / dataset if not use_cached_inputs else ppgs.CACHE_DIR / dataset
         output_directory = ppgs.CACHE_DIR / dataset
 
         if dataset == 'charsiu':
-            print('charsiu')
             charsiu(input_directory, output_directory, features=features, gpu=gpu)
             continue
 
@@ -104,12 +102,21 @@ def from_files_to_files(
                 gpu
             )
 
-        # Preprocess wav2vec2 latents
-        if 'w2v2' in features:
-            w2v2_files = [f'{file.stem}-w2v2fs.pt' for file in audio_files]
+        # Preprocess wav2vec2-fs latents
+        if 'w2v2fs' in features:
+            w2v2fs_files = [f'{file.stem}-w2v2fs.pt' for file in audio_files]
             ppgs.preprocess.w2v2fs.from_files_to_files(
                 audio_files,
-                w2v2_files,
+                w2v2fs_files,
+                gpu
+            )
+
+        # Preprocess wav2vec2-fb latents
+        if 'w2v2fb' in features:
+            w2v2fb_files = [f'{file.stem}-w2v2fb.pt' for file in audio_files]
+            ppgs.preprocess.w2v2fb.from_files_to_files(
+                audio_files,
+                w2v2fb_files,
                 gpu
             )
 
