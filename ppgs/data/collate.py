@@ -2,7 +2,7 @@ import torch
 
 def reduced_collate(batch):
     """Batch collation with reduced features"""
-    input_ppgs, indices = zip(*batch)
+    input_ppgs, indices, stems = zip(*batch)
     channels, _ = input_ppgs[0].shape
     lengths = torch.tensor([ppg.shape[-1] for ppg in input_ppgs], dtype=torch.long)
     max_length = lengths.max().item()
@@ -22,7 +22,7 @@ def reduced_collate(batch):
         padded_ppgs[i, :, :ppg.shape[-1]] = ppg
         padded_indices[i, :ppg.shape[-1]] = index
 
-    return padded_ppgs, padded_indices, lengths
+    return padded_ppgs, padded_indices, lengths, stems
 
 def collate(batch):
     """Batch collation"""
