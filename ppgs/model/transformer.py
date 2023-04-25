@@ -11,7 +11,7 @@ import ppgs
 
 class Transformer(torch.nn.Module):
 
-    def __init__(self, num_layers=ppgs.NUM_HIDDEN_LAYERS+2, channels=ppgs.INPUT_CHANNELS):
+    def __init__(self, num_layers=ppgs.NUM_HIDDEN_LAYERS+2, channels=ppgs.HIDDEN_CHANNELS):
         super().__init__()
         self.layers = torch.nn.ModuleList([TransformerLayer(channels) for _ in range(num_layers)])
 
