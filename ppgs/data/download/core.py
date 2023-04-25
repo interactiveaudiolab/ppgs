@@ -326,7 +326,7 @@ def format_arctic(speakers=None):
                 #Map special case of silence map from pau to sp
                 phonemes = ['sp' if phone == 'pau' else phone for phone in phonemes]
                 #Map errors to <unk>
-                phonemes = [phone if phone in ppgs.PHONEME_LIST else '<unk>' for phone in phonemes]
+                phonemes = [phone if phone in ppgs.PHONEME_LIST else pypar.SILENCE for phone in phonemes]
             # with open(wav_dir_path / (lab_file.stem + '.wav'), 'rb') as f:
                 # audio = ppgs.load.audio(f)
                 audio = ppgs.load.audio(wav_dir_path / (lab_file.stem + '.wav'))
