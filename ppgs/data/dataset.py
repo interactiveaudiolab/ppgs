@@ -89,7 +89,7 @@ class Dataset(torch.utils.data.Dataset):
         indices = torch.tensor(indices, dtype=torch.long)
 
         if self.reduced_features:
-            return input_ppgs, indices
+            return input_ppgs, indices, stem
 
         return input_ppgs, indices, alignment, word_breaks, audio, stem
 
