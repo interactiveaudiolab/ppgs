@@ -11,7 +11,7 @@ import ppgs
 ###############################################################################
 
 # W2V2 FS pretrained model config name
-W2V2FB_CONFIG = "facebook/wav2vec2-base-960h"
+W2V2FB_CONFIG = "facebook/wav2vec2-base"
 
 # Sample rate of the PPG model
 SAMPLE_RATE = 16000
@@ -46,16 +46,16 @@ def from_audio(
 
     # Maybe resample
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
-    upsampled_audio = torch.nn.functional.upsample(
-        audio.reshape(1, 1, len(audio)),
-        scale_factor=2,
-        mode='linear'
-    ).squeeze()
+    # upsampled_audio = torch.nn.functional.upsample(
+    #     audio.reshape(1, 1, len(audio)),
+    #     scale_factor=2,
+    #     mode='linear'
+    # ).squeeze()
     pad = WINDOW_SIZE//2 - HOP_SIZE//2
-    padded_upsampled_audio = torch.nn.functional.pad(upsampled_audio, (pad, pad))
+    padded_audio = torch.nn.functional.pad(audio, (pad, pad))
 
     # Setup features
-    inputs = from_audio.processor(padded_upsampled_audio, sampling_rate=sample_rate, return_tensors='pt')
+    inputs = from_audio.processor(padded_audio, sampling_rate=sample_rate, return_tensors='pt')
     # interpolated_shape = [inputs.shape[0], inputs.shape[1] * 2]
 
     inputs = inputs['input_values'].to(device)
@@ -63,12 +63,17 @@ def from_audio(
     # Infer W2V2FB latents
     with torch.no_grad():
         # import pdb; pdb.set_trace()
-        output = from_audio.model(inputs).last_hidden_state.squeeze().T
+        output = from_audio.model(inputs).last_hidden_state.squeeze().T.unsqueeze(0)
+        upsampled_outputs = torch.nn.functional.interpolate(
+            output,
+            size=audio.shape[-1]//ppgs.HOPSIZE,
+            mode='nearest'
+        )
         try:
-            assert output.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct
+            assert upsampled_outputs.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct
         except AssertionError:
             import pdb; pdb.set_trace()
-        return output
+        return upsampled_outputs
 
 
 def from_file(audio_file, gpu=None):
