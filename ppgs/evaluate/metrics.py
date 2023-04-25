@@ -8,12 +8,15 @@ import ppgs
 
 class Metrics:
 
-    def __init__(self, display_prefix):
+    def __init__(self, display_suffix):
         self.metrics = [
-            Accuracy(display_prefix),
-            CategoricalAccuracy(display_prefix),
-            Loss(display_prefix),
-            JensenShannon(display_prefix)
+            Accuracy(display_suffix),
+            CategoricalAccuracy(display_suffix),
+            Loss(display_suffix),
+            JensenShannon(display_suffix),
+            TopKAccuracy(display_suffix, 2),
+            TopKAccuracy(display_suffix, 3),
+            TopKAccuracy(display_suffix, 5)
         ]
 
     def __call__(self):
@@ -38,12 +41,12 @@ class Metrics:
 
 class Accuracy:
 
-    def __init__(self, display_prefix):
-        self.display_prefix = display_prefix
+    def __init__(self, display_suffix):
+        self.display_suffix = display_suffix
         self.reset()
 
     def __call__(self):
-        return {f'{self.display_prefix}_accuracy': float((self.true_positives / self.count).cpu())}
+        return {f'Accuracy/{self.display_suffix}': float((self.true_positives / self.count).cpu())}
 
     def reset(self):
         self.count = 0
@@ -61,10 +64,33 @@ class Accuracy:
         # Update count
         self.count += (target_indices != -100).sum()
 
+class TopKAccuracy:
+
+    def __init__(self, display_suffix: str, k: int):
+        self.display_suffix = display_suffix
+        self.k = k
+        self.reset()
+
+    def __call__(self):
+        return {f'Top{self.k}Accuracy/{self.display_suffix}': float((self.correct_in_top_k / self.count))}
+    
+    def reset(self):
+        self.count = 0
+        self.correct_in_top_k = 0
+
+    def update(self, predicted_logits, target_indices):
+        top_k_indices = torch.topk(predicted_logits, self.k, dim=1).indices
+        for i in range(0, len(target_indices)):
+            if target_indices[i] in top_k_indices[i]:
+                self.correct_in_top_k += 1
+            self.count += 1
+        
+
+
 class CategoricalAccuracy:
     
-    def __init__(self, display_prefix):
-        self.display_prefix = display_prefix
+    def __init__(self, display_suffix):
+        self.display_suffix = display_suffix
         self.reset()
         self.map = {i: phoneme for i, phoneme in enumerate(ppgs.PHONEME_LIST)}
 
@@ -75,9 +101,9 @@ class CategoricalAccuracy:
             return None
         output = {}
         for i in range(0, self.totals.shape[0]):
-            output[f"{self.display_prefix}_phoneme_{self.map[i]}_accuracy"] = (self.totals[i] / self.counts[i]).item()
-            output[f"{self.display_prefix}_phoneme_{self.map[i]}_total"] = self.totals[i].item()
-            output[f"{self.display_prefix}_phoneme_{self.map[i]}_count"] = self.counts[i].item()
+            output[f"Accuracy/{self.display_suffix}/{self.map[i]}"] = (self.totals[i] / self.counts[i]).item()
+            output[f"Total/{self.display_suffix}/{self.map[i]}"] = self.totals[i].item()
+            output[f"Count/{self.display_suffix}/{self.map[i]}"] = self.counts[i].item()
         return output
 
     def reset(self):
@@ -122,12 +148,12 @@ class CategoricalAccuracy:
 
 class Loss:
 
-    def __init__(self, display_prefix):
-        self.display_prefix = display_prefix
+    def __init__(self, display_suffix):
+        self.display_suffix = display_suffix
         self.reset()
 
     def __call__(self):
-        return {f'{self.display_prefix}_loss': float((self.total / self.count).cpu().numpy())}
+        return {f'Loss/{self.display_suffix}': float((self.total / self.count).cpu().numpy())}
 
     def reset(self):
         self.total = 0.
@@ -145,12 +171,12 @@ class Loss:
 
 class JensenShannon:
 
-    def __init__(self, display_prefix):
-        self.display_prefix = display_prefix
+    def __init__(self, display_suffix):
+        self.display_suffix = display_suffix
         self.reset()
 
     def __call__(self):
-        return {f'{self.display_prefix}_JSD': float((self.total / self.count).cpu().numpy())}
+        return {f'JSD/{self.display_suffix}': float((self.total / self.count).cpu().numpy())}
 
     def reset(self):
         self.total = 0.
@@ -225,3 +251,11 @@ if __name__ == '__main__':
     input_indices = torch.tensor([1])
     JSMetric.update(input_logits, input_indices)
     print(JSMetric.total)
+
+    Top3 = TopKAccuracy('test', 3)
+    input_logits0 = torch.special.logit(torch.tensor([[0.55, 0.16, 0.05, 0.1, 0.14]]))
+    input_logits1 = torch.special.logit(torch.tensor([[0.2, 0.25, 0.11, 0.35, 0.09]]))
+    input_logits = torch.cat([input_logits0, input_logits1])
+    input_indices = torch.tensor([1, 4])
+    Top3.update(input_logits, input_indices)
+    print(Top3.correct_in_top_k, Top3.count)
