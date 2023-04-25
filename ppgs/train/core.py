@@ -172,8 +172,30 @@ def train(
             input_ppgs = batch[0].to(device)
             indices = batch[1].to(device)
             lengths = batch[2].to(device)
+            stems = batch[3]
 
             with torch.cuda.amp.autocast():
+
+                # if step == 450202:
+                #     i=1
+                #     model.zero_grad()
+                #     predicted_ppgs = model(input_ppgs, lengths)
+                #     example_loss = torch.nn.functional.cross_entropy(
+                #         predicted_ppgs[i:i+1],
+                #         indices[i:i+1]
+                #     )
+                #     optimizer.zero_grad()
+                #     scaler.scale(example_loss).backward()
+                #     scaler.unscale_(optimizer)
+                #     print(i, stems[i], example_loss)
+                #     for p in model.parameters():
+                #         if p.grad is not None and p.grad.norm() >= 2:
+                #             print(p.grad.norm(), '2', p.shape)
+                #         if p.grad is not None and p.grad.norm(4) >= 1:
+                #             print(p.grad.norm(4), '4', p.shape)
+                #         if p.grad is not None and p.grad.abs().max() >= 1:
+                #             print(p.grad.abs().max(), 'inf', p.shape)
+                #     scaler.update()
 
                 # Forward pass
                 if ppgs.MODEL == 'transformer':
@@ -194,7 +216,15 @@ def train(
 
             # Backward pass
             scaler.scale(loss).backward()
-
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, norm_type='inf')
+            # for p in model.parameters():
+            #     if p.grad is not None and p.grad.norm() >= 4:
+            #         print(p.grad.norm(), '2', p.shape, step, stems)
+            #     if p.grad is not None and p.grad.norm(4) >= 2:
+            #         print(p.grad.norm(4), '4', p.shape, step, stems)
+            #     if p.grad is not None and p.grad.abs().max() >= 2:
+            #         print(p.grad.abs().max(), 'inf', p.shape, step, stems)
             # Update weights
             scaler.step(optimizer)
 
@@ -296,7 +326,8 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                 (
                     input_ppgs,
                     indices,
-                    lengths
+                    lengths,
+                    stems
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
                 # Forward pass
@@ -318,7 +349,8 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                 (
                     input_ppgs,
                     indices,
-                    lengths
+                    lengths,
+                    stems
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
                 # Forward pass
