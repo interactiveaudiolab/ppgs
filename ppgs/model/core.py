@@ -13,8 +13,12 @@ def Model(type=None):
         return ppgs.model.Convolution
     elif type == 'transformer':
         print('using transformer model')
-        return lambda: ppgs.model.WrapperModel(
-            [ppgs.model.Transformer(), torch.nn.Conv1d(ppgs.INPUT_CHANNELS, len(ppgs.PHONEME_LIST), kernel_size=ppgs.KERNEL_SIZE, padding="same")],
-            [2, 1]
+        return lambda: ppgs.model.LengthsWrapperModel(
+            [
+                torch.nn.Conv1d(ppgs.INPUT_CHANNELS, ppgs.HIDDEN_CHANNELS, kernel_size=ppgs.KERNEL_SIZE, padding="same"),
+                ppgs.model.Transformer(),
+                torch.nn.Conv1d(ppgs.HIDDEN_CHANNELS, len(ppgs.PHONEME_LIST), kernel_size=ppgs.KERNEL_SIZE, padding="same")
+            ],
+            [False, True, False]
         )
     raise ValueError('unknown model type:', type)
