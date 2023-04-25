@@ -1,4 +1,5 @@
 from pathlib import Path
+import pypar
 
 
 ###############################################################################
@@ -136,6 +137,10 @@ MODEL = 'convolution'
 ###############################################################################
 # Partition parameters #TODO extract to separate config file
 ###############################################################################
+
+CHARSIU_REJECT = [
+    'common_voice_en_26168033',
+]
 
 ARCTIC_UNSEEN = ['bdl', 'slt']
 ARCTIC_VALIDATION_IDS = [ #sampled randomly
@@ -477,7 +482,7 @@ PHONEME_LIST = [
 	'z',
 	'zh',
 	'ax',
-	'sp',
+	'sil',
 	'<unk>'
 ]
 
@@ -528,7 +533,7 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'ow': 'ow',
     'oy': 'oy',
     'p': 'p',
-    'pau': 'pau', #differs from Kaldi (pau instead of sil)
+    'pau': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
     'pcl': 'bck<p>', #backfill
     'q': 't', #map to its allophone TODO check the validity of doing this?
     'r': 'r',
