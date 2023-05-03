@@ -12,7 +12,7 @@ from ppgs.preprocess.charsiu import charsiu
 ###############################################################################
 
 
-ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'senone', 'w2v2fb']
+ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'senone', 'w2v2fb', 'spectrogram', 'mel']
 
 
 ###############################################################################
@@ -120,6 +120,13 @@ def from_files_to_files(
                 gpu
             )
 
+        if 'mel' in features:
+            mel_files = [f'{file.stem}-mel.pt' for file in audio_files]
+            ppgs.preprocess.spectrogram.from_files_to_files(audio_files, mel_files, mels=True)
+
+        if 'spectrogram' in features:
+            spectrogram_files = [f'{file.stem}-spectrogram.pt' for file in audio_files]
+            ppgs.preprocess.spectrogram.from_files_to_files(audio_files, spectrogram_files, mels=False)
 
 def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=None, gpu=None):
     """Preprocess audio using given or configured representation"""
