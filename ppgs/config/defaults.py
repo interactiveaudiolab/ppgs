@@ -38,6 +38,8 @@ SAMPLE_RATE = 16000
 # Number of spectrogram channels
 WINDOW_SIZE = 1024
 
+NUM_MELS = 80
+
 
 ###############################################################################
 # Directories

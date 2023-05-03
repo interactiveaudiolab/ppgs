@@ -78,3 +78,11 @@ def charsiu(input_dir, output_dir, features=None, gpu=None):
                 w2v2fb_files,
                 gpu=gpu
             )
+
+        if 'mel' in features:
+            mel_files = [f'{file.stem}-mel.pt' for file in audio_files]
+            ppgs.preprocess.spectrogram.from_files_to_files(audio_files, mel_files, mels=True)
+
+        if 'spectrogram' in features:
+            spectrogram_files = [f'{file.stem}-spectrogram.pt' for file in audio_files]
+            ppgs.preprocess.spectrogram.from_files_to_files(audio_files, spectrogram_files, mels=False)
