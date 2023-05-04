@@ -6,6 +6,7 @@ from os import listdir, makedirs
 from os.path import join, isdir
 from shutil import copy as cp
 from ppgs.preprocess.charsiu import charsiu
+from ppgs.notify import notify_on_finish
 
 ###############################################################################
 # Constants
@@ -19,7 +20,7 @@ ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'senone', 'w2v2fb', 'spectrogram', 
 # Preprocess
 ###############################################################################
 
-
+@notify_on_finish('preprocessing')
 def datasets(datasets, features=ALL_FEATURES, gpu=None, use_cached_inputs=False):
     """Preprocess a dataset
 

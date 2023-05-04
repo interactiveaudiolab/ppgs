@@ -23,4 +23,5 @@ class Convolution(torch.nn.Sequential):
             torch.nn.ReLU(),
             conv_fn(ppgs.HIDDEN_CHANNELS, ppgs.HIDDEN_CHANNELS),
             torch.nn.ReLU(),
+            #TODO add more layers
             conv_fn(ppgs.HIDDEN_CHANNELS, len(ppgs.PHONEME_LIST)))
