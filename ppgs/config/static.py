@@ -26,5 +26,7 @@ DEFAULT_CONFIGURATION = ppgs.ASSETS_DIR / 'configs' / 'ppgs.py'
 REPRESENTATION_MAP = {
     'senone': ppgs.preprocess.senone,
     'w2v2fs': ppgs.preprocess.w2v2fs,
-    'w2v2fb': ppgs.preprocess.w2v2fb
+    'w2v2fb': ppgs.preprocess.w2v2fb,
+    'spectrogram': ppgs.preprocess.spectrogram,
+    'mel': ppgs.preprocess.spectrogram #TODO uh oh, need to differentiate
 }

@@ -12,3 +12,4 @@ eval/*
 .pytest_cache
 
 tmp/
+ppgs/config/secrets.py

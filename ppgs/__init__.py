@@ -16,6 +16,10 @@ yapecs.configure('ppgs', defaults)
 # Import configuration parameters
 from .config.defaults import *
 from .config.static import *
+try:
+    from .config.secrets import *
+except ImportError:
+    pass
 
 
 ###############################################################################
@@ -24,6 +28,7 @@ from .config.static import *
 
 from .core import *
 from .model import Model
+from . import notify
 from . import checkpoint
 from . import data
 from . import evaluate
