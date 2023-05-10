@@ -34,9 +34,8 @@ def notify_on_finish(description: str, track_time: bool = True, notify_on_fail: 
         return _wrapper
     return wrapper
 
-@notify_on_finish('testing', True)
-def __test_task(seconds: int):
-    time.sleep(seconds)
-
 if __name__ == '__main__':
+    @notify_on_finish('testing', True)
+    def __test_task(seconds: int):
+        time.sleep(seconds)
     __test_task(10)

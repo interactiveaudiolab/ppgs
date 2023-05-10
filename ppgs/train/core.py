@@ -18,6 +18,7 @@ def run(
     checkpoint_directory,
     output_directory,
     log_directory,
+    no_cache=False,
     gpus=None,
     eval_only=False):
     """Run model training"""
@@ -42,6 +43,7 @@ def run(
             checkpoint_directory,
             output_directory,
             log_directory,
+            no_cache,
             None if gpus is None else gpus[0],
             eval_only)
 
@@ -59,6 +61,7 @@ def train(
     checkpoint_directory,
     output_directory,
     log_directory,
+    no_cache=False,
     gpu=None,
     eval_only=False):
     """Train a model"""
@@ -132,7 +135,10 @@ def train(
     #######################
 
     torch.manual_seed(ppgs.RANDOM_SEED)
-    train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION, reduced_features=True)
+    if no_cache:
+        raise NotImplementedError()
+    else:
+        train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION, reduced_features=True)
 
 
     if eval_only:

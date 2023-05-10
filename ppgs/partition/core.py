@@ -79,7 +79,7 @@ def charsiu():
     random.shuffle(stems)
 
     # Get split points
-    left, right = int(.70 * len(stems)), int(.85 * len(stems))
+    left, right = int(.80 * len(stems)), int(.90 * len(stems))
 
     # Perform partition
     partition = {

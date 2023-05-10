@@ -71,6 +71,7 @@ RUNS_DIR = Path(__file__).parent.parent.parent / 'runs'
 
 CHECKPOINT_DIR = ASSETS_DIR / 'checkpoints'
 
+PRESERVED_DISK_SPACE_GB = 100
 
 ###############################################################################
 # Logging parameters
@@ -100,7 +101,7 @@ VISUALIZATION_SAMPLES = 10
 MODEL = 'convolution'
 
 # Input representation
-REPRESENTATION = 'senone'
+REPRESENTATION = 'bottleneck'
 
 # Batch size (per gpu)
 BATCH_SIZE = 64

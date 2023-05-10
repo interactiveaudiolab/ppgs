@@ -1,4 +1,4 @@
-CONFIG = 'basespectrogram'
+CONFIG = 'transformerspectrogram'
 MODULE = 'ppgs'
 
 NUM_WORKERS=6

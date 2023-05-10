@@ -3,6 +3,7 @@ from transformers.utils import logging
 import torch
 import torchaudio
 import tqdm
+from ppgs.model.transformer import mask_from_lengths
 
 import ppgs
 
@@ -26,6 +27,58 @@ HOP_SIZE = 320
 ###############################################################################
 
 logging.set_verbosity_error()
+
+def from_audios(
+    audio,
+    lengths,
+    sample_rate=None,
+    config=None,
+    gpu=None):
+    """Compute W2V2FB latents from audio"""
+    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
+    if config is None: config=W2V2FB_CONFIG
+    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+
+
+    # Cache model
+    if not hasattr(from_audio, 'model'):
+        from_audio.model = Wav2Vec2Model.from_pretrained(config).to(device)
+    if not hasattr(from_audio, 'processor'):
+        from_audio.processor = Wav2Vec2FeatureExtractor.from_pretrained(config)
+
+    # Maybe resample
+    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
+    # upsampled_audio = torch.nn.functional.upsample(
+    #     audio.reshape(1, 1, len(audio)),
+    #     scale_factor=2,
+    #     mode='linear'
+    # ).squeeze()
+    pad = WINDOW_SIZE//2 - HOP_SIZE//2
+    padded_audio = torch.nn.functional.pad(audio, (pad, pad))
+    # Setup features
+    # inputs = from_audio.processor(list(padded_audio), sampling_rate=sample_rate, return_tensors='pt')
+    # # interpolated_shape = [inputs.shape[0], inputs.shape[1] * 2]
+
+    # inputs = inputs['input_values'].to(device)
+    inputs = padded_audio.to(device)
+    lengths = lengths.to(device)
+
+    # Infer W2V2FB latents
+    with torch.no_grad():
+        mask = mask_from_lengths(lengths).squeeze(dim=1).to(torch.long)
+        assert len(mask.shape) == 2
+        output = from_audio.model(inputs, mask).last_hidden_state.squeeze()
+        output = torch.transpose(output, 1, 2)
+        upsampled_outputs = torch.nn.functional.interpolate(
+            output,
+            size=audio.shape[-1]//ppgs.HOPSIZE,
+            mode='nearest'
+        )
+        try:
+            assert upsampled_outputs.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct
+        except AssertionError:
+            import pdb; pdb.set_trace()
+        return upsampled_outputs
 
 def from_audio(
     audio,

@@ -20,7 +20,6 @@ def parse_args():
         help='The name of the datasets to use')
     parser.add_argument(
         '--features',
-        default=ppgs.preprocess.ALL_FEATURES,
         nargs='+',
         help='The features to preprocess')
     parser.add_argument(
@@ -32,7 +31,13 @@ def parse_args():
         action='store_true',
         help='Use cache dir for inputs (more space efficient)'
     )
-    return parser.parse_args()
+    parser.add_argument(
+        '--num-workers',
+        type=int,
+        default=-1,
+        help='The number of worker threads to use for loading data'
+    )
+    return parser.parse_known_args()[0]
 
 
 if __name__ == '__main__':

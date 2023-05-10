@@ -9,6 +9,7 @@ import torchaudio
 import pypar
 import ppgs
 from ppgs import SOURCES_DIR, DATA_DIR
+from ppgs.notify import notify_on_finish
 import ppgs.data.purge
 
 from .sph import pcm_sph_to_wav
@@ -17,7 +18,7 @@ from .phones import timit_to_arctic
 from .arctic_version import v0_90_to_v0_95
 
 #TODO this file could use a refactor
-
+@notify_on_finish('download')
 def datasets(datasets, format_only, timit_source, common_voice_source, arctic_speakers, purge_sources):
     """Downloads the datasets passed in"""
     datasets = [dataset.lower() for dataset in datasets]
@@ -202,14 +203,13 @@ def format_timit():
             reader = csv.reader(f, delimiter=' ')
             rows = list(reader)
             start_times, end_times, phonemes = zip(*rows)
-        with open(corresponding_audio_file, 'rb') as f:
-            audio = ppgs.load.audio(f)
-            audio_duration = audio[0].shape[0] / ppgs.SAMPLE_RATE
-            if not abs(audio_duration - (float(end_times[-1])/ppgs.SAMPLE_RATE)) <= 2.5e-1:
-                print(f'failed with stem {phone_file.stem}')
-                continue
-            end_times = list(end_times)
-            end_times[-1] = str(audio[0].shape[0])
+        audio = ppgs.load.audio(corresponding_audio_file)
+        audio_duration = audio[0].shape[0] / ppgs.SAMPLE_RATE
+        if not abs(audio_duration - (float(end_times[-1])/ppgs.SAMPLE_RATE)) <= 2.5e-1:
+            print(f'failed with stem {phone_file.stem}')
+            continue
+        end_times = list(end_times)
+        end_times[-1] = str(audio[0].shape[0])
         rows = zip(start_times, end_times, phonemes)
         with open(new_file, 'w') as f: #Write phone csv file
             writer = csv.writer(f)

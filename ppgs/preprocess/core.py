@@ -7,13 +7,14 @@ from os.path import join, isdir
 from shutil import copy as cp
 from ppgs.preprocess.charsiu import charsiu
 from ppgs.notify import notify_on_finish
+from tqdm import tqdm
 
 ###############################################################################
 # Constants
 ###############################################################################
 
 
-ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'senone', 'w2v2fb', 'spectrogram', 'mel']
+ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogram', 'mel']
 
 
 ###############################################################################
@@ -21,7 +22,7 @@ ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'senone', 'w2v2fb', 'spectrogram', 
 ###############################################################################
 
 @notify_on_finish('preprocessing')
-def datasets(datasets, features=ALL_FEATURES, gpu=None, use_cached_inputs=False):
+def datasets(datasets, features=ALL_FEATURES, gpu=None, use_cached_inputs=False, num_workers=-1):
     """Preprocess a dataset
 
     Arguments
@@ -33,7 +34,7 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None, use_cached_inputs=False)
         output_directory = ppgs.CACHE_DIR / dataset
 
         if dataset == 'charsiu':
-            charsiu(input_directory, output_directory, features=features, gpu=gpu)
+            charsiu(input_directory, output_directory, features=features, num_workers=num_workers, gpu=gpu)
             continue
 
         speakers = [speaker for speaker in listdir(input_directory) if isdir(join(input_directory, speaker))]
@@ -91,13 +92,19 @@ def from_files_to_files(
 
         # Copy wav files
         if 'wav' in features:
-            for file in audio_files:
+            iterator = tqdm(
+                audio_files,
+                desc=f'copying audio files for speaker',
+                total=len(audio_files),
+                dynamic_ncols=True
+            )
+            for file in iterator:
                 cp(file, output_directory / file.name)
 
         # Preprocess phonetic posteriorgrams
-        if 'senone' in features:
-            ppg_files = [f'{file.stem}-senone.pt' for file in audio_files]
-            ppgs.preprocess.senone.from_files_to_files(
+        if 'bottleneck' in features:
+            ppg_files = [f'{file.stem}-bottleneck.pt' for file in audio_files]
+            ppgs.preprocess.bottleneck.from_files_to_files(
                 audio_files,
                 ppg_files,
                 gpu
