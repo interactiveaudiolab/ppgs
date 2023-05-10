@@ -15,12 +15,11 @@ yapecs.configure('ppgs', defaults)
 
 # Import configuration parameters
 from .config.defaults import *
-from .config.static import *
 try:
     from .config.secrets import *
-except ImportError:
+except ImportError as e:
     pass
-
+from .config.static import *
 
 ###############################################################################
 # Module imports

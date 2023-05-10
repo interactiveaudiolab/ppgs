@@ -24,7 +24,7 @@ DEFAULT_CONFIGURATION = ppgs.ASSETS_DIR / 'configs' / 'ppgs.py'
 # Representation
 ###############################################################################
 REPRESENTATION_MAP = {
-    'senone': ppgs.preprocess.senone,
+    'bottlenecks': ppgs.preprocess.bottleneck,
     'w2v2fs': ppgs.preprocess.w2v2fs,
     'w2v2fb': ppgs.preprocess.w2v2fb,
     'spectrogram': ppgs.preprocess.spectrogram,

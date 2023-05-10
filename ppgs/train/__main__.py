@@ -3,13 +3,14 @@ import shutil
 from pathlib import Path
 
 import ppgs
+from ppgs.notify import notify_on_finish
 
 
 ###############################################################################
 # Entry point
 ###############################################################################
 
-
+@notify_on_finish('training')
 def main(config, dataset, gpus=None, eval_only=False):
     # Create output directory
     directory = ppgs.RUNS_DIR / config.stem
@@ -48,6 +49,11 @@ def parse_args():
         type=int,
         nargs='+',
         help='The gpus to run training on')
+    parser.add_argument(
+        '--no-cache',
+        action='store_true',
+        help='Do not use cache, do preprocessing on the fly'
+    )
     parser.add_argument(
         '--eval-only',
         action='store_true',

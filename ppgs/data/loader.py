@@ -3,12 +3,12 @@ import torch
 import ppgs
 
 
-def loaders(dataset, representation='senone', reduced_features=False):
+def loaders(dataset, representation=ppgs.REPRESENTATION, reduced_features=False):
     """Retrieve data loaders for training and evaluation"""
     return loader(dataset, 'train', representation, reduced_features), loader(dataset, 'valid', representation, reduced_features)
 
 
-def loader(dataset, partition, representation='senone', reduced_features=False):
+def loader(dataset, partition, representation=ppgs.REPRESENTATION, reduced_features=False):
     """Retrieve a data loader"""
     dataset_object = ppgs.data.Dataset(dataset, partition, representation, reduced_features)
     return torch.utils.data.DataLoader(

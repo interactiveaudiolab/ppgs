@@ -18,7 +18,7 @@ class LengthsWrapperModel(torch.nn.Module):
         mask = lengths
         for module, module_needs_lengths in zip(self.module_list, self.length_modules):
             if module_needs_lengths:
-                output, mask = module(output, mask)
+                output = module(output, mask)
             else:
                 output = module(output)
         return output

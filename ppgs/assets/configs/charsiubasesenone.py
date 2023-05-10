@@ -1,4 +1,4 @@
-CONFIG = 'charsiubasesenone'
+CONFIG = 'charsiubasebottleneck'
 MODULE = 'ppgs'
 
 NUM_WORKERS=6
