@@ -5,6 +5,7 @@ import torchaudio
 import tqdm
 
 import ppgs
+from ppgs.model.transformer import mask_from_lengths
 
 ###############################################################################
 # Constants
@@ -26,6 +27,44 @@ WINDOW_SIZE = 400
 ###############################################################################
 
 logging.set_verbosity_error()
+
+def from_audios(
+    audio,
+    lengths,
+    sample_rate=None,
+    config=None,
+    gpu=None):
+    """Compute W2V2FS latents from audio"""
+    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
+    if config is None: config=W2V2FS_CONFIG
+    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+
+    # Cache model
+    if not hasattr(from_audio, 'model'):
+        from_audio.model = Wav2Vec2Model.from_pretrained(config).to(device)
+    # if not hasattr(from_audio, 'processor'):
+    #     from_audio.processor = Wav2Vec2FeatureExtractor.from_pretrained(config)
+
+    # Maybe resample
+    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
+
+    # Setup features
+    # inputs = from_audio.processor(audio, sampling_rate=sample_rate, return_tensors='pt')
+    pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
+    #TODO investigate +1 here
+    inputs = torch.nn.functional.pad(audio, (pad, pad+1))
+    # inputs = audio.unsqueeze(dim=0)
+
+    # Infer W2V2FS latents
+    mask = mask_from_lengths(lengths).squeeze(dim=1).to(torch.long)
+    assert len(mask.shape) == 2
+    output = from_audio.model(inputs, mask).last_hidden_state.squeeze()
+    output = torch.transpose(output, 1, 2)
+    try:
+        assert output.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct
+    except AssertionError:
+        import pdb; pdb.set_trace()
+    return output.to(torch.float16)
 
 def from_audio(
     audio,

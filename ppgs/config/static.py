@@ -24,9 +24,11 @@ DEFAULT_CONFIGURATION = ppgs.ASSETS_DIR / 'configs' / 'ppgs.py'
 # Representation
 ###############################################################################
 REPRESENTATION_MAP = {
-    'bottlenecks': ppgs.preprocess.bottleneck,
+    'bottleneck': ppgs.preprocess.bottleneck,
     'w2v2fs': ppgs.preprocess.w2v2fs,
     'w2v2fb': ppgs.preprocess.w2v2fb,
     'spectrogram': ppgs.preprocess.spectrogram,
-    'mel': ppgs.preprocess.spectrogram #TODO uh oh, need to differentiate
+    'mel': ppgs.preprocess.mel,
+    'unfold': ppgs.preprocess.unfold,
+    'encodec': ppgs.preprocess.encodec
 }

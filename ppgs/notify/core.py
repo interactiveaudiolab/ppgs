@@ -20,7 +20,7 @@ def notify_on_finish(description: str, track_time: bool = True, notify_on_fail: 
                 func(*args, **kwargs)
             except Exception as e:
                 if notify_on_fail:
-                    message = f'task "{description}" failed with exception: {e}'
+                    message = f'task "{description}" failed with exception: {e.__class__}'
                     push(message)
                 raise e
             if track_time:

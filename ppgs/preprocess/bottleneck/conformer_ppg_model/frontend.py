@@ -46,8 +46,17 @@ class DefaultFrontend(torch.nn.Module):
         # Deepcopy (In general, dict shouldn't be used as default arg)
         frontend_conf = copy.deepcopy(frontend_conf)
 
-        self.stft = partial(
-            torch.stft,
+        # self.stft = partial(
+        #     torch.stft,
+        #     n_fft=n_fft,
+        #     win_length=win_length,
+        #     hop_length=hop_length,
+        #     center=center,
+        #     pad_mode=pad_mode,
+        #     normalized=normalized,
+        #     onesided=onesided,
+        # )
+        self.stft = Stft(
             n_fft=n_fft,
             win_length=win_length,
             hop_length=hop_length,
@@ -55,6 +64,7 @@ class DefaultFrontend(torch.nn.Module):
             pad_mode=pad_mode,
             normalized=normalized,
             onesided=onesided,
+            kaldi_padding_mode=kaldi_padding_mode,
         )
         if frontend_conf is not None:
             self.frontend = Frontend(idim=n_fft // 2 + 1, **frontend_conf)
@@ -73,9 +83,10 @@ class DefaultFrontend(torch.nn.Module):
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
-        input_stft = self.stft(input)
-        input_stft = input_stft.transpose(1, 2)
-        feats_lens = torch.tensor([input_stft.shape[1]])
+        # input_stft = self.stft(input)
+        # input_stft = input_stft.transpose(1, 2)
+        # feats_lens = torch.tensor([input_stft.shape[1]])
+        input_stft, feats_lens = self.stft(input, input_lengths)
 
         assert input_stft.dim() >= 4, input_stft.shape
         # "2" refers to the real/imag parts of Complex
@@ -93,6 +104,7 @@ class DefaultFrontend(torch.nn.Module):
 
         # 3. [Multi channel case]: Select a channel
         if input_stft.dim() == 4:
+            raise ValueError('we should never get here, use single channel audio')
             # h: (B, T, C, F) -> h: (B, T, F)
             if self.training:
                 # Select 1ch randomly

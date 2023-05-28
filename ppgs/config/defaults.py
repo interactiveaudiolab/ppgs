@@ -119,6 +119,7 @@ RANDOM_SEED = 1234
 # Model parameters #TODO extract to separate config file?
 ###############################################################################
 
+FRONTEND = None
 
 # Number of attention heads
 ATTENTION_HEADS = 2
@@ -127,7 +128,7 @@ ATTENTION_HEADS = 2
 ATTENTION_WINDOW_SIZE = 4
 
 # Number of hidden layers
-NUM_HIDDEN_LAYERS = 1
+NUM_HIDDEN_LAYERS = 3
 
 # Network width
 HIDDEN_CHANNELS = 128

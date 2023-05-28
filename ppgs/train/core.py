@@ -18,7 +18,7 @@ def run(
     checkpoint_directory,
     output_directory,
     log_directory,
-    no_cache=False,
+    # no_cache=False,
     gpus=None,
     eval_only=False):
     """Run model training"""
@@ -43,7 +43,7 @@ def run(
             checkpoint_directory,
             output_directory,
             log_directory,
-            no_cache,
+            # no_cache,
             None if gpus is None else gpus[0],
             eval_only)
 
@@ -61,7 +61,7 @@ def train(
     checkpoint_directory,
     output_directory,
     log_directory,
-    no_cache=False,
+    # no_cache=False,
     gpu=None,
     eval_only=False):
     """Train a model"""
@@ -135,10 +135,10 @@ def train(
     #######################
 
     torch.manual_seed(ppgs.RANDOM_SEED)
-    if no_cache:
-        raise NotImplementedError()
-    else:
-        train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION, reduced_features=True)
+    # if no_cache:
+    #     raise NotImplementedError()
+    # else:
+    train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION, reduced_features=True)
 
 
     if eval_only:
@@ -161,6 +161,10 @@ def train(
     # Get total number of steps
     steps = ppgs.NUM_STEPS
 
+    # Prepare FRONTEND
+    if ppgs.FRONTEND is not None and hasattr(ppgs.FRONTEND, 'to'):
+        ppgs.FRONTEND.to(device)
+
     # Setup progress bar
     if not rank:
         progress = tqdm.tqdm(
@@ -182,29 +186,14 @@ def train(
 
             with torch.cuda.amp.autocast():
 
-                # if step == 450202:
-                #     i=1
-                #     model.zero_grad()
-                #     predicted_ppgs = model(input_ppgs, lengths)
-                #     example_loss = torch.nn.functional.cross_entropy(
-                #         predicted_ppgs[i:i+1],
-                #         indices[i:i+1]
-                #     )
-                #     optimizer.zero_grad()
-                #     scaler.scale(example_loss).backward()
-                #     scaler.unscale_(optimizer)
-                #     print(i, stems[i], example_loss)
-                #     for p in model.parameters():
-                #         if p.grad is not None and p.grad.norm() >= 2:
-                #             print(p.grad.norm(), '2', p.shape)
-                #         if p.grad is not None and p.grad.norm(4) >= 1:
-                #             print(p.grad.norm(4), '4', p.shape)
-                #         if p.grad is not None and p.grad.abs().max() >= 1:
-                #             print(p.grad.abs().max(), 'inf', p.shape)
-                #     scaler.update()
+                if (ppgs.FRONTEND is not None) and callable(ppgs.FRONTEND):
+                    input_ppgs = input_ppgs.to(torch.int) #TODO remove to generalize
+                    with torch.no_grad():
+                        import pdb; pdb.set_trace()
+                        input_ppgs = ppgs.FRONTEND(input_ppgs).to(torch.float16)
 
                 # Forward pass
-                if ppgs.MODEL == 'transformer':
+                if ppgs.MODEL == 'transformer' or ppgs.MODEL == 'oldtransformer':
                     predicted_ppgs = model(input_ppgs, lengths)
                 else:
                     predicted_ppgs = model(input_ppgs)
@@ -337,7 +326,7 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
                 # Forward pass
-                if ppgs.MODEL == 'transformer':
+                if ppgs.MODEL == 'transformer' or ppgs.MODEL == 'oldtransformer':
                     predicted_ppgs = model(input_ppgs, lengths)
                 else:
                     predicted_ppgs = model(input_ppgs)
@@ -360,7 +349,7 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
                 # Forward pass
-                if ppgs.MODEL == 'transformer':
+                if ppgs.MODEL == 'transformer' or ppgs.MODEL == 'oldtransformer':
                     predicted_ppgs = model(input_ppgs, lengths)
                 else:
                     predicted_ppgs = model(input_ppgs)

@@ -41,10 +41,8 @@ def from_audios(
 
 
     # Cache model
-    if not hasattr(from_audio, 'model'):
-        from_audio.model = Wav2Vec2Model.from_pretrained(config).to(device)
-    if not hasattr(from_audio, 'processor'):
-        from_audio.processor = Wav2Vec2FeatureExtractor.from_pretrained(config)
+    if not hasattr(from_audios, 'model'):
+        from_audios.model = Wav2Vec2Model.from_pretrained(config).to(device)
 
     # Maybe resample
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
@@ -59,26 +57,21 @@ def from_audios(
     # inputs = from_audio.processor(list(padded_audio), sampling_rate=sample_rate, return_tensors='pt')
     # # interpolated_shape = [inputs.shape[0], inputs.shape[1] * 2]
 
-    # inputs = inputs['input_values'].to(device)
-    inputs = padded_audio.to(device)
-    lengths = lengths.to(device)
-
     # Infer W2V2FB latents
-    with torch.no_grad():
-        mask = mask_from_lengths(lengths).squeeze(dim=1).to(torch.long)
-        assert len(mask.shape) == 2
-        output = from_audio.model(inputs, mask).last_hidden_state.squeeze()
-        output = torch.transpose(output, 1, 2)
-        upsampled_outputs = torch.nn.functional.interpolate(
-            output,
-            size=audio.shape[-1]//ppgs.HOPSIZE,
-            mode='nearest'
-        )
-        try:
-            assert upsampled_outputs.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct
-        except AssertionError:
-            import pdb; pdb.set_trace()
-        return upsampled_outputs
+    mask = mask_from_lengths(lengths).squeeze(dim=1).to(torch.long)
+    assert len(mask.shape) == 2
+    output = from_audios.model(inputs, mask).last_hidden_state.squeeze()
+    output = torch.transpose(output, 1, 2)
+    upsampled_outputs = torch.nn.functional.interpolate(
+        output,
+        size=audio.shape[-1]//ppgs.HOPSIZE,
+        mode='nearest'
+    )
+    try:
+        assert upsampled_outputs.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct
+    except AssertionError:
+        import pdb; pdb.set_trace()
+    return upsampled_outputs.to(torch.float16)
 
 def from_audio(
     audio,

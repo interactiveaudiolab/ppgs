@@ -49,11 +49,11 @@ def parse_args():
         type=int,
         nargs='+',
         help='The gpus to run training on')
-    parser.add_argument(
-        '--no-cache',
-        action='store_true',
-        help='Do not use cache, do preprocessing on the fly'
-    )
+    # parser.add_argument(
+    #     '--no-cache',
+    #     action='store_true',
+    #     help='Do not use cache, do preprocessing on the fly'
+    # )
     parser.add_argument(
         '--eval-only',
         action='store_true',
