@@ -42,7 +42,7 @@ def from_audios(
 
     # Cache model
     if not hasattr(from_audio, 'model'):
-        from_audio.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
+        from_audios.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
             config,
             checkpoint_file,
             device)
@@ -51,14 +51,16 @@ def from_audios(
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
 
     # Setup features
-    audio = audio.to(device)
     pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
     lengths = lengths + 2*pad
     audio = torch.nn.functional.pad(audio, (pad, pad))
+    audio = audio.to(device)
+    audio = audio.squeeze(dim=1)
 
     # Infer Bottleneck PPGs
-    with torch.no_grad():
-        return from_audio.model(audio, lengths)[0].T
+    # with torch.no_grad():
+    output = from_audios.model(audio, lengths).transpose(1, 2)
+    return output.to(torch.float16)
 
 def from_audio(
     audio,

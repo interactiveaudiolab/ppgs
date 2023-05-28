@@ -2,6 +2,7 @@ import tarfile
 from shutil import copy as cp
 import csv
 import tqdm
+from tqdm.contrib.concurrent import process_map
 from pathlib import Path
 import re
 import torchaudio
@@ -11,6 +12,7 @@ import ppgs
 from ppgs import SOURCES_DIR, DATA_DIR
 from ppgs.notify import notify_on_finish
 import ppgs.data.purge
+from functools import partial
 
 from .sph import pcm_sph_to_wav
 from .utils import files_with_extension, download_file, download_tar_bz2, download_google_drive_zip, download_tar_gz
@@ -378,6 +380,29 @@ def format_arctic(speakers=None):
         ppgs.data.download.words.from_files_to_files(new_phone_files, new_word_files, new_sentences_file)
     
 
+def mp3_textgrid(mp3_file: Path, charsiu_wav_dir=None, charsiu_sources=None, charsiu_textgrid_dir=None):
+    audio = ppgs.load.audio(mp3_file)
+    torchaudio.save(charsiu_wav_dir / (mp3_file.stem + '.wav'), audio, sample_rate=ppgs.SAMPLE_RATE)
+    duration = audio.shape[-1] / ppgs.SAMPLE_RATE
+
+    try:
+        textgrid_file = charsiu_sources / 'alignments' / (mp3_file.stem + '.TextGrid')
+    except:
+        textgrid_file = charsiu_sources / 'alignments' / (mp3_file.stem + '.textgrid')
+
+    output_textgrid = charsiu_textgrid_dir / textgrid_file.name
+
+    #Need to fix short format because the textgrid library doesn't understand without
+    with open(textgrid_file, 'r', encoding='utf-8') as infile:
+        lines = infile.readlines()
+    lines[0] = 'File type = "ooTextFile short"\n'
+    lines[1] = '"TextGrid"\n'
+    with open(output_textgrid, 'w', encoding='utf-8') as outfile:
+        outfile.writelines(lines)
+    alignment = pypar.Alignment(output_textgrid)
+    alignment[-1][-1]._end = duration
+    alignment.save(output_textgrid)
+
 def format_charsiu():
     """Formats the charsiu dataset"""
     charsiu_sources = SOURCES_DIR / 'charsiu'
@@ -414,46 +439,23 @@ def format_charsiu():
     charsiu_wav_dir.mkdir(exist_ok=True, parents=True)
     charsiu_textgrid_dir.mkdir(exist_ok=True, parents=True)
 
-    iterator = tqdm.tqdm(
-        mp3_found,
-        desc="Copying charsiu textgrid files to datasets directory and converting mp3 to wav",
-        total=len(textgrid_files),
-        dynamic_ncols=True
-    )
+    # iterator = tqdm.tqdm(
+    #     mp3_found,
+    #     desc="Copying charsiu textgrid files to datasets directory and converting mp3 to wav",
+    #     total=len(textgrid_files),
+    #     dynamic_ncols=True
+    # )
 
-    for mp3_file in iterator: #TODO this is unbearably slow, can we make it faster please?
+    p = partial(mp3_textgrid, charsiu_wav_dir=charsiu_wav_dir, charsiu_sources=charsiu_sources, charsiu_textgrid_dir=charsiu_textgrid_dir)
 
-        audio = ppgs.load.audio(mp3_file)
-        torchaudio.save(charsiu_wav_dir / (mp3_file.stem + '.wav'), audio, sample_rate=ppgs.SAMPLE_RATE)
+    process_map(p, mp3_found, max_workers=16, chunksize=512)
+    # iterator = tqdm.tqdm(
+    #     mp3_found,
+    #     desc="Converting charsiu mp3 files to wav, and writing to datasets directory",
+    #     total=len(mp3_found),
+    #     dynamic_ncols=True
+    # )
 
-        duration = audio.shape[-1] / ppgs.SAMPLE_RATE
-
-        try:
-            textgrid_file = charsiu_sources / 'alignments' / (mp3_file.stem + '.TextGrid')
-        except:
-            textgrid_file = charsiu_sources / 'alignments' / (mp3_file.stem + '.textgrid')
-
-        output_textgrid = charsiu_textgrid_dir / textgrid_file.name
-
-        #Need to fix short format because the textgrid library doesn't understand without
-        with open(textgrid_file, 'r', encoding='utf-8') as infile:
-            lines = infile.readlines()
-        lines[0] = 'File type = "ooTextFile short"\n'
-        lines[1] = '"TextGrid"\n'
-        with open(output_textgrid, 'w', encoding='utf-8') as outfile:
-            outfile.writelines(lines)
-        alignment = pypar.Alignment(output_textgrid)
-        alignment[-1][-1]._end = duration
-        alignment.save(output_textgrid)
-        # cp(textgrid_file, charsiu_textgrid_dir / (textgrid_file.stem + '.textgrid'))
-    
-    iterator = tqdm.tqdm(
-        mp3_found,
-        desc="Converting charsiu mp3 files to wav, and writing to datasets directory",
-        total=len(mp3_found),
-        dynamic_ncols=True
-    )
-
-    for mp3_file in iterator:
-        audio = ppgs.load.audio(mp3_file)
-        torchaudio.save(charsiu_wav_dir / (mp3_file.stem + '.wav'), audio, sample_rate=ppgs.SAMPLE_RATE)
+    # for mp3_file in iterator:
+    #     audio = ppgs.load.audio(mp3_file)
+    #     torchaudio.save(charsiu_wav_dir / (mp3_file.stem + '.wav'), audio, sample_rate=ppgs.SAMPLE_RATE)

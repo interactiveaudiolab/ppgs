@@ -88,7 +88,7 @@ class Sampler:
 
             # Get current batch size
             size = ppgs.MAX_FRAMES // max_length
-            
+
             # Make batches
             batches.extend(
                 [bucket[i:i + size] for i in range(0, len(bucket), size)])
