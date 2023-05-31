@@ -14,24 +14,30 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Compute phonetic posteriorgram (PPG) features')
     parser.add_argument(
-        '--audio_files',
-        type=Path,
+        '--dataset',
         nargs='+',
-        help='The speech recordings to compute PPGs for')
-    parser.add_argument(
-        '--output_files',
         type=Path,
+        help='the datasets to process')
+    parser.add_argument(
+        '--from-features',
         nargs='+',
-        help='The files to save PPGs. Default is audio path with \".pt\" extension.')
+        help='features to synthesize PPGS from'
+    )
     parser.add_argument(
-        '--checkpoint',
+        '--save-from-features',
+        action='store_true'
+    )
+    parser.add_argument(
+        '--cache-dir',
         type=Path,
-        default=ppgs.DEFAULT_CHECKPOINT,
-        help='The files to save PPGs')
+        default=ppgs.CACHE_DIR,
+        help='path to a cache dir different from ppgs.CACHE_DIR, used as input and output'
+    )
     parser.add_argument(
-        '--preprocess-only',
-        action='store_true',
-        help='Instead of returning the PPGs, return the input representation output by the preprocessor (which can be specified with a config)'
+        '--num-workers',
+        type=int,
+        default=0,
+        help='The number of worker threads to use for loading data'
     )
     parser.add_argument(
         '--gpu',
@@ -41,4 +47,4 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    ppgs.from_files_to_files(**vars(parse_args()))
+    ppgs.process(**vars(parse_args()))

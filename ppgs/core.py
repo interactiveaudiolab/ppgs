@@ -136,3 +136,23 @@ def resample(audio, sample_rate, target_rate=ppgs.SAMPLE_RATE):
     resampler = torchaudio.transforms.Resample(sample_rate, target_rate)
     resampler = resampler.to(audio.device)
     return resampler(audio)
+
+
+def process(
+    datasets,
+    from_features,
+    save_from_features,
+    cache_dir,
+    num_workers,
+    gpu=None):
+    """Process datasets using ppgs models (and the corresponding feature models)"""
+    ppgs.CACHE_DIR = cache_dir
+    for dataset in datasets:
+        ppgs.preprocess.accel.multiprocessed_process(
+            dataset,
+            ppgs.CACHE_DIR / dataset,
+            from_features,
+            save_from_features,
+            num_workers,
+            gpu
+        )

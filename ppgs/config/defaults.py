@@ -98,7 +98,7 @@ VISUALIZATION_SAMPLES = 10
 # Training parameters
 ###############################################################################
 
-MODEL = 'convolution'
+MODEL = 'transformer'
 
 # Input representation
 REPRESENTATION = 'bottleneck'
@@ -138,9 +138,6 @@ INPUT_CHANNELS = 144
 
 # Kernel width
 KERNEL_SIZE = 5
-
-# Name of the model to use
-MODEL = 'convolution'
 
 
 ###############################################################################

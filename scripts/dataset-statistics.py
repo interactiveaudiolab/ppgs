@@ -1,5 +1,7 @@
-from ppgs.load import audio
+import torch
+import torchaudio
 from ppgs import CACHE_DIR, DATA_DIR
+# from promonet import CACHE_DIR, DATA_DIR
 from tqdm import tqdm
 import sys
 
@@ -9,7 +11,7 @@ num_threads = 4
 
 dir = CACHE_DIR / args[1]
 
-print('globbing for audio files')
+print(f'globbing for audio files in {dir}')
 
 audio_files = list(dir.rglob('*.wav'))
 
@@ -26,9 +28,9 @@ iterator = tqdm(
 total_num_samples = 0
 total_duration_seconds = 0
 for audio_file in iterator:
-    a = audio(audio_file)
-    total_num_samples += a.shape[-1]
-    total_duration_seconds += a.shape[-1] / 16000
+    num_frames = torchaudio.info(audio_file).num_frames
+    total_num_samples += num_frames
+    total_duration_seconds += num_frames / 16000
 
 print('total number of samples:', total_num_samples)
 print('total duration in seconds:', total_duration_seconds)

@@ -12,6 +12,23 @@ from . import spectrogram
 # Spectrogram computation
 ###############################################################################
 
+def from_features(
+    features,
+    lengths,
+    gpu=None
+):
+    if not hasattr(from_features, 'model'):
+        ppgs.REPRESENTATION = 'mel'
+        ppgs.INPUT_CHANNELS = 80
+        from_features.model = ppgs.Model()()
+        from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / f'{ppgs.MODEL}-mel.pt')['model'])
+        from_features.model.to(features.device)
+
+    if ppgs.MODEL == 'transformer':
+        return from_features.model(features, lengths)
+    else:
+        return from_features.model(features)
+
 def from_audios(
     audio,
     lengths,
