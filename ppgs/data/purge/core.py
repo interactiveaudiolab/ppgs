@@ -19,7 +19,7 @@ def datasets(datasets, features=None, kinds=None, force=False):
 
         if 'cache' in kinds:
             for feature in features:
-                if feature in ppgs.REPRESENTATION_MAP.keys():
+                if feature in list(ppgs.REPRESENTATION_MAP.keys()) + [rep + '-ppg' for rep in ppgs.REPRESENTATION_MAP.keys()]:
                     purger.add_glob(ppgs.CACHE_DIR / dataset, f'**/*-{feature}.pt')
                 elif feature == 'wav':
                     purger.add_glob(ppgs.CACHE_DIR / dataset, '**/*.wav')

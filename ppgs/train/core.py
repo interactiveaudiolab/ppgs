@@ -140,12 +140,18 @@ def train(
     # else:
     train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION, reduced_features=True)
 
+    # Prepare FRONTEND
+    if ppgs.FRONTEND is not None and callable(ppgs.FRONTEND):
+        frontend = ppgs.FRONTEND(device)
+    else:
+        frontend = None
 
     if eval_only:
         evaluate(
             log_directory,
             step,
             model,
+            frontend,
             valid_loader,
             train_loader,
             gpu)
@@ -161,9 +167,6 @@ def train(
     # Get total number of steps
     steps = ppgs.NUM_STEPS
 
-    # Prepare FRONTEND
-    if ppgs.FRONTEND is not None and hasattr(ppgs.FRONTEND, 'to'):
-        ppgs.FRONTEND.to(device)
 
     # Setup progress bar
     if not rank:
@@ -186,11 +189,9 @@ def train(
 
             with torch.cuda.amp.autocast():
 
-                if (ppgs.FRONTEND is not None) and callable(ppgs.FRONTEND):
-                    input_ppgs = input_ppgs.to(torch.int) #TODO remove to generalize
+                if frontend is not None:
                     with torch.no_grad():
-                        import pdb; pdb.set_trace()
-                        input_ppgs = ppgs.FRONTEND(input_ppgs).to(torch.float16)
+                        input_ppgs = frontend(input_ppgs).to(torch.float16)
 
                 # Forward pass
                 if ppgs.MODEL == 'transformer' or ppgs.MODEL == 'oldtransformer':
@@ -254,6 +255,7 @@ def train(
                         log_directory,
                         step,
                         model,
+                        frontend,
                         valid_loader,
                         train_loader,
                         gpu)
@@ -295,7 +297,7 @@ def train(
 ###############################################################################
 
 
-def evaluate(directory, step, model, valid_loader, train_loader, gpu):
+def evaluate(directory, step, model, frontend, valid_loader, train_loader, gpu):
     """Perform model evaluation"""
     device = 'cpu' if gpu is None else f'cuda:{gpu}'
 
@@ -325,6 +327,10 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                     stems
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
+                if frontend is not None:
+                    with torch.no_grad():
+                        input_ppgs = frontend(input_ppgs).to(torch.float16)
+
                 # Forward pass
                 if ppgs.MODEL == 'transformer' or ppgs.MODEL == 'oldtransformer':
                     predicted_ppgs = model(input_ppgs, lengths)
@@ -348,6 +354,11 @@ def evaluate(directory, step, model, valid_loader, train_loader, gpu):
                     stems
                 ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
 
+
+                if frontend is not None:
+                    with torch.no_grad():
+                        input_ppgs = frontend(input_ppgs).to(torch.float16)
+                
                 # Forward pass
                 if ppgs.MODEL == 'transformer' or ppgs.MODEL == 'oldtransformer':
                     predicted_ppgs = model(input_ppgs, lengths)

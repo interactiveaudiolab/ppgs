@@ -2,18 +2,8 @@ import ppgs
 import pypar
 import tqdm
 from shutil import copy as cp
-from torch import save
-import torch
 import multiprocessing as mp
-import sys
-from ppgs.data import preserve_free_space, stop_if_disk_full
-
-def save_masked(tensor, file, length):
-    try:
-        sub_tensor = tensor[:, :length].clone()
-        save(sub_tensor, file)
-    except Exception as e:
-        print(f'error saving file {file}: {e}', flush=True)
+from .accel import multiprocessed_preprocess
 
 def charsiu(input_dir, output_dir, features=None, num_workers=-1, gpu=None):
     """Perform preprocessing for charsiu dataset"""
@@ -105,30 +95,4 @@ def charsiu(input_dir, output_dir, features=None, num_workers=-1, gpu=None):
                 unfold_files = [f'{file.stem}-unfold.pt' for file in audio_files]
                 ppgs.preprocess.unfold.from_files_to_files(audio_files, unfold_files)
     else:
-        print('starting multiprocessed preprocessing (use --num-workers -1 to disable this behavior)')
-        dataloader = ppgs.preprocess.accel.loader('charsiu', num_workers=num_workers)
-        feature_processors = [ppgs.REPRESENTATION_MAP[f] for f in features]
-        iterator = tqdm.tqdm(
-            dataloader,
-            desc=f'preprocessing charsiu dataset for features {features}',
-            total=len(dataloader),
-            dynamic_ncols=True
-        )
-        device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
-        with mp.get_context('spawn').Pool(8) as pool:
-            with torch.inference_mode():
-                for audios, audio_files, lengths in iterator:
-                    audios = audios.to(device)
-                    lengths = lengths.to(device)
-                    for feature, feature_processor in zip(features, feature_processors):
-                        # print("audio shape:", audios.shape)
-                        outputs = feature_processor.from_audios(audios, lengths, gpu=gpu).cpu()
-                        torch.cuda.empty_cache()
-                        # print(torch.cuda.memory_summary(gpu, abbreviated=True))
-                        assert str(outputs.device) == 'cpu', f'"{outputs.device}"'
-                        new_lengths = [length // ppgs.HOPSIZE for length in lengths]
-                        filenames = [output_dir / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
-                        pool.starmap_async(save_masked, zip(outputs, filenames, new_lengths))
-                stop_if_disk_full()
-            pool.close()
-            pool.join()
+        multiprocessed_preprocess('charsiu', output_dir, features, num_workers, gpu)

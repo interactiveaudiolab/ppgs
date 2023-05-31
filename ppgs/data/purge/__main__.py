@@ -21,7 +21,7 @@ def parse_args():
         '--features',
         nargs='+',
         default=ppgs.preprocess.ALL_FEATURES,
-        choices=ppgs.preprocess.ALL_FEATURES,
+        choices=ppgs.preprocess.ALL_FEATURES + [rep + '-ppg' for rep in ppgs.REPRESENTATION_MAP.keys()],
         help="Which cached features to purge. Note that this only affects purges of the cache directory"
     )
     parser.add_argument(
