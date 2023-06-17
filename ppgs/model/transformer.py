@@ -48,4 +48,6 @@ class PositionalEncoding(torch.nn.Module):
         self.register_buffer('encoding', encoding)
 
     def forward(self, x):
+        if x.size(0) > self.encoding.size(0):
+            raise ValueError('size is too large')
         return self.dropout(x + self.encoding[:x.size(0)])

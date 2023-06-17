@@ -177,6 +177,9 @@ def train(
             desc=f'Training {ppgs.CONFIG}')
     while step < steps:
 
+        # Seed sampler
+        train_loader.batch_sampler.set_epoch(step // len(train_loader.dataset))
+
         model.train()
         for batch in train_loader:
 
@@ -251,6 +254,12 @@ def train(
 
                 if step % ppgs.EVALUATION_INTERVAL == 0:
 
+                    print(torch.cuda.max_memory_allocated(device) / (1024 ** 3), torch.cuda.max_memory_reserved(device) / (1024 ** 3))
+
+                    del loss
+                    del predicted_ppgs
+                    torch.cuda.empty_cache()
+
                     evaluate(
                         log_directory,
                         step,
@@ -279,6 +288,9 @@ def train(
             # Update progress bar
             if not rank:
                 progress.update()
+
+            # torch.cuda.empty_cache()
+            # print(torch.cuda.memory_allocated() / (1024 ** 3), torch.cuda.memory_reserved() / (1024 ** 3))
 
     # Close progress bar
     if not rank:

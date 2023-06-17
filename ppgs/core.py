@@ -2,9 +2,10 @@ import functools
 import torch
 import torchaudio
 import tqdm
-
+from pathlib import Path
 import ppgs
-
+from typing import List
+from ppgs.data import aggregate
 
 ###############################################################################
 # API
@@ -139,20 +140,19 @@ def resample(audio, sample_rate, target_rate=ppgs.SAMPLE_RATE):
 
 
 def process(
-    datasets,
-    from_features,
-    save_from_features,
-    cache_dir,
-    num_workers,
+    sources: List[Path],
+    from_feature=ppgs.REPRESENTATION,
+    save_intermediate_features=False,
+    output: Path = None,
+    num_workers=2,
     gpu=None):
     """Process datasets using ppgs models (and the corresponding feature models)"""
-    ppgs.CACHE_DIR = cache_dir
-    for dataset in datasets:
-        ppgs.preprocess.accel.multiprocessed_process(
-            dataset,
-            ppgs.CACHE_DIR / dataset,
-            from_features,
-            save_from_features,
-            num_workers,
-            gpu
-        )
+    files = aggregate(sources, ['.wav', '.mp3'])
+    ppgs.preprocess.accel.multiprocessed_process(
+        files,
+        [from_feature],
+        save_intermediate_features,
+        output,
+        num_workers,
+        gpu
+    )

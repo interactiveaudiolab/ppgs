@@ -101,7 +101,7 @@ VISUALIZATION_SAMPLES = 10
 MODEL = 'transformer'
 
 # Input representation
-REPRESENTATION = 'bottleneck'
+REPRESENTATION = 'w2v2fb'
 
 # Batch size (per gpu)
 BATCH_SIZE = 64
@@ -128,13 +128,13 @@ ATTENTION_HEADS = 2
 ATTENTION_WINDOW_SIZE = 4
 
 # Number of hidden layers
-NUM_HIDDEN_LAYERS = 3
+NUM_HIDDEN_LAYERS = 5
 
 # Network width
-HIDDEN_CHANNELS = 128
+HIDDEN_CHANNELS = 512
 
 # Dimensionality of input representation
-INPUT_CHANNELS = 144
+INPUT_CHANNELS = 768
 
 # Kernel width
 KERNEL_SIZE = 5

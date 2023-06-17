@@ -28,6 +28,17 @@ HOP_SIZE = 320
 
 logging.set_verbosity_error()
 
+def from_features(
+    features: torch.Tensor,
+    new_lengths: torch.Tensor,
+    gpu=0
+):
+    if not hasattr(from_features, 'model'):
+        model = ppgs.Model()()
+        model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'w2v2fb.pt')['model'])
+        model.to(features.device)
+    return model(features, new_lengths)
+
 def from_audios(
     audio,
     lengths,
@@ -38,7 +49,6 @@ def from_audios(
     if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
     if config is None: config=W2V2FB_CONFIG
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
-
 
     # Cache model
     if not hasattr(from_audios, 'model'):
@@ -60,7 +70,7 @@ def from_audios(
     # Infer W2V2FB latents
     mask = mask_from_lengths(lengths).squeeze(dim=1).to(torch.long)
     assert len(mask.shape) == 2
-    output = from_audios.model(inputs, mask).last_hidden_state.squeeze()
+    output = from_audios.model(padded_audio, mask).last_hidden_state.squeeze()
     output = torch.transpose(output, 1, 2)
     upsampled_outputs = torch.nn.functional.interpolate(
         output,
