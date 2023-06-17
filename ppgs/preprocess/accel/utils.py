@@ -3,27 +3,39 @@ import torchaudio
 import ppgs
 import numpy as np
 import warnings
+from pathlib import Path
 
 MAX_DURATION = 320 #max total duration for a batch in seconds
 MAX_SAMPLES = MAX_DURATION * ppgs.SAMPLE_RATE
 
 class Metadata:
 
-    def __init__(self, name, partition=None):
-        self.name = name
-        self.cache = ppgs.CACHE_DIR / name
-        # if partition is not None:
-        #     self.stems = [self.cache / stem for stem in ppgs.load.partition(name)[partition]]
-        # else:
-        #     self.stems = [self.cache / audio_file.stem for audio_file in self.cache.glob('*.wav')]
-        if partition is not None:
-            self.audio_files = [self.cache / (stem + '.wav') for stem in ppgs.load.partition(name)[partition]]
+    def __init__(self, dataset_or_files, partition=None):
+        if isinstance(dataset_or_files, str):
+            self.name = dataset_or_files
+            self.cache = ppgs.CACHE_DIR / self.name
+            # if partition is not None:
+            #     self.stems = [self.cache / stem for stem in ppgs.load.partition(name)[partition]]
+            # else:
+            #     self.stems = [self.cache / audio_file.stem for audio_file in self.cache.glob('*.wav')]
+            if partition is not None:
+                self.audio_files = [self.cache / (stem + '.wav') for stem in ppgs.load.partition(self.name)[partition]]
+            else:
+                #TODO include non-cached version
+                self.audio_files = list(self.cache.glob('*.wav'))
+        elif isinstance(dataset_or_files, list):
+            self.name = "list of files"
+            self.cache = None
+            self.audio_files = dataset_or_files
+        elif isinstance(dataset_or_files, Path):
+            self.name = dataset_or_files.stem
+            self.cache = None
+            self.audio_files = [dataset_or_files]
         else:
-            #TODO include non-cached version
-            self.audio_files = list(self.cache.glob('*.wav'))
+            import pdb; pdb.set_trace()
+            raise ValueError("need to pass either a name of a dataset or a list of files")
 
         print('preparing dataset metadata (operation may be slow)')
-
         # Store lengths for bucketing
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -33,8 +45,8 @@ class Metadata:
         return len(self.stems)
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, dataset, partition=None):
-        self.metadata = Metadata(dataset, partition)
+    def __init__(self, dataset_or_files, partition=None):
+        self.metadata = Metadata(dataset_or_files, partition)
         self.audio_files = self.metadata.audio_files
 
     def __getitem__(self, index):
@@ -102,8 +114,8 @@ def collate(batch):
     lengths = torch.tensor(lengths)
     return padded_audio, audio_files, lengths
 
-def loader(dataset, partition=None, num_workers=0):
-    dataset_object = Dataset(dataset, partition)
+def loader(dataset_or_files, partition=None, num_workers=0):
+    dataset_object = Dataset(dataset_or_files, partition)
     loader_object = torch.utils.data.DataLoader(
         dataset=dataset_object,
         pin_memory=True,

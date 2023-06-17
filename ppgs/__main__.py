@@ -14,29 +14,30 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Compute phonetic posteriorgram (PPG) features')
     parser.add_argument(
-        '--dataset',
+        '--sources',
         nargs='+',
         type=Path,
-        help='the datasets to process')
-    parser.add_argument(
-        '--from-features',
-        nargs='+',
-        help='features to synthesize PPGS from'
+        help='a list of files and/or directories to process'
     )
     parser.add_argument(
-        '--save-from-features',
-        action='store_true'
-    )
-    parser.add_argument(
-        '--cache-dir',
+        '--output',
         type=Path,
-        default=ppgs.CACHE_DIR,
-        help='path to a cache dir different from ppgs.CACHE_DIR, used as input and output'
+        help='the directory to write features to'
+    )
+    parser.add_argument(
+        '--from-feature',
+        default=ppgs.REPRESENTATION,
+        help='feature to synthesize PPGS from'
+    )
+    parser.add_argument(
+        '--save-intermediate-features',
+        action='store_true',
+        help="TODO"
     )
     parser.add_argument(
         '--num-workers',
         type=int,
-        default=0,
+        default=2,
         help='The number of worker threads to use for loading data'
     )
     parser.add_argument(

@@ -42,7 +42,7 @@ def parse_args():
         help='The configuration file')
     parser.add_argument(
         '--dataset',
-        default='arctic',
+        default='charsiu',
         help='The dataset to train on')
     parser.add_argument(
         '--gpus',

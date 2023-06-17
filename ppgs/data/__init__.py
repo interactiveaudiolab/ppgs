@@ -5,3 +5,4 @@ from .sampler import sampler
 from .loader import loaders
 from .dataset import Dataset
 from .disk import *
+from .aggregate import *
