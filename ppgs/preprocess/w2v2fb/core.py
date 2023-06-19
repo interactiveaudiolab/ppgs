@@ -34,10 +34,10 @@ def from_features(
     gpu=0
 ):
     if not hasattr(from_features, 'model'):
-        model = ppgs.Model()()
-        model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'w2v2fb.pt')['model'])
-        model.to(features.device)
-    return model(features, new_lengths)
+        from_features.model = ppgs.Model()()
+        from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'w2v2fb.pt')['model'])
+        from_features.model.to(features.device)
+    return from_features.model(features, new_lengths)
 
 def from_audios(
     audio,
@@ -55,7 +55,7 @@ def from_audios(
         from_audios.model = Wav2Vec2Model.from_pretrained(config).to(device)
 
     # Maybe resample
-    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
+    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze(dim=1)
     # upsampled_audio = torch.nn.functional.upsample(
     #     audio.reshape(1, 1, len(audio)),
     #     scale_factor=2,
@@ -70,7 +70,8 @@ def from_audios(
     # Infer W2V2FB latents
     mask = mask_from_lengths(lengths).squeeze(dim=1).to(torch.long)
     assert len(mask.shape) == 2
-    output = from_audios.model(padded_audio, mask).last_hidden_state.squeeze()
+    #TODO do we need to squeeze this?
+    output = from_audios.model(padded_audio, mask).last_hidden_state
     output = torch.transpose(output, 1, 2)
     upsampled_outputs = torch.nn.functional.interpolate(
         output,
