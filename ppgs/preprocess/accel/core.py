@@ -78,13 +78,13 @@ def multiprocessed_process(
                             filenames = [output / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
                         else:
                             filenames = [audio_file.parent / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
-                        pool.starmap_async(save_masked, zip(outputs.cpu(), filenames, new_lengths))
+                        pool.starmap_async(save_masked, zip(outputs.cpu(), filenames, new_lengths.cpu()))
                     if output is not None:
                         filenames = [output / f'{audio_file.stem}-{feature}-ppg.pt' for audio_file in audio_files]
                     else:
                         filenames = [audio_file.parent / f'{audio_file.stem}-{feature}-ppg.pt' for audio_file in audio_files]
-                    pool.starmap_async(save_masked, zip(ppg_outputs.cpu(), filenames, new_lengths))
-                    while pool._taskqueue.qsize() > 256:
+                    pool.starmap_async(save_masked, zip(ppg_outputs.cpu(), filenames, new_lengths.cpu()))
+                    while pool._taskqueue.qsize() > 100:
                         time.sleep(1)
                         wasted_time += 1
                 stop_if_disk_full()

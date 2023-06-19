@@ -125,7 +125,9 @@ def loader(dataset_or_files, partition=None, num_workers=0):
     )
     return loader_object
 
-def save_masked(tensor, file, length):
+def save_masked(tensor: torch.Tensor, file, length: torch.Tensor):
+    if tensor.device != 'cpu' or length.device != 'cpu':
+        raise ValueError('tensors (and lengths) must be on cpu for thread safety')
     try:
         sub_tensor = tensor[:, :length].clone()
         torch.save(sub_tensor, file)
