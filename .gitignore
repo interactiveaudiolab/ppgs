@@ -11,5 +11,8 @@ eval/*
 
 .pytest_cache
 
+ppgs/assets/checkpoints/*
+!ppgs/assets/checkpoints/ppg.pt
+
 tmp/
 ppgs/config/secrets.py
