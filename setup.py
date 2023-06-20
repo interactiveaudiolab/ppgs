@@ -32,7 +32,9 @@ setup(
         'opencv-python',
         'moviepy',
         'transformers',
-        'ffmpeg<5'
+        'ffmpeg<5',
+        'apprise',
+        'encodec'
     ],
     packages=['ppgs'],
     package_data={'ppgs': ['assets/*', 'assets/*/*']},
