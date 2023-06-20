@@ -14,7 +14,7 @@ from tqdm import tqdm
 ###############################################################################
 
 
-ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold']
+ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold', 'encodec']
 
 
 ###############################################################################

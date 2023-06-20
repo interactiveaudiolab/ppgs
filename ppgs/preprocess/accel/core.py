@@ -5,6 +5,8 @@ from ppgs.data import stop_if_disk_full
 from .utils import *
 from typing import Iterator, Tuple, List
 
+def reraise(exception):
+    raise exception
 
 #TODO allow control of batch size*
 def multiprocessed_preprocess(dataset_or_files, output_dir, features, num_workers=0, gpu=None):
@@ -30,10 +32,9 @@ def multiprocessed_preprocess(dataset_or_files, output_dir, features, num_worker
                     # torch.cuda.empty_cache()
                     # print(torch.cuda.memory_summary(gpu, abbreviated=True))
                     outputs = feature_processor.from_audios(audios, lengths, gpu=gpu).cpu()
-                    assert str(outputs.device) == 'cpu', f'"{outputs.device}"'
-                    new_lengths = [length // ppgs.HOPSIZE for length in lengths]
+                    new_lengths = lengths // ppgs.HOPSIZE
                     filenames = [output_dir / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
-                    pool.starmap_async(save_masked, zip(outputs, filenames, new_lengths))
+                    pool.starmap_async(save_masked, zip(outputs, filenames, new_lengths.cpu()))
                     while pool._taskqueue.qsize() > 256:
                         time.sleep(1)
                         wasted_time += 1
