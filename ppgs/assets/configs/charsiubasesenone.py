@@ -2,5 +2,5 @@ CONFIG = 'charsiubasebottleneck'
 MODULE = 'ppgs'
 
 NUM_WORKERS=6
-NUM_STEPS = 10000000
+
 BATCH_SIZE = 512

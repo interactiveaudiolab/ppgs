@@ -177,9 +177,6 @@ def train(
             desc=f'Training {ppgs.CONFIG}')
     while step < steps:
 
-        # Seed sampler
-        train_loader.batch_sampler.set_epoch(step // len(train_loader.dataset))
-
         model.train()
         for batch in train_loader:
 
@@ -217,6 +214,7 @@ def train(
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, norm_type='inf')
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0, norm_type=2)
             # for p in model.parameters():
             #     if p.grad is not None and p.grad.norm() >= 4:
             #         print(p.grad.norm(), '2', p.shape, step, stems)
@@ -292,6 +290,9 @@ def train(
             # torch.cuda.empty_cache()
             # print(torch.cuda.memory_allocated() / (1024 ** 3), torch.cuda.memory_reserved() / (1024 ** 3))
 
+        # update epoch
+        train_loader.batch_sampler.epoch += 1
+
     # Close progress bar
     if not rank:
         progress.close()
@@ -328,8 +329,7 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, gpu):
             training_metrics = ppgs.evaluate.Metrics('training')
             validation_metrics = ppgs.evaluate.Metrics('validation')
 
-            # for i, batch in enumerate(valid_loader):
-            for i, batch in enumerate(valid_loader): #TODO change this back
+            for i, batch in enumerate(valid_loader):
 
                 # Unpack batch
                 (

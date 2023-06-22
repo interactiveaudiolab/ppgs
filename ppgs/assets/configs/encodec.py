@@ -1,16 +1,19 @@
 from encodec import EncodecModel
+from types import MethodType
+import torch
 
-CONFIG = 'transformerencodec'
+CONFIG = 'encodec'
 MODULE = 'ppgs'
 
 INPUT_CHANNELS = 128 #dimensionality of encodec latents
 REPRESENTATION = 'encodec'
 MODEL = 'transformer'
-NUM_WORKERS=10
+
 EVALUATION_BATCHES = 16
 
-BATCH_SIZE = 512
-
+NUM_HIDDEN_LAYERS = 5
+MAX_FRAMES = 100000
+HIDDEN_CHANNELS = 512
 
 def _frontend(device='cpu'):
     import torch

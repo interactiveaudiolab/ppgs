@@ -10,7 +10,7 @@ REPRESENTATION = 'encodec'
 MODEL = 'transformer'
 NUM_WORKERS=10
 EVALUATION_BATCHES = 16
-NUM_STEPS = 300000
+
 
 def _decode(self, q_indices: torch.Tensor) -> torch.Tensor:
     quantized_out = torch.empty((q_indices.shape[1], 4096, q_indices.shape[2]), device=q_indices.device)
