@@ -107,7 +107,7 @@ REPRESENTATION = 'w2v2fb'
 BATCH_SIZE = 64
 
 # Number of training steps
-NUM_STEPS = 300000
+NUM_STEPS = 200000
 
 # Number of data loading worker threads
 NUM_WORKERS = 2
