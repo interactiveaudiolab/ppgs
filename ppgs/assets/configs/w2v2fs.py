@@ -1,4 +1,4 @@
-CONFIG = 'w2v2fb'
+CONFIG = 'w2v2fs'
 MODULE = 'ppgs'
 
 INPUT_CHANNELS = 768 #dimensionality of wav2vec2 latents
