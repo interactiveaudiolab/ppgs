@@ -39,10 +39,10 @@ def charsiu(input_dir, output_dir, features=None, num_workers=-1, gpu=None):
                     alignment = pypar.Alignment(textgrid_file)
                     for word in alignment._words:
                         if word.word == '[SIL]':
-                            word.word = 'sp'
+                            word.word = pypar.SILENCE
                         for phoneme in word.phonemes:
                             if phoneme.phoneme == '[SIL]':
-                                phoneme.phoneme = 'sil'
+                                phoneme.phoneme = pypar.SILENCE
                             else:
                                 phoneme.phoneme = phoneme.phoneme.lower()
                     alignment.save(textgrid_file.stem + '.textgrid')

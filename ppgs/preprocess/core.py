@@ -7,6 +7,7 @@ from os.path import join, isdir
 from shutil import copy as cp
 from ppgs.preprocess.charsiu import charsiu
 from ppgs.notify import notify_on_finish
+from ppgs.preprocess.accel import multiprocessed_preprocess
 from tqdm import tqdm
 
 ###############################################################################
@@ -37,29 +38,34 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None, use_cached_inputs=False,
             charsiu(input_directory, output_directory, features=features, num_workers=num_workers, gpu=gpu)
             continue
 
-        speakers = [speaker for speaker in listdir(input_directory) if isdir(join(input_directory, speaker))]
+        if num_workers == -1:
 
-        for speaker in speakers:
-            print('Preprocessing for speaker', speaker, 'in dataset', dataset)
-            speaker_dir = input_directory / speaker
+            speakers = [speaker for speaker in listdir(input_directory) if isdir(join(input_directory, speaker))]
 
-            speaker_output_dir = output_directory / speaker
-            makedirs(speaker_output_dir, exist_ok=True)
+            for speaker in speakers:
+                print('Preprocessing for speaker', speaker, 'in dataset', dataset)
+                speaker_dir = input_directory / speaker
 
-            audio_dir = speaker_dir / 'wav'
-            phoneme_dir = speaker_dir / 'lab'
-            word_dir = speaker_dir / 'word'
+                speaker_output_dir = output_directory / speaker
+                makedirs(speaker_output_dir, exist_ok=True)
 
-            audio_files = sorted(list(audio_dir.glob('*.wav')))
-            phoneme_files = sorted(list(phoneme_dir.glob('*.csv')))
+                audio_dir = speaker_dir / 'wav'
+                phoneme_dir = speaker_dir / 'lab'
+                word_dir = speaker_dir / 'word'
 
-            from_files_to_files(
-                speaker_output_dir, 
-                audio_files, 
-                phoneme_files,
-                word_dir,
-                features=features, 
-                gpu=gpu)
+                audio_files = sorted(list(audio_dir.glob('*.wav')))
+                phoneme_files = sorted(list(phoneme_dir.glob('*.csv')))
+
+                from_files_to_files(
+                    speaker_output_dir, 
+                    audio_files, 
+                    phoneme_files,
+                    word_dir,
+                    features=features, 
+                    gpu=gpu)
+        else:
+            print('using multiprocessed preprocessing')
+            multiprocessed_preprocess(dataset, None, features, num_workers, gpu)
 
 
 

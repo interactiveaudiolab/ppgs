@@ -14,7 +14,7 @@ def multiprocessed_preprocess(dataset_or_files, output_dir, features, num_worker
     dataloader = loader(dataset_or_files, num_workers=num_workers//2)
 
     feature_processors = [ppgs.REPRESENTATION_MAP[f] for f in features]
-    iterator = tqdm.tqdm(
+    iterator: Iterator[Tuple[torch.Tensor, List[Path], torch.Tensor]] = tqdm.tqdm(
         dataloader,
         desc=f'preprocessing {features} for dataset {dataset_or_files if isinstance(dataset_or_files, str) else "<list of files>"}',
         total=len(dataloader),
@@ -33,7 +33,8 @@ def multiprocessed_preprocess(dataset_or_files, output_dir, features, num_worker
                     # print(torch.cuda.memory_summary(gpu, abbreviated=True))
                     outputs = feature_processor.from_audios(audios, lengths, gpu=gpu).cpu()
                     new_lengths = lengths // ppgs.HOPSIZE
-                    filenames = [output_dir / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
+                    #TODO fix output_dir
+                    filenames = [audio_file.parent / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
                     pool.starmap_async(save_masked, zip(outputs, filenames, new_lengths.cpu()))
                     while pool._taskqueue.qsize() > 256:
                         time.sleep(1)

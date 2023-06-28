@@ -325,8 +325,8 @@ def format_arctic(speakers=None):
                 lines = f.readlines()
                 non_header_lines = lines[lines.index('#\n')+1:] #get rid of useless headers
                 timestamps, _, phonemes = zip(*[line.split() for line in non_header_lines if len(line) >= 5])
-                #Map special case of silence map from pau to sp
-                phonemes = ['sp' if phone == 'pau' else phone for phone in phonemes]
+                #Map special case of silence map from pau to SILENCE
+                phonemes = [pypar.SILENCE if phone == 'pau' else phone for phone in phonemes]
                 #Map errors to <unk>
                 phonemes = [phone if phone in ppgs.PHONEME_LIST else pypar.SILENCE for phone in phonemes]
             # with open(wav_dir_path / (lab_file.stem + '.wav'), 'rb') as f:

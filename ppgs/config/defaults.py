@@ -488,7 +488,7 @@ PHONEME_LIST = [
 	'z',
 	'zh',
 	'ax',
-	'sil',
+	pypar.SILENCE,
 	'<unk>'
 ]
 
@@ -516,13 +516,13 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'em': 'm',
     'en': 'n',
     'eng': 'ng',
-    'epi': 'pau', #differs from Kaldi (pau instead of sil)
+    'epi': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
     'er': 'er',
     'ey': 'ey',
     'f': 'f',
     'g': 'g',
     'gcl': 'bck<g>', #backfill
-    'h#': 'pau', #differs from Kaldi (pau instead of sil)
+    'h#': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
     'hh': 'hh',
     'hv': 'hh',
     'ih': 'ih',
