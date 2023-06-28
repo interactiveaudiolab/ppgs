@@ -11,6 +11,22 @@ from ppgs.data import aggregate
 # API
 ###############################################################################
 
+def from_features(
+    features: torch.Tensor,
+    new_lengths: torch.Tensor,
+    representation=ppgs.REPRESENTATION,
+    checkpoint=None,
+    gpu=None
+):
+    """Compute PPGs from features given by the representation"""
+    with torch.inference_mode():
+        return ppgs.REPRESENTATION_MAP[representation].from_features(
+            features, 
+            new_lengths,
+            checkpoint, 
+            gpu,
+        )
+
 #TODO add from_features
 def from_audio(
     audio,

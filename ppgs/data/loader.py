@@ -16,7 +16,7 @@ def loader(dataset, partition, representation=ppgs.REPRESENTATION, reduced_featu
             dataset=dataset_object,
             num_workers=ppgs.NUM_WORKERS,
             pin_memory=True,
-            collate_fn=ppgs.data.collate
+            collate_fn=ppgs.data.collate if not reduced_features else ppgs.data.reduced_collate
         )
     else:
         return torch.utils.data.DataLoader(
