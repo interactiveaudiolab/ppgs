@@ -64,7 +64,7 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
 
             # Setup test dataset
             ppgs.BATCH_SIZE = 1
-            dataloader = ppgs.data.loader.loader(dataset, partition, representation=ppgs.REPRESENTATION)
+            dataloader = ppgs.data.loader.loader(dataset, partition, representation=ppgs.REPRESENTATION, reduced_features=True)
             iterator = tqdm.tqdm(
                 dataloader,
                 f'Evaluating {ppgs.CONFIG} on {dataset}',
@@ -73,20 +73,19 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
             )
 
             # Iterate over test set
-            for input_ppgs, indices, alignment, word_breaks, audio, stems in iterator:
+            for input_ppgs, indices, lengths, stems in iterator:
 
                 # Reset file metrics
                 file_metrics.reset()
 
                 # Infer
-                logits = ppgs.from_audio(
-                    audio[0][0], #get only audio, and ignore sample rate (audio[0][1])
-                    ppgs.SAMPLE_RATE,
-                    checkpoint=checkpoint,
-                    # batch_size=2048, #TODO determine why this is here?
-                    gpu=gpu).unsqueeze(dim=0).cpu()
-
-                indices = indices
+                # logits = ppgs.from_audio(
+                #     audio[0][0], #get only audio, and ignore sample rate (audio[0][1])
+                #     ppgs.SAMPLE_RATE,
+                #     checkpoint=checkpoint,
+                #     # batch_size=2048, #TODO determine why this is here?
+                #     gpu=gpu).unsqueeze(dim=0).cpu()
+                logits = ppgs.from_features(input_ppgs, lengths, checkpoint=checkpoint, gpu=gpu)
 
                 # Update metrics
                 file_metrics.update(logits, indices)
