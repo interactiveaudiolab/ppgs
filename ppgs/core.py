@@ -15,33 +15,35 @@ from ppgs.data import aggregate
 def from_audio(
     audio,
     sample_rate,
-    model=None,
     representation=ppgs.REPRESENTATION,
     preprocess_only=False,
     checkpoint=None,
     gpu=None):
     """Compute phonetic posteriorgram features from audio"""
-    with torch.no_grad():
+    with torch.inference_mode():
         if checkpoint is None:
             checkpoint = ppgs.CHECKPOINT_DIR / f'{representation}.pt'
 
-        if model is None:
-            model = ppgs.Model()()
-
+        device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
         # Cache model on first call; update when GPU or checkpoint changes
         if (not hasattr(from_audio, 'model') or
             from_audio.checkpoint != checkpoint or
             from_audio.gpu != gpu):
-            # model = ppgs.model.BaselineModel()
+
+            from_audio.model = ppgs.Model()()
+
             state_dict = torch.load(checkpoint, map_location='cpu')['model']
+
             try:
-                model.load_state_dict(state_dict=state_dict)
+                from_audio.model.load_state_dict(state_dict=state_dict)
+
             except RuntimeError:
                 print('Failed to load model, trying again with assumption that model was trained using ddp')
                 state_dict = ppgs.load.ddp_to_single_state_dict(state_dict)
-                model.load_state_dict(state_dict)
-            device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
-            from_audio.model = model.to(device)
+                from_audio.model.load_state_dict(state_dict)
+
+            from_audio.model = from_audio.model.to(device)
+
             from_audio.checkpoint = checkpoint
             from_audio.gpu = gpu
 
@@ -52,7 +54,10 @@ def from_audio(
             return features
 
         # Compute PPGs
-        return from_audio.model(features[None])[0]
+        if ppgs.MODEL == 'transformer':
+            return from_audio.model(features[None], torch.tensor([features.shape[-1]], device=device))[0]
+        else:
+            return from_audio.model(features[None])[0]
 
 
 def from_file(

@@ -1,5 +1,6 @@
 import torch
 import ppgs
+from abc import ABC
 
 ###############################################################################
 # Aggregate batch metric state
@@ -29,7 +30,9 @@ class Metrics:
         for metric in self.metrics:
             metric.reset()
 
-    def update(self, predicted_logits, target_indices):
+    def update(self, predicted_logits: torch.Tensor, target_indices: torch.Tensor):
+        assert predicted_logits.dim() == 3
+        assert target_indices.dim() == 2
         for metric in self.metrics:
             metric.update(predicted_logits, target_indices)
 
@@ -72,23 +75,25 @@ class TopKAccuracy:
         self.reset()
 
     def __call__(self):
-        return {f'Top{self.k}Accuracy/{self.display_suffix}': float((self.correct_in_top_k / self.count))}
+        return {f'Top{self.k}Accuracy/{self.display_suffix}': float(float(self.correct_in_top_k) / float(self.count))}
     
     def reset(self):
         self.count = 0
         self.correct_in_top_k = 0
 
-    def update(self, predicted_logits, target_indices):
-        top_k_indices = torch.topk(predicted_logits, self.k, dim=1).indices
-        for i in range(0, len(target_indices)):
-            if target_indices[i] in top_k_indices[i]:
-                self.correct_in_top_k += 1
-            self.count += 1
-        
+    def update(self, predicted_logits: torch.Tensor, target_indices: torch.Tensor):
+        """Assumes that predicted_logits are BATCH x DIMS x TIME, target_indices are BATCH x TIME"""
+        predicted_logits = predicted_logits.transpose(1, 2)
+        predicted_logits = predicted_logits.flatten(0, 1)
+        target_indices = target_indices.flatten()
+        top_k = torch.topk(predicted_logits, self.k, dim=-1)
+        top_k_indices = top_k.indices
+        self.correct_in_top_k += ((top_k_indices == target_indices[:, None])).sum()
+        self.count += len(target_indices)
 
 
 class CategoricalAccuracy:
-    
+
     def __init__(self, display_suffix):
         self.display_suffix = display_suffix
         self.reset()
@@ -253,9 +258,18 @@ if __name__ == '__main__':
     print(JSMetric.total)
 
     Top3 = TopKAccuracy('test', 3)
-    input_logits0 = torch.special.logit(torch.tensor([[0.55, 0.16, 0.05, 0.1, 0.14]]))
-    input_logits1 = torch.special.logit(torch.tensor([[0.2, 0.25, 0.11, 0.35, 0.09]]))
-    input_logits = torch.cat([input_logits0, input_logits1])
-    input_indices = torch.tensor([1, 4])
+    Top2 = TopKAccuracy('test', 2)
+    input_indices = torch.tensor([0, 4, 1, 3, 1, 2])
+    input_logits = torch.cat([
+        torch.special.logit(torch.tensor([[0.55, 0.16, 0.05, 0.1, 0.14]])),
+        torch.special.logit(torch.tensor([[0.2, 0.25, 0.11, 0.35, 0.09]])),
+        torch.special.logit(torch.tensor([[0.9, 0.01, 0.01, 0.01, 0.07]])),
+        torch.special.logit(torch.tensor([[0.1, 0.3, 0.2, 0.15, 0.05]])),
+        torch.special.logit(torch.tensor([[0.8, 0.1, 0.01, 0.01, 0.08]])),
+        torch.special.logit(torch.tensor([[0.21, 0.19, 0.2, 0.21, 0.19]]))
+    ])
     Top3.update(input_logits, input_indices)
-    print(Top3.correct_in_top_k, Top3.count)
+    Top2.update(input_logits, input_indices)
+    print(Top2.correct_in_top_k, Top2.count, Top2())
+    print(Top3.correct_in_top_k, Top3.count, Top3())
+

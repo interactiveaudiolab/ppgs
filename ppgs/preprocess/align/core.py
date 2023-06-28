@@ -111,7 +111,8 @@ def from_file(phone_file, word_file):
 
 def from_file_to_file(phone_file, word_file, output_file):
     try:
-        from_file(phone_file, word_file).save(output_file)
+        alignment = from_file(phone_file, word_file)
+        alignment.save(output_file)
     except ValueError:
         print("error saving file: ", output_file)
 

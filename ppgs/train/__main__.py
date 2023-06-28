@@ -45,7 +45,8 @@ def parse_args():
         default='charsiu',
         help='The dataset to train on')
     parser.add_argument(
-        '--gpus',
+        '--gpus', '--gpu',
+        dest='gpus',
         type=int,
         nargs='+',
         help='The gpus to run training on')

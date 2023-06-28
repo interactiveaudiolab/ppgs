@@ -1,4 +1,4 @@
-import argparse
+import yapecs
 
 import ppgs
 
@@ -9,7 +9,7 @@ import ppgs
 
 def parse_args():
     """Parse command-line arguments"""
-    parser = argparse.ArgumentParser(description='Measure dataset disk usage')
+    parser = yapecs.ArgumentParser(description='Measure dataset disk usage')
     parser.add_argument(
         '--datasets',
         nargs='+',

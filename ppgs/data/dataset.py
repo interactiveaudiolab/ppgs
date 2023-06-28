@@ -7,6 +7,9 @@ import pyfoal
 import pypar
 import torch
 import torchaudio
+import os
+import json
+from pathlib import Path
 
 import ppgs
 
@@ -36,8 +39,9 @@ class Dataset(torch.utils.data.Dataset):
     def __init__(self, name, partition, representation=ppgs.REPRESENTATION, reduced_features=False):
         self.representation = representation
         self.metadata = Metadata(name, partition)
-        self.cache = ppgs.CACHE_DIR / name
-        self.stems = ppgs.load.partition(name)[partition]
+        self.cache = self.metadata.cache
+        # self.stems = ppgs.load.partition(name)[partition]
+        self.stems = self.metadata.stems
         self.reduced_features = reduced_features
 
         #calculate window size based on representation #TODO consider removing
@@ -125,19 +129,31 @@ class Dataset(torch.utils.data.Dataset):
 
 class Metadata:
 
-    def __init__(self, name, partition):
+    def __init__(self, name, partition, overwrite_cache=False):
         self.name = name
-        self.cache = ppgs.CACHE_DIR / name
-        self.stems = ppgs.load.partition(name)[partition]
-
+        self.cache = ppgs.CACHE_DIR / self.name
+        self.stems = [stem for stem in ppgs.load.partition(self.name)[partition]]
+        metadata_file = self.cache / f'{partition}-metadata.json'
+        if overwrite_cache and metadata_file.exists():
+            os.remove(metadata_file)
+        if metadata_file.exists():
+            print('using cached metadata')
+            with open(metadata_file, 'r') as f:
+                metadata = json.load(f)
+        else:
+            print('generating metadata from scratch')
+            metadata = {}
         print('preparing dataset metadata (operation may be slow)')
-
-        # Store lengths for bucketing
-        audio_files = list([
-            self.cache / f'{stem}.wav' for stem in self.stems])
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            self.lengths = [torchaudio.info(audio_file).num_frames // ppgs.HOPSIZE for audio_file in audio_files]
+        self.lengths = []
+        for stem in self.stems:
+            try:
+                self.lengths.append(metadata[stem])
+            except KeyError:
+                length = torchaudio.info(self.cache / (stem + '.wav')).num_frames // ppgs.HOPSIZE
+                metadata[stem] = length
+                self.lengths.append(length)
+        with open(metadata_file, 'w+') as f:
+            json.dump(metadata, f)
 
     def __len__(self):
         return len(self.stems)

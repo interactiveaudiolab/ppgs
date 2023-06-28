@@ -3,17 +3,23 @@ import torchaudio
 import ppgs
 import numpy as np
 import warnings
+import json
+import os
 from pathlib import Path
 
+#TODO parameterize
 MAX_DURATION = 320 #max total duration for a batch in seconds
 MAX_SAMPLES = MAX_DURATION * ppgs.SAMPLE_RATE
 
 class Metadata:
 
-    def __init__(self, dataset_or_files, partition=None):
+    def __init__(self, dataset_or_files, partition=None, overwrite_cache=False):
         if isinstance(dataset_or_files, str):
             self.name = dataset_or_files
             self.cache = ppgs.CACHE_DIR / self.name
+            metadata_file = self.cache / 'metadata.json'
+            if overwrite_cache and metadata_file.exists():
+                os.remove(metadata_file)
             # if partition is not None:
             #     self.stems = [self.cache / stem for stem in ppgs.load.partition(name)[partition]]
             # else:
@@ -22,7 +28,26 @@ class Metadata:
                 self.audio_files = [self.cache / (stem + '.wav') for stem in ppgs.load.partition(self.name)[partition]]
             else:
                 #TODO include non-cached version
-                self.audio_files = list(self.cache.glob('*.wav'))
+                self.audio_files = list(self.cache.rglob('*.wav'))
+            if metadata_file.exists():
+                print('using cached metadata')
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+            else:
+                metadata = {}
+            print('preparing dataset metadata (operation may be slow)')
+            self.lengths = []
+            for audio_file in self.audio_files:
+                try:
+                    self.lengths.append(metadata[str(audio_file)])
+                except KeyError:
+                    length = torchaudio.info(audio_file).num_frames
+                    metadata[str(audio_file)] = length
+                    self.lengths.append(length)
+            with open(metadata_file, 'w+') as f:
+                json.dump(metadata, f)
+            return
+
         elif isinstance(dataset_or_files, list):
             self.name = "list of files"
             self.cache = None
@@ -32,7 +57,6 @@ class Metadata:
             self.cache = None
             self.audio_files = [dataset_or_files]
         else:
-            import pdb; pdb.set_trace()
             raise ValueError("need to pass either a name of a dataset or a list of files")
 
         print('preparing dataset metadata (operation may be slow)')
@@ -134,3 +158,7 @@ def save_masked(tensor: torch.Tensor, file, length: torch.Tensor):
     torch.save(sub_tensor, file)
     # except Exception as e:
     #     print(f'error saving file {file}: {e}', flush=True)
+
+
+if __name__ == '__main__':
+    loader('arctic')

@@ -214,14 +214,14 @@ def train(
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, norm_type='inf')
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0, norm_type=2)
-            # for p in model.parameters():
-            #     if p.grad is not None and p.grad.norm() >= 4:
-            #         print(p.grad.norm(), '2', p.shape, step, stems)
-            #     if p.grad is not None and p.grad.norm(4) >= 2:
-            #         print(p.grad.norm(4), '4', p.shape, step, stems)
-            #     if p.grad is not None and p.grad.abs().max() >= 2:
-            #         print(p.grad.abs().max(), 'inf', p.shape, step, stems)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.5, norm_type=2)
+            for p in model.parameters():
+                # if p.grad is not None and p.grad.norm() >= 1.25:
+                #     print(p.grad.norm(), '2', p.shape, step)#, stems)
+                # if p.grad is not None and p.grad.norm(4) >= 1:
+                #     print(p.grad.norm(4), '4', p.shape, step, stems)
+                if p.grad is not None and p.grad.abs().max() >= 0.5:
+                    print(p.grad.abs().max(), 'inf', p.shape, step)#, stems)
             # Update weights
             scaler.step(optimizer)
 
