@@ -25,7 +25,7 @@ setup(
         'torchaudio',
         'torch_complex',
         'tqdm',
-        'yapecs',
+        'yapecs>=0.0.7',
         'pypar',
         'nltk',
         'gdown>=4.6.2',
