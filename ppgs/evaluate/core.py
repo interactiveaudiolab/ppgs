@@ -9,6 +9,7 @@ from contextlib import ExitStack
 import numpy as np
 import yapecs
 from ppgs.notify import notify_on_finish
+import torch
 
 
 ###############################################################################
@@ -56,6 +57,8 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
         # Aggregate metrics over all datasets
         aggregate_metrics = ppgs.evaluate.Metrics('aggregate')
 
+        device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+
         # Evaluate each dataset
         for dataset in datasets:
 
@@ -78,13 +81,9 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
                 # Reset file metrics
                 file_metrics.reset()
 
-                # Infer
-                # logits = ppgs.from_audio(
-                #     audio[0][0], #get only audio, and ignore sample rate (audio[0][1])
-                #     ppgs.SAMPLE_RATE,
-                #     checkpoint=checkpoint,
-                #     # batch_size=2048, #TODO determine why this is here?
-                #     gpu=gpu).unsqueeze(dim=0).cpu()
+                input_ppgs = input_ppgs.to(device)
+                lengths = lengths.to(device)
+                indices = indices.to(device)
                 logits = ppgs.from_features(input_ppgs, lengths, checkpoint=checkpoint, gpu=gpu)
 
                 # Update metrics
