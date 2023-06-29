@@ -41,7 +41,7 @@ def parse_args():
         default='test',
         choices=['train', 'valid', 'test'])
 
-    return parser.parse_known_args()[0]
+    return parser.parse_args()
 
 
 if __name__ == '__main__':

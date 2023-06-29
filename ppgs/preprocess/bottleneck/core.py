@@ -26,6 +26,20 @@ WINDOW_SIZE = 1024
 # Phonetic posteriorgram
 ###############################################################################
 
+def from_features(
+    features: torch.Tensor,
+    new_lengths: torch.Tensor,
+    checkpoint=None,
+    gpu=0
+):
+    if not hasattr(from_features, 'model'):
+        from_features.model = ppgs.Model()()
+        if checkpoint is not None:
+            from_features.model.load_state_dict(torch.load(checkpoint)['model'])
+        else:
+            from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'bottleneck.pt')['model'])
+        from_features.model.to(features.device)
+    return from_features.model(features, new_lengths)
 
 def from_audios(
     audio,

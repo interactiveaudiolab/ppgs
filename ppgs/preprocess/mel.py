@@ -13,21 +13,19 @@ from . import spectrogram
 ###############################################################################
 
 def from_features(
-    features,
-    lengths,
-    gpu=None
+    features: torch.Tensor,
+    new_lengths: torch.Tensor,
+    checkpoint=None,
+    gpu=0
 ):
     if not hasattr(from_features, 'model'):
-        ppgs.REPRESENTATION = 'mel'
-        ppgs.INPUT_CHANNELS = 80
         from_features.model = ppgs.Model()()
-        from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / f'{ppgs.MODEL}-mel.pt')['model'])
+        if checkpoint is not None:
+            from_features.model.load_state_dict(torch.load(checkpoint)['model'])
+        else:
+            from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'mel.pt')['model'])
         from_features.model.to(features.device)
-
-    if ppgs.MODEL == 'transformer':
-        return from_features.model(features, lengths)
-    else:
-        return from_features.model(features)
+    return from_features.model(features, new_lengths)
 
 def from_audios(
     audio,

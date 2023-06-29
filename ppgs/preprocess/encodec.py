@@ -4,6 +4,23 @@ from torchaudio.transforms import Resample
 import ppgs
 
 
+def from_features(
+    features: torch.Tensor,
+    new_lengths: torch.Tensor,
+    checkpoint=None,
+    gpu=0
+):
+    if not hasattr(from_features, 'model'):
+        from_features.model = ppgs.Model()()
+        if checkpoint is not None:
+            from_features.model.load_state_dict(torch.load(checkpoint)['model'])
+        else:
+            from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'encodec.pt')['model'])
+        from_features.frontend = ppgs.FRONTEND(features.device)
+        from_features.model.to(features.device)
+    
+    return from_features.model(from_features.frontend(features), new_lengths)
+
 def from_audios(
     audio: torch.Tensor,
     lengths,
