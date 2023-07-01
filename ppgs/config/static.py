@@ -27,6 +27,7 @@ REPRESENTATION_MAP = {
     'bottleneck': ppgs.preprocess.bottleneck,
     'w2v2fs': ppgs.preprocess.w2v2fs,
     'w2v2fb': ppgs.preprocess.w2v2fb,
+    'w2v2ft': ppgs.preprocess.w2v2ft,
     'spectrogram': ppgs.preprocess.spectrogram,
     'mel': ppgs.preprocess.mel,
     'unfold': ppgs.preprocess.unfold,

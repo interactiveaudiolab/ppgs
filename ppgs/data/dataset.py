@@ -67,14 +67,14 @@ class Dataset(torch.utils.data.Dataset):
         alignment = pypar.Alignment(self.cache / f'{stem}.textgrid')
 
 
-        # This assumes that frame zero of ppgs is centered on sampled zero,
+        # This assumes that frame zero of ppgs is centered on sample zero,
         # frame one is centered on sample ppgs.HOPSIZE, frame two is centered
         # on sample 2 * ppgs.HOPSIZE, etc. Adjust accordingly.
         hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
         times = np.linspace(hopsize/2, (num_frames-1)*hopsize+hopsize/2, num_frames)
         times[-1] = alignment.duration()
 
-        if times.shape[0] != input_ppgs.shape[-1]:
+        if ppgs.REPRESENTATION != 'w2v2ft' and times.shape[0] != input_ppgs.shape[-1]:
             raise ValueError('Non-matching data shapes!')
 
         # Convert alignment to framewise indices

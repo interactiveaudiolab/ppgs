@@ -114,7 +114,7 @@ if __name__ == '__main__':
     loss_fn = torch.nn.functional.cross_entropy
     scaler = torch.cuda.amp.GradScaler()
     device = 'cuda:1'
-    model = model = ppgs.Model()().to(device)
+    model = ppgs.Model()().to(device)
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=2e-4,

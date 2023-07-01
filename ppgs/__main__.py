@@ -1,4 +1,4 @@
-import argparse
+import yapecs
 from pathlib import Path
 
 import ppgs
@@ -11,7 +11,7 @@ import ppgs
 
 def parse_args():
     """Parse command-line arguments"""
-    parser = argparse.ArgumentParser(
+    parser = yapecs.ArgumentParser(
         description='Compute phonetic posteriorgram (PPG) features')
     parser.add_argument(
         '--sources',
@@ -39,7 +39,7 @@ def parse_args():
         '--save-intermediate-features',
         action='store_true',
         help="save the intermediate features from which PPGs are computed (e.g. w2v2fb)")
-    return parser.parse_known_args()[0]
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
