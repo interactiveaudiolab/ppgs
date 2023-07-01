@@ -1,7 +1,6 @@
 """dataset.py - data loading"""
 
 import contextlib
-import warnings
 import numpy as np
 import pyfoal
 import pypar
@@ -9,7 +8,6 @@ import torch
 import torchaudio
 import os
 import json
-from pathlib import Path
 
 import ppgs
 
