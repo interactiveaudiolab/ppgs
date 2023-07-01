@@ -115,6 +115,9 @@ NUM_WORKERS = 2
 # Seed for all random number generators
 RANDOM_SEED = 1234
 
+GRAD_2_CLIP = 1.5
+GRAD_INF_CLIP = 1.0
+
 ###############################################################################
 # Model parameters #TODO extract to separate config file?
 ###############################################################################

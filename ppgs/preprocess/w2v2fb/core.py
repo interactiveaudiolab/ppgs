@@ -11,7 +11,7 @@ import ppgs
 # Constants
 ###############################################################################
 
-# W2V2 FS pretrained model config name
+# W2V2 FB pretrained model config name
 W2V2FB_CONFIG = "facebook/wav2vec2-base"
 
 # Sample rate of the PPG model

@@ -194,10 +194,10 @@ def train(
                         input_ppgs = frontend(input_ppgs).to(torch.float16)
 
                 # Forward pass
-                if ppgs.MODEL == 'transformer' or ppgs.MODEL == 'oldtransformer':
-                    predicted_ppgs = model(input_ppgs, lengths)
-                else:
+                if ppgs.MODEL == 'convolution':
                     predicted_ppgs = model(input_ppgs)
+                else:
+                    predicted_ppgs = model(input_ppgs, lengths)
 
                 # Compute loss
                 loss = torch.nn.functional.cross_entropy(
@@ -213,8 +213,8 @@ def train(
             # Backward pass
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, norm_type='inf')
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.5, norm_type=2)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_INF_CLIP, norm_type='inf')
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_2_CLIP, norm_type=2)
             for p in model.parameters():
                 # if p.grad is not None and p.grad.norm() >= 1.25:
                 #     print(p.grad.norm(), '2', p.shape, step)#, stems)
@@ -344,10 +344,10 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, gpu):
                         input_ppgs = frontend(input_ppgs).to(torch.float16)
 
                 # Forward pass
-                if ppgs.MODEL == 'transformer' or ppgs.MODEL == 'oldtransformer':
-                    predicted_ppgs = model(input_ppgs, lengths)
-                else:
+                if ppgs.MODEL == 'convolution':
                     predicted_ppgs = model(input_ppgs)
+                else:
+                    predicted_ppgs = model(input_ppgs, lengths)
 
                 # Update metrics
                 validation_metrics.update(predicted_ppgs, indices)
@@ -370,12 +370,12 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, gpu):
                 if frontend is not None:
                     with torch.no_grad():
                         input_ppgs = frontend(input_ppgs).to(torch.float16)
-                
+
                 # Forward pass
-                if ppgs.MODEL == 'transformer' or ppgs.MODEL == 'oldtransformer':
-                    predicted_ppgs = model(input_ppgs, lengths)
-                else:
+                if ppgs.MODEL == 'convolution':
                     predicted_ppgs = model(input_ppgs)
+                else:
+                    predicted_ppgs = model(input_ppgs, lengths)
 
                 # Update metrics
                 training_metrics.update(predicted_ppgs, indices)

@@ -1,7 +1,7 @@
 """__main__.py - entry point for ppgs.preprocess"""
 
 
-import argparse
+import yapecs
 
 import ppgs
 
@@ -12,7 +12,7 @@ import ppgs
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Preprocess a dataset')
+    parser = yapecs.ArgumentParser(description='Preprocess a dataset')
     parser.add_argument(
         '--datasets',
         nargs='+',
@@ -37,7 +37,7 @@ def parse_args():
         default=-1,
         help='The number of worker threads to use for loading data'
     )
-    return parser.parse_known_args()[0]
+    return parser.parse_args()
 
 
 if __name__ == '__main__':

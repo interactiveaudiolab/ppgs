@@ -32,7 +32,10 @@ def multiprocessed_preprocess(dataset_or_files, output_dir, features, num_worker
                     # torch.cuda.empty_cache()
                     # print(torch.cuda.memory_summary(gpu, abbreviated=True))
                     outputs = feature_processor.from_audios(audios, lengths, gpu=gpu).cpu()
-                    new_lengths = lengths // ppgs.HOPSIZE
+                    if feature != 'w2v2ft':
+                        new_lengths = lengths // ppgs.HOPSIZE
+                    else:
+                        new_lengths = lengths + ppgs.preprocess.w2v2ft.WINDOW_SIZE - ppgs.preprocess.w2v2ft.HOP_SIZE
                     #TODO fix output_dir
                     filenames = [audio_file.parent / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
                     pool.starmap_async(save_masked, zip(outputs, filenames, new_lengths.cpu()))
