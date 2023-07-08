@@ -7,7 +7,6 @@ import tqdm
 from pathlib import Path
 from contextlib import ExitStack
 import numpy as np
-import yapecs
 from ppgs.notify import notify_on_finish
 import torch
 

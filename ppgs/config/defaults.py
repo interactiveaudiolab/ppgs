@@ -118,6 +118,11 @@ RANDOM_SEED = 1234
 GRAD_2_CLIP = 1.5
 GRAD_INF_CLIP = 1.0
 
+LEARNING_RATE = 2e-4
+
+# Loss function to use (CE = Cross-entropy, CTC)
+LOSS_FUNCTION = 'CE'
+
 ###############################################################################
 # Model parameters #TODO extract to separate config file?
 ###############################################################################

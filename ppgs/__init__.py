@@ -1,6 +1,8 @@
 # This line is necessary because the tensorboard devs have no idea how to code
 from torch.utils.tensorboard import SummaryWriter
 
+import faulthandler; faulthandler.enable()
+
 ###############################################################################
 # Configuration
 ###############################################################################
