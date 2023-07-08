@@ -1,6 +1,7 @@
 import apprise
 from ppgs import NOTIFICATION_SERVICES
 import time
+import bdb
 
 messenger = apprise.Apprise()
 for service in NOTIFICATION_SERVICES:
@@ -18,11 +19,13 @@ def notify_on_finish(description: str, track_time: bool = True, notify_on_fail: 
             print('starting notified task:', description)
             try:
                 func(*args, **kwargs)
-            except Exception as e:
+            except Exception as exception:
+                if isinstance(exception, bdb.BdbQuit):
+                    return
                 if notify_on_fail:
-                    message = f'task "{description}" failed with exception: {e.__class__}'
+                    message = f'task "{description}" failed with exception: {exception.__class__}'
                     push(message)
-                raise e
+                raise exception
             if track_time:
                 end_time = time.time()
             print('task finished, sending notifications')

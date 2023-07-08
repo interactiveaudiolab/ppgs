@@ -2,9 +2,11 @@ import math
 import torch
 import ppgs
 
-def mask_from_lengths(lengths):
-    """Create boolean mask from sequence lengths. shape is batch x 1 x max_length"""
+def mask_from_lengths(lengths, offset=0):
+    """Create boolean mask from sequence lengths and offset to start. shape is batch x 1 x max_length"""
     x = torch.arange(lengths.max(), dtype=lengths.dtype, device=lengths.device)
+
+    # import pdb; pdb.set_trace()
     return (x.unsqueeze(0) < lengths.unsqueeze(1)).unsqueeze(1)
 
 ###############################################################################

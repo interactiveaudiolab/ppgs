@@ -153,8 +153,9 @@ class CategoricalAccuracy:
 
 class Loss:
 
-    def __init__(self, display_suffix):
+    def __init__(self, display_suffix, kind='CE'):
         self.display_suffix = display_suffix
+        self.loss_fn = ppgs.train.Loss(kind=kind)
         self.reset()
 
     def __call__(self):
@@ -166,10 +167,9 @@ class Loss:
 
     def update(self, predicted_logits, target_indices):
         """Update the total cross entropy loss"""
-        self.total += torch.nn.functional.cross_entropy(
+        self.total += self.loss_fn(
             predicted_logits,
-            target_indices,
-            reduction='sum')
+            target_indices)
 
         # Update count
         self.count += (target_indices != -100).sum()
@@ -272,4 +272,3 @@ if __name__ == '__main__':
     Top2.update(input_logits, input_indices)
     print(Top2.correct_in_top_k, Top2.count, Top2())
     print(Top3.correct_in_top_k, Top3.count, Top3())
-

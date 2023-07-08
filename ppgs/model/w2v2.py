@@ -11,14 +11,16 @@ class W2V2(torch.nn.Module):
     def __init__(self):
         super().__init__()
 
-        #load model
+        # Load model
         self.w2v2: Wav2Vec2Model = Wav2Vec2Model.from_pretrained('facebook/wav2vec2-base')
 
-        #Charsiu trick to upsample to 10ms
+        # Charsiu trick to upsample to 10ms
         self.w2v2.feature_extractor.conv_layers[-1].conv.stride = (1,)
 
-        assert ppgs.KERNEL_SIZE % 2 == 1
+        self.w2v2.freeze_feature_extractor()
 
+        # Project onto space of phonemes
+        assert ppgs.KERNEL_SIZE % 2 == 1
         self.output_projection = torch.nn.Conv1d(
             in_channels=768,
             out_channels=len(ppgs.PHONEME_LIST),

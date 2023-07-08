@@ -74,7 +74,6 @@ def train(
     # Get torch device
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
-
     #################
     # Create models #
     #################
@@ -97,7 +96,7 @@ def train(
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=2e-4,
+        lr=ppgs.LEARNING_RATE,
         betas=[.80, .99],
         eps=1e-9)
 
@@ -167,6 +166,7 @@ def train(
     # Get total number of steps
     steps = ppgs.NUM_STEPS
 
+    loss_fn = ppgs.train.Loss()
 
     # Setup progress bar
     if not rank:
@@ -200,9 +200,10 @@ def train(
                     predicted_ppgs = model(input_ppgs, lengths)
 
                 # Compute loss
-                loss = torch.nn.functional.cross_entropy(
-                    predicted_ppgs,
-                    indices)
+                # if step == 35:
+                #     import pdb; pdb.set_trace()
+
+                loss = loss_fn(predicted_ppgs, indices)
 
             ######################
             # Optimize model #
@@ -211,7 +212,10 @@ def train(
             optimizer.zero_grad()
 
             # Backward pass
-            scaler.scale(loss).backward()
+            try:
+                scaler.scale(loss).backward()
+            except:
+                import pdb; pdb.set_trace()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_INF_CLIP, norm_type='inf')
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_2_CLIP, norm_type=2)

@@ -27,7 +27,6 @@ def from_features(
             gpu,
         )
 
-#TODO add from_features
 def from_audio(
     audio,
     sample_rate,
@@ -63,17 +62,22 @@ def from_audio(
             from_audio.checkpoint = checkpoint
             from_audio.gpu = gpu
 
+        #TODO just use from_features
+
         # Preprocess audio
         features = ppgs.preprocess.from_audio(audio, representation=representation, sample_rate=sample_rate, gpu=gpu)
 
         if preprocess_only:
             return features
 
+        if features.dim() == 2:
+            features = features[None]
+
         # Compute PPGs
-        if ppgs.MODEL == 'transformer':
-            return from_audio.model(features[None], torch.tensor([features.shape[-1]], device=device))[0]
+        if ppgs.MODEL == 'convolution':
+            return from_audio.model(features)[0]
         else:
-            return from_audio.model(features[None])[0]
+            return from_audio.model(features, torch.tensor([features.shape[-1]], device=device))[0]
 
 
 def from_file(
