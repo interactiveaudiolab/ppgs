@@ -4,6 +4,7 @@ import pypar
 import torchaudio
 from functools import partial
 from tqdm.contrib.concurrent import process_map
+import tqdm
 
 def mp3_textgrid(mp3_file: Path, charsiu_wav_dir=None, charsiu_sources=None, charsiu_textgrid_dir=None):
     audio = ppgs.load.audio(mp3_file)
@@ -29,12 +30,12 @@ def mp3_textgrid(mp3_file: Path, charsiu_wav_dir=None, charsiu_sources=None, cha
     alignment.save(output_textgrid)
 
 
-def download_charsiu(common_voice_source=None):
+def download(common_voice_source=None):
     """Downloads the Charsiu MFA aligned dataset, which includes a subset of Common Voice"""
     charsiu_sources = ppgs.SOURCES_DIR / 'charsiu'
     charsiu_sources.mkdir(parents=True, exist_ok=True)
 
-    #download TextGrid files
+    # download TextGrid files
     alignments_dir = charsiu_sources / 'alignments'
     alignments_dir.mkdir(parents=True, exist_ok=True)
     download_google_drive_zip('https://drive.google.com/uc?id=1J_IN8HWPXaKVYHaAf7IXzUd6wyiL9VpP', alignments_dir)
@@ -48,7 +49,6 @@ def download_charsiu(common_voice_source=None):
             stems = [file.stem for file in files_with_extension('textgrid', alignments_dir)]
             corpus = tarfile.open(corpus_file, 'r|gz')
             common_voice_dir = charsiu_sources / 'common_voices'
-            corpus.extractall(path=common_voice_dir)
             base_path = Path(list(Path(corpus.next().path).parents)[-2]) #get base directory of tarfile
             clips_path = base_path / 'en' / 'clips' #TODO make language configurable?
             mp3_dir = charsiu_sources / 'mp3'
@@ -79,7 +79,7 @@ def download_charsiu(common_voice_source=None):
             please download this resource and place it in '{ppgs.SOURCES_DIR}'. This command expects a tar.gz or tgz to be present
             or a user provided path using '--common-voice-source' argument""")
 
-def format_charsiu():
+def format():
     """Formats the charsiu dataset"""
     charsiu_sources = ppgs.SOURCES_DIR / 'charsiu'
 
