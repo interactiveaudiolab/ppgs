@@ -1,4 +1,4 @@
-<h1 align="center">Phonetic Posteriograms (PPGS)</h1>
+<h1 align="center">Phonetic Posteriorgrams (PPGS)</h1>
 <div align="center">
 
 <!-- [![PyPI](https://img.shields.io/pypi/v/promonet.svg)](https://pypi.python.org/pypi/promonet)
@@ -34,7 +34,7 @@
 
 ## Usage
 
-### Example
+### Examples
 
 To use `ppgs` you simply pass in audio files and a destination to save PPG tensor files (.pt) to.
 
@@ -45,35 +45,28 @@ To use `ppgs` you simply pass in audio files and a destination to save PPG tenso
 import ppgs
 
 
+# from audio files
+audio_files = [...] # you define this
+predicted_ppgs = ppgs.from_files_to_files(audio_files, gpu=0)
 
+# from audio files to memory
+predicted_ppgs = ppgs.from_files(audio_files)
+
+# from audio tensors (e.g. in a pipeline/dataset)
+audios = [...] # you define this
+predicted_ppgs = ppgs.from_audio(audios)
 ```
 
 #### Command-line interface (CLI)
 
 ```
-python -m ppgs -h
-    [-h]
-    [--sources SOURCES [SOURCES ...]]
-    [--output OUTPUT]
-    [--num-workers NUM_WORKERS]
-    [--gpu GPU]
-    [--from-feature FROM_FEATURE]
-    [--save-intermediate-features]
-
 Compute phonetic posteriorgram (PPG) features
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --sources SOURCES [SOURCES ...]
-                        a list of files and/or directories to process
-  --output OUTPUT       the directory to write features to
-  --num-workers NUM_WORKERS
-                        The number of worker threads to use for loading data
-  --gpu GPU             The index of the GPU to use for inference. Defaults to CPU.
-  --from-feature FROM_FEATURE
-                        feature to synthesize PPGS from
-  --save-intermediate-features
-                        save the intermediate features from which PPGs are computed (e.g. w2v2fb)
+python -m ppgs
+    --sources <list of files or directory>
+    --output <output files or directory>
+    --num-workers <number of workers>
+    --gpu <gpu number>
 ```
 
 ## Training
