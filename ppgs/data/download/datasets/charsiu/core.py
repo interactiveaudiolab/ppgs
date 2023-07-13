@@ -41,39 +41,22 @@ def download(common_voice_source=None):
     download_google_drive_zip('https://drive.google.com/uc?id=1J_IN8HWPXaKVYHaAf7IXzUd6wyiL9VpP', alignments_dir)
 
     #download Common Voice Subset
+    mp3_dir = charsiu_sources / 'mp3'
+    mp3_dir.mkdir(exist_ok=True)
     if common_voice_source is None:
-        #TODO make this work with directories (who would ever want that?)
         cv_corpus_files = list(ppgs.SOURCES_DIR.glob('cv-corpus*.tar.gz')) + list(ppgs.SOURCES_DIR.glob('cv-corpus*.tgz'))
         if len(cv_corpus_files) >= 1:
             corpus_file = sorted(cv_corpus_files)[-1]
-            stems = [file.stem for file in files_with_extension('textgrid', alignments_dir)]
-            corpus = tarfile.open(corpus_file, 'r|gz')
-            common_voice_dir = charsiu_sources / 'common_voices'
-            base_path = Path(list(Path(corpus.next().path).parents)[-2]) #get base directory of tarfile
-            clips_path = base_path / 'en' / 'clips' #TODO make language configurable?
-            mp3_dir = charsiu_sources / 'mp3'
-            mp3_dir.mkdir(exist_ok=True, parents=True)
-            print('Scanning tar contents, this can take a long time (>10 minutes)')
-            contents = corpus.getnames()
-            iterator = tqdm.tqdm(
-                stems,
-                desc="Extracting common voice clips with corresponding Charsiu alignments",
-                total=len(stems),
-                dynamic_ncols=True
-            )
-            stems_not_found = []
-            for stem in iterator:
-                mp3_path = str(clips_path / (stem + '.mp3'))
-                mp3_info = corpus.getmember(mp3_path)
-                try:
-                    mp3_file = corpus.extractfile(mp3_info)
-                    with open(mp3_dir / (stem + '.mp3'), 'wb') as new_mp3_file:
-                        import pdb; pdb.set_trace()
-                        new_mp3_file.write(mp3_file.read())
-                    mp3_file.close()
-                except:
-                    stems_not_found.append(stem)
-
+            stems = set([file.stem for file in files_with_extension('textgrid', alignments_dir)])
+            with tarfile.open(corpus_file, 'r|gz') as corpus:
+                for file_info in corpus:
+                    stem = Path(file_info.name).stem
+                    if stem in stems:
+                        stems.discard(stem)
+                        file_contents = corpus.extractfile(file_info).read()
+                        with open(mp3_dir / (stem + '.mp3'), 'wb') as f:
+                            f.write(file_contents)
+            print(f"did not find {len(stems)} stems!")
         else:
             raise FileNotFoundError(f"""The Common Voice Dataset can only be officially downloaded via https://commonvoice.mozilla.org/en,
             please download this resource and place it in '{ppgs.SOURCES_DIR}'. This command expects a tar.gz or tgz to be present
@@ -88,7 +71,7 @@ def format():
 
     stems = set([f.stem for f in textgrid_files])
 
-    mp3_files = list(files_with_extension('mp3', charsiu_sources))
+    mp3_files = list(files_with_extension('mp3', charsiu_sources / 'mp3'))
 
     found_stems = []
     mp3_found = []

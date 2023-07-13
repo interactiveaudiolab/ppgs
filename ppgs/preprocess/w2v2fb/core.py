@@ -61,22 +61,12 @@ def from_audios(
     # Maybe resample
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
     lengths = torch.ceil(lengths * (SAMPLE_RATE/sample_rate)).to(torch.long)
-    # upsampled_audio = torch.nn.functional.upsample(
-    #     audio.reshape(1, 1, len(audio)),
-    #     scale_factor=2,
-    #     mode='linear'
-    # ).squeeze()
     pad = WINDOW_SIZE//2 - HOP_SIZE//2
-    padded_audio = torch.nn.functional.pad(audio, (pad, pad))
-    # Setup features
-    # inputs = from_audio.processor(list(padded_audio), sampling_rate=sample_rate, return_tensors='pt')
-    # # interpolated_shape = [inputs.shape[0], inputs.shape[1] * 2]
+    padded_audio = torch.nn.functional.pad(audio, (pad, pad)).squeeze(dim=1)
 
     # Infer W2V2FB latents
-    mask = mask_from_lengths(lengths).squeeze(dim=1).to(torch.long).to(audio.device)
-    import pdb; pdb.set_trace()
+    mask = mask_from_lengths(lengths, pad).squeeze(dim=1).to(torch.long).to(audio.device)
     assert len(mask.shape) == 2
-    #TODO do we need to squeeze this?
     output = from_audios.model(padded_audio, mask).last_hidden_state
     output = torch.transpose(output, 1, 2)
     upsampled_outputs = torch.nn.functional.interpolate(
