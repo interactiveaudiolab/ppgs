@@ -4,10 +4,9 @@ import ppgs
 
 def mask_from_lengths(lengths, offset=0):
     """Create boolean mask from sequence lengths and offset to start. shape is batch x 1 x max_length"""
-    x = torch.arange(lengths.max(), dtype=lengths.dtype, device=lengths.device)
+    x = torch.arange(lengths.max()+offset, dtype=lengths.dtype, device=lengths.device)
 
-    # import pdb; pdb.set_trace()
-    return (x.unsqueeze(0) < lengths.unsqueeze(1)).unsqueeze(1)
+    return ((x.unsqueeze(0)-offset < lengths.unsqueeze(1)) & (x.unsqueeze(0) >= offset)).unsqueeze(1)
 
 ###############################################################################
 # Transformer stack

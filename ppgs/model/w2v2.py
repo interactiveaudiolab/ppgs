@@ -28,8 +28,10 @@ class W2V2(torch.nn.Module):
             padding=ppgs.KERNEL_SIZE // 2
         )
 
+        self.offset = ppgs.preprocess.w2v2ft.WINDOW_SIZE // 2 - ppgs.preprocess.w2v2ft.HOP_SIZE // 2
+
     def forward(self, input_tensor: torch.Tensor, lengths: torch.Tensor):
-        mask = mask_from_lengths(lengths).squeeze(dim=1).to(torch.long)
+        mask = mask_from_lengths(lengths, self.offset).squeeze(dim=1).to(torch.long)
         w2v2_latent = self.w2v2(input_tensor, mask).last_hidden_state
         w2v2_latent = torch.transpose(w2v2_latent, 1, 2)
         ppg = self.output_projection(w2v2_latent)
