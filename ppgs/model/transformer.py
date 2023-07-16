@@ -2,11 +2,11 @@ import math
 import torch
 import ppgs
 
-def mask_from_lengths(lengths, offset=0):
+def mask_from_lengths(lengths, padding=0):
     """Create boolean mask from sequence lengths and offset to start. shape is batch x 1 x max_length"""
-    x = torch.arange(lengths.max()+offset, dtype=lengths.dtype, device=lengths.device)
+    x = torch.arange(lengths.max()+2*padding, dtype=lengths.dtype, device=lengths.device)
 
-    return ((x.unsqueeze(0)-offset < lengths.unsqueeze(1)) & (x.unsqueeze(0) >= offset)).unsqueeze(1)
+    return (x.unsqueeze(0)-2*padding < lengths.unsqueeze(1))
 
 ###############################################################################
 # Transformer stack

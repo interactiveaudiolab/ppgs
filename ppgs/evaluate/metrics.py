@@ -153,13 +153,14 @@ class CategoricalAccuracy:
 
 class Loss:
 
-    def __init__(self, display_suffix, kind='CE'):
+    def __init__(self, display_suffix, kind=ppgs.LOSS_FUNCTION):
         self.display_suffix = display_suffix
+        self.kind = kind
         self.loss_fn = ppgs.train.Loss(kind=kind)
         self.reset()
 
     def __call__(self):
-        return {f'Loss/{self.display_suffix}': float((self.total / self.count).cpu().numpy())}
+        return {f'Loss/{self.kind}/{self.display_suffix}': float((self.total / self.count).cpu().numpy())}
 
     def reset(self):
         self.total = 0.
