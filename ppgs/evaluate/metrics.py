@@ -14,12 +14,13 @@ class Metrics:
         self.metrics = [
             Accuracy(display_suffix),
             CategoricalAccuracy(display_suffix),
-            Loss(display_suffix),
             JensenShannon(display_suffix),
             TopKAccuracy(display_suffix, 2),
             TopKAccuracy(display_suffix, 3),
             TopKAccuracy(display_suffix, 5),
-            DistanceMatrix(display_suffix)
+            DistanceMatrix(display_suffix),
+            ConfusionMatrix(display_suffix),
+            Loss(display_suffix),
         ]
 
     def __call__(self):
@@ -58,10 +59,11 @@ class Accuracy:
         self.true_positives = 0
 
     def update(self, predicted_logits, target_indices):
+        if ppgs.BACKEND is not None:
+            predicted_logits = ppgs.BACKEND(predicted_logits)
+
         # Predicted category is the maximum logit
         predicted_indices = predicted_logits.argmax(dim=1)
-
-        # import pdb; pdb.set_trace()
 
         # Compare to target indices
         self.true_positives += torch.logical_and(predicted_indices == target_indices, target_indices != -100).sum()
@@ -85,6 +87,9 @@ class TopKAccuracy:
 
     def update(self, predicted_logits: torch.Tensor, target_indices: torch.Tensor):
         """Assumes that predicted_logits are BATCH x DIMS x TIME, target_indices are BATCH x TIME"""
+        if ppgs.BACKEND is not None:
+            predicted_logits = ppgs.BACKEND(predicted_logits)
+
         predicted_logits = predicted_logits.transpose(1, 2)
         predicted_logits = predicted_logits.flatten(0, 1)
         target_indices = target_indices.flatten()
@@ -119,6 +124,9 @@ class CategoricalAccuracy:
     
     def update(self, predicted_logits, target_indices):
         """Update per-category accuracy"""
+
+        if ppgs.BACKEND is not None:
+            predicted_logits = ppgs.BACKEND(predicted_logits)
 
         #Unroll time dimensionality
         if len(predicted_logits.shape) == 3: #handle batched input
@@ -192,6 +200,9 @@ class JensenShannon:
 
     def update(self, predicted_logits, target_indices):
         """Update the total JSD"""
+
+        if ppgs.BACKEND is not None:
+            predicted_logits = ppgs.BACKEND(predicted_logits)
         
         #Unroll time dimensionality
         if len(predicted_logits.shape) == 3: #handle batched input
@@ -243,18 +254,81 @@ class DistanceMatrix:
     def update(self, predicted_logits, target_indices):
         """Assumes that predicted_logits are BATCH x DIMS x TIME"""
 
+        if ppgs.BACKEND is not None:
+            predicted_logits = ppgs.BACKEND(predicted_logits)
+
         predicted_logits = torch.transpose(predicted_logits, 1, 2) #Batch,Class,Time->Batch,Time,Class
         predicted_logits = torch.flatten(predicted_logits, 0, 1) #Batch,Time,Class->Batch*Time,Class
         predicted_probs = torch.nn.functional.softmax(predicted_logits, dim=1)
         predicted_indices = predicted_probs.argmax(dim=1)
+        target_indices = torch.flatten(target_indices)
+
+        nonpad_indices = target_indices != -100
+        predicted_probs = predicted_probs[nonpad_indices]
+        predicted_indices = predicted_indices[nonpad_indices]
 
         num_categories = predicted_probs.shape[-1]
 
         if self.matrix is None:
             self.matrix = torch.zeros((num_categories, num_categories)).to(predicted_logits.device)
 
-        for probs, index in zip(predicted_probs, predicted_indices):
-            self.matrix[index] += probs
+        self.matrix[predicted_indices] += predicted_probs
+
+        # for probs, index in zip(predicted_probs, predicted_indices):
+        #     self.matrix[index] += probs
+
+
+class ConfusionMatrix:
+
+    def __init__(self, display_suffix):
+        self.display_suffix = display_suffix
+        self.reset()
+
+    def _normalized(self):
+        return (self.matrix / self.matrix.sum(dim=1)).cpu()
+
+    def _render(self):
+        figure = plt.figure(dpi=400, figsize=(6, 6))
+        ax = figure.add_subplot()
+        ax.matshow(self._normalized())
+        phones = ppgs.PHONEME_LIST
+        num_phones = len(ppgs.PHONEME_LIST)
+        ax.locator_params('both', nbins=num_phones)
+        ax.set_xticklabels([''] + phones, rotation='vertical')
+        ax.set_yticklabels([''] + phones)
+        figure.align_labels()
+        return figure
+
+    def __call__(self):
+        return {f'ConfusionMatrix/{self.display_suffix}': self._render()}
+    
+    def reset(self):
+        self.matrix = None
+
+    def update(self, predicted_logits, target_indices):
+        """Assumes that predicted_logits are BATCH x DIMS x TIME"""
+
+        if ppgs.BACKEND is not None:
+            predicted_logits = ppgs.BACKEND(predicted_logits)
+
+        predicted_logits = torch.transpose(predicted_logits, 1, 2) #Batch,Class,Time->Batch,Time,Class
+        predicted_logits = torch.flatten(predicted_logits, 0, 1) #Batch,Time,Class->Batch*Time,Class
+        predicted_probs = torch.nn.functional.softmax(predicted_logits, dim=1)
+        target_indices = torch.flatten(target_indices)
+
+        nonpad_indices = target_indices != -100
+        predicted_probs = predicted_probs[nonpad_indices]
+        target_indices = target_indices[nonpad_indices]
+
+        num_categories = predicted_probs.shape[-1]
+
+        if self.matrix is None:
+            self.matrix = torch.zeros((num_categories, num_categories)).to(predicted_logits.device)
+
+        self.matrix[target_indices] += predicted_probs
+
+        # for probs, index in zip(predicted_probs, target_indices):
+        #     self.matrix[index] += probs
 
 
 ###############################################################################

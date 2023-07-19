@@ -23,7 +23,7 @@ class W2V2(torch.nn.Module):
         assert ppgs.KERNEL_SIZE % 2 == 1
         self.output_projection = torch.nn.Conv1d(
             in_channels=768,
-            out_channels=len(ppgs.PHONEME_LIST),
+            out_channels=ppgs.OUTPUT_CHANNELS,
             kernel_size=ppgs.KERNEL_SIZE,
             padding=ppgs.KERNEL_SIZE // 2
         )
