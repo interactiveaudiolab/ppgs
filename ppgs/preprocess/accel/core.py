@@ -45,7 +45,7 @@ def multiprocessed_preprocess(dataset_or_files, output_dir, features, num_worker
             stop_if_disk_full()
         pool.close()
         pool.join()
-        print("~total wasted time: ", wasted_time)
+        print("~total wasted time: ", wasted_time) #TEMPORARY
 
 
 def multiprocessed_process(
@@ -95,4 +95,4 @@ def multiprocessed_process(
                 stop_if_disk_full()
         pool.close()
         pool.join()
-        print("~total wasted time: ", wasted_time)
+        print("~total wasted time: ", wasted_time) #TEMPORARY
