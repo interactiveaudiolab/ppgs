@@ -1,5 +1,6 @@
 from torch.utils.tensorboard import SummaryWriter
 from tensorboard.compat.proto.summary_pb2 import Summary
+from matplotlib.figure import Figure
 
 import ppgs
 
@@ -33,6 +34,15 @@ def audio(directory, step, audio):
             waveform,
             step,
             ppgs.SAMPLE_RATE)
+
+def metrics(directory, step, objects):
+    """Write mixed objects to Tensorboard"""
+    writer_object = writer(directory)
+    for name, object in objects.items():
+        if isinstance(object, Figure):
+            writer_object.add_figure(name, object, step)
+        else:
+            writer_object.add_scalar(name, object, step)
 
 
 def figures(directory, step, figures):

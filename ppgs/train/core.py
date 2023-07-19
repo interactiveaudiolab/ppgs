@@ -392,8 +392,8 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, gpu):
     # return
 
     # Write to tensorboard
-    ppgs.write.scalars(directory, step, validation_metrics())
-    ppgs.write.scalars(directory, step, training_metrics())
+    ppgs.write.metrics(directory, step, validation_metrics())
+    ppgs.write.metrics(directory, step, training_metrics())
 
     # Prepare model for training
     model.train()

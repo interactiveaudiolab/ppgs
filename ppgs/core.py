@@ -73,11 +73,12 @@ def from_audio(
         if features.dim() == 2:
             features = features[None]
 
-        # Compute PPGs
-        if ppgs.MODEL == 'convolution':
-            return from_audio.model(features)[0]
-        else:
-            return from_audio.model(features, torch.tensor([features.shape[-1]], device=device))[0]
+        with torch.autocast('cuda' if gpu is not None else 'cpu'):
+            # Compute PPGs
+            if ppgs.MODEL == 'convolution':
+                return from_audio.model(features)[0]
+            else:
+                return from_audio.model(features, torch.tensor([features.shape[-1]], device=device))[0]
 
 
 def from_file(
@@ -89,7 +90,8 @@ def from_file(
     ):
     """Compute phonetic posteriorgram features from audio file"""
     # Load audio
-    audio = ppgs.load.audio(file)
+    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+    audio = ppgs.load.audio(file).to(device)
 
     # Compute PPGs
     return from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, representation=representation, preprocess_only=preprocess_only, checkpoint=checkpoint, gpu=gpu)

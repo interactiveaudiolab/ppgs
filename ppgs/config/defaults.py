@@ -144,6 +144,8 @@ HIDDEN_CHANNELS = 512
 # Dimensionality of input representation
 INPUT_CHANNELS = 768
 
+OUTPUT_CHANNELS = 40
+
 # Kernel width
 KERNEL_SIZE = 5
 

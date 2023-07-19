@@ -45,6 +45,7 @@ text_vertical_offset = 1
 #TODO make scalefactor a parameter (currently is a hardcoded constant)
 def from_logits_to_video_file(logits, audio_filename, video_filename, preprocess_only=False, labels=ppgs.PHONEME_LIST):
     """Takes logits of shape time,categories and creates a visualization"""
+    logits = logits.to(torch.float)
     audio = torchaudio.load(audio_filename)[0][0]
     audio_clip = mpy.AudioFileClip(audio_filename, fps=ppgs.SAMPLE_RATE)
 
@@ -154,8 +155,12 @@ def from_logits_to_videos(batched_logits, audio_filenames, labels=ppgs.PHONEME_L
 
 if __name__ == '__main__':
     # audio_filenames = [f'data/cache/arctic/cmu_us_bdl_arctic/arctic_a000{i}.wav' for i in range(1,2)]
-    audio_filenames = ['tmp/arctic_a0001.wav']
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('files', nargs='+')
+    args = vars(parser.parse_args())
+    print(args)
 
-    from_files_to_files(audio_filenames, './tmp/', checkpoint='runs/basemodel/00300000.pt', preprocess_only=False, gpu=0)
+    from_files_to_files(args['files'], './tmp/', checkpoint='tmp/w2v2fb-ctc.pt', preprocess_only=False, gpu=0)
 
     

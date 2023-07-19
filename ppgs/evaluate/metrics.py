@@ -1,6 +1,7 @@
 import torch
 import ppgs
-from abc import ABC
+from matplotlib import pyplot as plt
+import numpy as np
 
 ###############################################################################
 # Aggregate batch metric state
@@ -17,7 +18,8 @@ class Metrics:
             JensenShannon(display_suffix),
             TopKAccuracy(display_suffix, 2),
             TopKAccuracy(display_suffix, 3),
-            TopKAccuracy(display_suffix, 5)
+            TopKAccuracy(display_suffix, 5),
+            DistanceMatrix(display_suffix)
         ]
 
     def __call__(self):
@@ -209,6 +211,51 @@ class JensenShannon:
         #calculate JSD and update totals
         self.total += jensenShannonDivergence(predicted_logits, target_logits, as_logits=True)
         self.count += (target_indices != -100).sum() #TODO investigate if -100 needs to be used in JSD THE ANSWER IS YES!!
+
+
+class DistanceMatrix:
+
+    def __init__(self, display_suffix):
+        self.display_suffix = display_suffix
+        self.reset()
+
+    def _normalized(self):
+        return (self.matrix / self.matrix.sum(dim=1)).cpu()
+
+    def _render(self):
+        figure = plt.figure(dpi=400, figsize=(6, 6))
+        ax = figure.add_subplot()
+        ax.matshow(self._normalized())
+        phones = ppgs.PHONEME_LIST
+        num_phones = len(ppgs.PHONEME_LIST)
+        ax.locator_params('both', nbins=num_phones)
+        ax.set_xticklabels([''] + phones, rotation='vertical')
+        ax.set_yticklabels([''] + phones)
+        figure.align_labels()
+        return figure
+
+    def __call__(self):
+        return {f'DistanceMatrix/{self.display_suffix}': self._render()}
+    
+    def reset(self):
+        self.matrix = None
+
+    def update(self, predicted_logits, target_indices):
+        """Assumes that predicted_logits are BATCH x DIMS x TIME"""
+
+        predicted_logits = torch.transpose(predicted_logits, 1, 2) #Batch,Class,Time->Batch,Time,Class
+        predicted_logits = torch.flatten(predicted_logits, 0, 1) #Batch,Time,Class->Batch*Time,Class
+        predicted_probs = torch.nn.functional.softmax(predicted_logits, dim=1)
+        predicted_indices = predicted_probs.argmax(dim=1)
+
+        num_categories = predicted_probs.shape[-1]
+
+        if self.matrix is None:
+            self.matrix = torch.zeros((num_categories, num_categories)).to(predicted_logits.device)
+
+        for probs, index in zip(predicted_probs, predicted_indices):
+            self.matrix[index] += probs
+
 
 ###############################################################################
 # Additional Metric Functions
