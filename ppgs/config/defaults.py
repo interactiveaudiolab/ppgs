@@ -127,7 +127,11 @@ LOSS_FUNCTION = 'CE'
 # Model parameters #TODO extract to separate config file?
 ###############################################################################
 
+# This function takes as input a torch.Device and returns a callable frontend
 FRONTEND = None
+
+# this function takes predicted_ppgs and decodes them to a useable format
+BACKEND = None
 
 # Number of attention heads
 ATTENTION_HEADS = 2
@@ -144,6 +148,7 @@ HIDDEN_CHANNELS = 512
 # Dimensionality of input representation
 INPUT_CHANNELS = 768
 
+# Dimensionality of output representation
 OUTPUT_CHANNELS = 40
 
 # Kernel width
@@ -497,9 +502,8 @@ PHONEME_LIST = [
 	'y',
 	'z',
 	'zh',
-	'ax',
 	pypar.SILENCE,
-	'<unk>'
+	# '<unk>'
 ]
 
 PHONEME_TO_INDEX_MAPPING = {phone: i for i, phone in enumerate(PHONEME_LIST)}
