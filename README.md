@@ -53,7 +53,7 @@ predicted_ppgs = ppgs.from_files_to_files(audio_files, gpu=0)
 predicted_ppgs = ppgs.from_files(audio_files)
 
 # from audio tensors (e.g. in a pipeline/dataset)
-audios = [...] # you define this
+audios = TODO (list OR tensor)
 predicted_ppgs = ppgs.from_audio(audios)
 ```
 
@@ -139,3 +139,5 @@ python -m ppgs.evaluate \
     --checkpoint <checkpoint>
     --gpus <gpus>
 ```
+
+TODO add citation section
