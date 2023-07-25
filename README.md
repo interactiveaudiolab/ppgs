@@ -41,13 +41,13 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
 import ppgs
 
 # Load speech audio at correct sample rate
-audio, sample_rate = ppgs.load.audio(audio_file)
+audio = ppgs.load.audio(audio_file)
 
 # Choose a gpu index to use for inference. Set to None to use cpu.
 gpu = 0
 
 # Infer PPGs
-ppgs = ppgs.from_audio(audio, sample_rate, gpu=gpu)
+ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 ```
 
 #### Application programming interface (API)
