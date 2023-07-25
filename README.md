@@ -139,3 +139,22 @@ python -m ppgs.evaluate \
     --checkpoint <checkpoint>
     --gpus <gpus>
 ```
+
+## Citation
+
+### IEEE
+C. Churchwell, M. Morrison, and B. Pardo, "Disentangling Speech with Phonetic Posteriorgrams," Submitted
+to ICASSP 2024, January 2024.
+
+
+### BibTex
+
+```
+@inproceedings{churchwell2024disentangling,
+    title={Disentangling Speech with Phonetic Posteriorgrams},
+    author={Churchwell, Cameron and Morrison, Max and Pardo, Bryan},
+    booktitle={Submitted to ICASSP 2024},
+    month={January},
+    year={2024}
+}
+```
