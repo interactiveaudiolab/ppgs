@@ -1,15 +1,13 @@
 <h1 align="center">Phonetic Posteriorgrams (PPGS)</h1>
 <div align="center">
 
-<!-- [![PyPI](https://img.shields.io/pypi/v/promonet.svg)](https://pypi.python.org/pypi/promonet)
+[![PyPI](https://img.shields.io/pypi/v/promonet.svg)](https://pypi.python.org/pypi/promonet)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://pepy.tech/badge/promonet)](https://pepy.tech/project/promonet) -->
+[![Downloads](https://pepy.tech/badge/promonet)](https://pepy.tech/project/promonet)
 
 </div>
 
-<!-- Official code for the paper _Adaptive Neural Speech Prosody Editing_
-[[paper]](https://www.maxrmorrison.com/pdfs/morrison2023adaptive.pdf)
-[[companion website]](https://www.maxrmorrison.com/sites/promonet/) -->
+Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in PyTorch. Includes the original code for the paper ["Disentangling Speech with Phonetic Posteriorgrams"](TODO).
 
 
 ## Table of contents
@@ -40,7 +38,6 @@
 ```
 import ppgs
 
-
 # from audio files
 audio_files = [...] # you define this
 predicted_ppgs = ppgs.from_files_to_files(audio_files, gpu=0)
@@ -59,9 +56,9 @@ predicted_ppgs = ppgs.from_audio(audios)
 Compute phonetic posteriorgram (PPG) features
 
 python -m ppgs
-    --sources <list of files or directory>
-    --output <output files or directory>
-    --num-workers <number of workers>
+    --sources <list of files or directory> \
+    --output <output files or directory> \
+    --num-workers <number of workers> \
     --gpu <gpu number>
 ```
 
@@ -84,7 +81,12 @@ wav and phoneme (ground truth alignment) features must be preprocessed first
 
 ```
 python -m ppgs.data.preprocess --datasets <datasets> --features wav phonemes
-python -m ppgs.data.preprocess --datasets <datasets> --gpu <gpu> --num-workers <workers> --use-cached-inputs --features <latent features>
+python -m ppgs.data.preprocess \
+   --datasets <datasets> \
+   --gpu <gpu> \
+   --num-workers <workers> \
+   --use-cached-inputs \
+   --features <latent features>
 ```
 
 
@@ -132,7 +134,7 @@ Also performs benchmarking of speed. Results are stored in `eval/`.
 python -m ppgs.evaluate \
     --config <name> \
     --datasets <datasets> \
-    --checkpoint <checkpoint>
+    --checkpoint <checkpoint> \
     --gpus <gpus>
 ```
 
