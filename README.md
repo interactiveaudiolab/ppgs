@@ -13,8 +13,12 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
 ## Table of contents
 
 - [Installation](#installation)
-- [Usage](#usage)
+- [Inference](#inference)
     * [Application programming interface (API)](#application-programming-interface-api)
+        * [`ppgs.from_audio`](#ppgsfrom_audio)
+        * [`ppgs.from_file`](#ppgsfrom_file)
+        * [`ppgs.from_file_to_file`](#ppgsfrom_file_to_file)
+        * [`ppgs.from_files_to_files`](#ppgsfrom_files_to_files)
     * [Command-line interface (CLI)](#command-line-interface-cli)
 - [Training](#training)
     * [Download](#download)
@@ -31,7 +35,7 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
 `pip install ppgs`
 
 
-## Usage
+## Inference
 
 ```
 import ppgs
