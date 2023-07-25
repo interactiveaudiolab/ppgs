@@ -38,16 +38,14 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
 ```
 import ppgs
 
-# from audio files
-audio_files = [...] # you define this
-predicted_ppgs = ppgs.from_files_to_files(audio_files, gpu=0)
+# Load speech audio at correct sample rate
+audio, sample_rate = ppgs.load.audio(audio_file)
 
-# from audio files to memory
-predicted_ppgs = ppgs.from_files(audio_files)
+# Choose a gpu index to use for inference. Set to None to use cpu.
+gpu = 0
 
-# from audio tensors (e.g. in a pipeline/dataset)
-audios = [...] # you define this
-predicted_ppgs = ppgs.from_audio(audios)
+# Infer PPGs
+ppgs = ppgs.from_audio(audio, sample_rate, gpu=gpu)
 ```
 
 #### Command-line interface (CLI)
