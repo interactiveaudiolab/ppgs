@@ -7,7 +7,7 @@
 
 </div>
 
-Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in PyTorch. Includes the original code for the paper ["Disentangling Speech with Phonetic Posteriorgrams"](TODO).
+Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in PyTorch. Includes the original code for the paper _Disentangling Speech with Phonetic Posteriorgrams_. [[Paper]](TODO) [[Website]](TODO)
 
 
 ## Table of contents
