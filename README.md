@@ -16,7 +16,8 @@
 
 - [Installation](#installation)
 - [Usage](#usage)
-    * [Example](#example)
+    * [Application programming interface (api)](#application-programming-interface-(api))
+    * [Command-line interface (cli)](#command-line-interface-(cli))
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -33,11 +34,6 @@
 
 
 ## Usage
-
-### Examples
-
-To use `ppgs` you simply pass in audio files and a destination to save PPG tensor files (.pt) to.
-
 
 #### Application programming interface (API)
 
