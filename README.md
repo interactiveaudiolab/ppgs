@@ -138,6 +138,8 @@ python -m ppgs.data.download --datasets <datasets>
 Prepares features for training. Features are stored in `data/cache/`.
 wav and phoneme (ground truth alignment) features must be preprocessed first
 
+TODO - update this to be a single command
+
 ```
 python -m ppgs.data.preprocess --datasets <datasets> --features wav phonemes
 python -m ppgs.data.preprocess \
