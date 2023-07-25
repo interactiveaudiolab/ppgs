@@ -16,8 +16,8 @@
 
 - [Installation](#installation)
 - [Usage](#usage)
-    * [Application programming interface (api)](#application-programming-interface-(api))
-    * [Command-line interface (cli)](#command-line-interface-(cli))
+    * [Application programming interface (API)](#application-programming-interface-(api))
+    * [Command-line interface (CLI)](#command-line-interface-(cli))
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
