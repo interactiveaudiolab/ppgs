@@ -54,9 +54,9 @@ ppgs = ppgs.from_audio(audio, sample_rate, gpu=gpu)
 Compute phonetic posteriorgram (PPG) features
 
 python -m ppgs
-    --sources <list of files or directory> \
+    --sources <list of files or directories> \
     --output <output files or directory> \
-    --num-workers <number of workers> \
+    --num-workers <number of CPU workers> \
     --gpu <gpu number>
 ```
 
