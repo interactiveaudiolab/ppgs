@@ -33,8 +33,6 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
 
 ## Usage
 
-#### Application programming interface (API)
-
 ```
 import ppgs
 
@@ -48,7 +46,66 @@ gpu = 0
 ppgs = ppgs.from_audio(audio, sample_rate, gpu=gpu)
 ```
 
+#### Application programming interface (API)
+
+#### `ppgs.from_audio`
+
+```
+"""TODO
+
+Args:
+    TODO
+
+Returns:
+    TODO
+"""
+```
+
+
+#### `ppgs.from_file`
+
+```
+"""TODO
+
+Args:
+    TODO
+
+Returns:
+    TODO
+"""
+```
+
+
+#### `ppgs.from_file_to_file`
+
+```
+"""TODO
+
+Args:
+    TODO
+
+Returns:
+    TODO
+"""
+```
+
+
+#### `ppgs.from_files_to_files`
+
+```
+"""TODO
+
+Args:
+    TODO
+
+Returns:
+    TODO
+"""
+```
+
 #### Command-line interface (CLI)
+
+**TODO** - use `python -m ppgs -h` and edit to look like, e.g., `penn` example
 
 ```
 Compute phonetic posteriorgram (PPG) features
