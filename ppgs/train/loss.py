@@ -57,10 +57,12 @@ def CTC(logits, targets):
     padded_targets = torch.full((len(target_sequences), max(target_lengths)), -100, dtype=torch.long, device=logits.device)
     for idx, target_sequence in enumerate(target_sequences):
         padded_targets[idx, :target_lengths[idx]] = target_sequence
-    loss = torch.nn.functional.ctc_loss(log_probs, padded_targets, lengths, target_lengths, blank=len(ppgs.PHONEME_LIST)-1, zero_infinity=True, reduction='mean')
+    loss = torch.nn.functional.ctc_loss(log_probs, padded_targets, lengths, target_lengths, blank=ppgs.OUTPUT_CHANNELS-1, zero_infinity=True, reduction='none')
+    print(loss)
     # import pdb; pdb.set_trace()
     # loss = ctcloss_reference(log_probs, padded_targets, lengths, target_lengths, blank=len(ppgs.PHONEME_LIST)-1, reduction='none')
-    # mean_loss = loss.mean()
+    mean_loss = loss.mean()
+    print(mean_loss)
     # if loss.min() < 0:
     #     import pdb; pdb.set_trace()
     # try:
@@ -72,7 +74,7 @@ def CTC(logits, targets):
     #     import pdb; pdb.set_trace()
     # if mean_loss < 1:
     #     import pdb; pdb.set_trace()
-    return loss
+    return mean_loss
 
 
 def Loss(kind=ppgs.LOSS_FUNCTION):

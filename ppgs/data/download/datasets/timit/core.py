@@ -1,11 +1,13 @@
 import ppgs
 from ppgs.data.download.utils import *
+from ppgs.data.download import align
 from .phones import timit_to_arctic
 from .sph import pcm_sph_to_wav
 from pathlib import Path
 import tarfile
 import csv
 import re
+import tqdm
 
 def download(timit_source=None):
     """Prompts user to install TIMIT dataset, and formats dataset if present"""
@@ -42,12 +44,13 @@ def download(timit_source=None):
                 raise FileNotFoundError(f"'{ppgs.SOURCES_DIR}/timit' should exist now, but it does not")
         download(timit_source)
 
-def format_timit():
+def format():
     """Formats the TIMIT database"""
 
     #walk filetree and find files
     timit_sources = ppgs.SOURCES_DIR / 'timit/TIMIT'
     timit_data = ppgs.DATA_DIR / 'timit'
+    timit_cache = ppgs.CACHE_DIR / 'timit'
     if not timit_sources.exists():
         raise FileNotFoundError(f"'{timit_sources}' does not exist")
     sphere_files = files_with_extension('wav', timit_sources)
@@ -62,7 +65,7 @@ def format_timit():
         dynamic_ncols=True
     )
     for sphere_file in iterator:
-        output_dir = timit_data / sphere_file.parent.name / 'wav'
+        output_dir = timit_cache / sphere_file.parent.name
         output_dir.mkdir(parents=True, exist_ok=True)
         new_path = output_dir / (sphere_file.stem + '.wav')
         if not new_path.exists():
@@ -81,7 +84,7 @@ def format_timit():
         output_dir = timit_data / phone_file.parent.name / 'lab'
         output_dir.mkdir(parents=True, exist_ok=True)
         new_file = output_dir / (phone_file.stem + '.csv')
-        corresponding_audio_file = output_dir.parents[0] / 'wav' / (phone_file.stem + '.wav')
+        corresponding_audio_file = timit_cache / phone_file.parent.name / (phone_file.stem + '.wav')
         with open(phone_file, 'r') as f: #Get phone file contents
             reader = csv.reader(f, delimiter=' ')
             rows = list(reader)
@@ -128,3 +131,9 @@ def format_timit():
         writer = csv.writer(f)
         writer.writerow(['id', 'prompt'])
         writer.writerows(rows)
+
+    for speaker in timit_data.iterdir():
+        phone_files = list((speaker / 'lab').glob('*.csv'))
+        word_dir = speaker / 'word'
+        output_dir = timit_cache / speaker.name
+        align.from_files_to_files(phone_files, word_dir, output_dir)

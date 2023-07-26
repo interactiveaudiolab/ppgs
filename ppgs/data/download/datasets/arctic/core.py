@@ -1,13 +1,15 @@
 import ppgs
 from ppgs.data.download.utils import *
-from .words import from_files_to_files
+from . import words
+from ppgs.data.download import align
 from .version import v0_90_to_v0_95
 import pypar
 from shutil import copy as cp
 import csv
 import re
+import tqdm
 
-def download(arctic_speakers):
+def download(arctic_speakers=['bdl', 'slt', 'awb', 'jmk', 'ksp', 'clb', 'rms']):
     """Downloads the CMU arctic database"""
     arctic_sources = ppgs.SOURCES_DIR / 'arctic'
     arctic_sources.mkdir(parents=True, exist_ok=True)
@@ -32,6 +34,7 @@ def format(speakers=None):
         raise FileNotFoundError(f"'{arctic_sources}' does not exist")
     if not arctic_data.exists():
         arctic_data.mkdir(parents=True, exist_ok=True)
+    cache_dir = ppgs.CACHE_DIR / 'arctic'
 
     #transfer sentences file
     sentences_file = arctic_sources / 'sentences.txt'
@@ -69,6 +72,8 @@ def format(speakers=None):
         else:
             id_map = lambda id: id
         new_speaker_dir = arctic_data / speaker.name
+        cache_speaker_dir = cache_dir / speaker.name
+        cache_speaker_dir.mkdir(parents=True, exist_ok=True)
 
         #transfer phoneme label files
         lab_dir_path = speaker / 'lab'
@@ -124,11 +129,12 @@ def format(speakers=None):
                 writer.writerows(rows)
 
         #transfer wav files
-        new_wav_dir_path = new_speaker_dir / 'wav'
+        import pdb; pdb.set_trace()
+        new_wav_dir_path = cache_speaker_dir
+        new_wav_dir_path.mkdir(parents=True, exist_ok=True)
         if not wav_dir_path.exists():
             raise FileNotFoundError(f'could not find directory {wav_dir_path}')
 
-        new_wav_dir_path.mkdir(parents=True, exist_ok=True)
         wav_files = files_with_extension('wav', wav_dir_path)
 
         nested_iterator = tqdm.tqdm(
@@ -150,4 +156,6 @@ def format(speakers=None):
         if not new_word_dir.exists():
             new_word_dir.mkdir(parents=True, exist_ok=True)
 
-        from_files_to_files(new_phone_files, new_word_files, new_sentences_file)
+        words.from_files_to_files(new_phone_files, new_word_files, new_sentences_file)
+
+        align.from_files_to_files(new_phone_files, new_word_dir, cache_speaker_dir)

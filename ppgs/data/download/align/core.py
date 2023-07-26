@@ -119,7 +119,7 @@ def from_file_to_file(phone_file, word_file, output_file):
 
 
 def from_files_to_files(phone_files, word_dir, output_dir):
-    """converts phone alignment and word alignment files to pypar alignment representation files"""
+    """converts phone alignment and word alignment files to textgrid"""
 
     #get word and output files
     word_files = []

@@ -39,26 +39,6 @@ def sampler(dataset, partition):
 # Custom samplers
 ###############################################################################
 
-# class Sampler:
-#     """Basic sampler"""
-
-#     def __init__(self, indices):
-#         self.indices = indices
-#         self.epoch = 0
-
-#     def __iter__(self):
-#         generator = torch.Generator()
-#         generator.manual_seed(ppgs.RANDOM_SEED + self.epoch)
-#         for i in torch.randperm(len(self.indices), generator=generator):
-#             yield self.indices[i]
-
-#     def __len__(self):
-#         return len(self.indices)
-
-#     def set_epoch(self, epoch):
-#         self.epoch = epoch
-
-
 class Sampler:
 
     def __init__(self, dataset):
@@ -70,7 +50,7 @@ class Sampler:
         return iter(self.batch())
 
     def __len__(self):
-        return self.length
+        return len(self.batch())
 
     def batch(self):
         """Produces batch indices for one epoch"""

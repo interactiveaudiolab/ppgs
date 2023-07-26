@@ -16,6 +16,8 @@ EVALUATION_INTERVAL = 1000
 OUTPUT_CHANNELS = 41
 LOSS_FUNCTION = 'CTC'
 
+LEARNING_RATE=1e-4
+
 import torch
 def _backend_old(predicted_logits: torch.Tensor):
     """predicted_logits are BATCH x DIMS x TIME"""

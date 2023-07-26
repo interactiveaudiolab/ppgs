@@ -137,7 +137,7 @@ def train(
     # if no_cache:
     #     raise NotImplementedError()
     # else:
-    train_loader, valid_loader = ppgs.data.loaders(dataset, representation=ppgs.REPRESENTATION, reduced_features=True)
+    train_loader, valid_loader = ppgs.data.loaders(dataset)
 
     # Prepare FRONTEND
     if ppgs.FRONTEND is not None and callable(ppgs.FRONTEND):
@@ -175,127 +175,136 @@ def train(
             total=steps,
             dynamic_ncols=True,
             desc=f'Training {ppgs.CONFIG}')
-    while step < steps:
+        
+    try:
+        while step < steps:
 
-        model.train()
-        for batch in train_loader:
+            model.train()
+            for batch in train_loader:
 
-            # Unpack batch
-            # input_ppgs, indices = (item.to(device) for item in batch)
-            input_ppgs = batch[0].to(device)
-            indices = batch[1].to(device)
-            lengths = batch[2].to(device)
-            stems = batch[3]
+                # Unpack batch
+                # input_ppgs, indices = (item.to(device) for item in batch)
+                input_ppgs = batch[0].to(device)
+                indices = batch[1].to(device)
+                lengths = batch[2].to(device)
+                stems = batch[3]
 
-            with torch.cuda.amp.autocast():
+                with torch.cuda.amp.autocast():
 
-                if frontend is not None:
-                    with torch.no_grad():
-                        input_ppgs = frontend(input_ppgs).to(torch.float16)
+                    if frontend is not None:
+                        with torch.no_grad():
+                            input_ppgs = frontend(input_ppgs).to(torch.float16)
 
-                # Forward pass
-                if ppgs.MODEL == 'convolution':
-                    predicted_ppgs = model(input_ppgs)
-                else:
-                    predicted_ppgs = model(input_ppgs, lengths)
+                    # Forward pass
+                    if ppgs.MODEL == 'convolution':
+                        predicted_ppgs = model(input_ppgs)
+                    else:
+                        predicted_ppgs = model(input_ppgs, lengths)
 
-                # Compute loss
-                # if step == 35:
-                #     import pdb; pdb.set_trace()
+                    # Compute loss
+                    # if step == 35:
+                    #     import pdb; pdb.set_trace()
 
-                loss = loss_fn(predicted_ppgs, indices)
+                    loss = loss_fn(predicted_ppgs, indices)
 
-            ######################
-            # Optimize model #
-            ######################
+                ######################
+                # Optimize model #
+                ######################
 
-            optimizer.zero_grad()
+                optimizer.zero_grad()
 
-            # Backward pass
-            try:
-                scaler.scale(loss).backward()
-            except:
-                import pdb; pdb.set_trace()
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_INF_CLIP, norm_type='inf')
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_2_CLIP, norm_type=2)
-            for p in model.parameters():
-                # if p.grad is not None and p.grad.norm() >= 1.25:
-                #     print(p.grad.norm(), '2', p.shape, step)#, stems)
-                # if p.grad is not None and p.grad.norm(4) >= 1:
-                #     print(p.grad.norm(4), '4', p.shape, step, stems)
-                if p.grad is not None and p.grad.abs().max() >= 0.5:
-                    print(p.grad.abs().max(), 'inf', p.shape, step)#, stems)
-            # Update weights
-            scaler.step(optimizer)
+                # Backward pass
+                try:
+                    scaler.scale(loss).backward()
+                except:
+                    import pdb; pdb.set_trace()
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_INF_CLIP, norm_type='inf')
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_2_CLIP, norm_type=2)
+                for p in model.parameters():
+                    # if p.grad is not None and p.grad.norm() >= 1.25:
+                    #     print(p.grad.norm(), '2', p.shape, step)#, stems)
+                    # if p.grad is not None and p.grad.norm(4) >= 1:
+                    #     print(p.grad.norm(4), '4', p.shape, step, stems)
+                    if p.grad is not None and p.grad.abs().max() >= 0.5:
+                        print(p.grad.abs().max(), 'inf', p.shape, step)#, stems)
+                # Update weights
+                scaler.step(optimizer)
 
-            # Update gradient scaler
-            scaler.update()
+                # Update gradient scaler
+                scaler.update()
 
-            ###########
-            # Logging #
-            ###########
+                ###########
+                # Logging #
+                ###########
 
-            if not rank:
+                if not rank:
 
-                if step % ppgs.LOG_INTERVAL == 0:
+                    if step % ppgs.LOG_INTERVAL == 0:
 
-                    # Log loss
-                    scalars = {
-                        'train/loss': loss,
-                        'learning_rate': optimizer.param_groups[0]['lr']}
-                    ppgs.write.scalars(log_directory, step, scalars)
+                        # Log loss
+                        scalars = {
+                            'train/loss': loss,
+                            'learning_rate': optimizer.param_groups[0]['lr']}
+                        ppgs.write.scalars(log_directory, step, scalars)
 
-                    # Log visualizations
-                    # visualization_batch = batch[:ppgs.VISUALIZATION_SAMPLES]
-                    # audio_filenames = [f + '.wav' for f in visualization_batch]
+                        # Log visualizations
+                        # visualization_batch = batch[:ppgs.VISUALIZATION_SAMPLES]
+                        # audio_filenames = [f + '.wav' for f in visualization_batch]
 
-                ############
-                # Evaluate #
-                ############
+                    ############
+                    # Evaluate #
+                    ############
 
-                if step % ppgs.EVALUATION_INTERVAL == 0:
+                    if step % ppgs.EVALUATION_INTERVAL == 0:
 
-                    print(torch.cuda.max_memory_allocated(device) / (1024 ** 3), torch.cuda.max_memory_reserved(device) / (1024 ** 3))
+                        print(torch.cuda.max_memory_allocated(device) / (1024 ** 3), torch.cuda.max_memory_reserved(device) / (1024 ** 3))
 
-                    del loss
-                    del predicted_ppgs
-                    torch.cuda.empty_cache()
+                        del loss
+                        del predicted_ppgs
+                        torch.cuda.empty_cache()
 
-                    evaluate(
-                        log_directory,
-                        step,
-                        model,
-                        frontend,
-                        valid_loader,
-                        train_loader,
-                        gpu)
+                        evaluate(
+                            log_directory,
+                            step,
+                            model,
+                            frontend,
+                            valid_loader,
+                            train_loader,
+                            gpu)
 
-                ###################
-                # Save checkpoint #
-                ###################
+                    ###################
+                    # Save checkpoint #
+                    ###################
 
-                if step and step % ppgs.CHECKPOINT_INTERVAL == 0:
-                    ppgs.checkpoint.save(
-                        model,
-                        optimizer,
-                        step,
-                        output_directory / f'{step:08d}.pt')
+                    if step and step % ppgs.CHECKPOINT_INTERVAL == 0:
+                        ppgs.checkpoint.save(
+                            model,
+                            optimizer,
+                            step,
+                            output_directory / f'{step:08d}.pt')
 
-            # Update training step count
-            if step >= steps:
-                break
-            step += 1
+                # Update training step count
+                if step >= steps:
+                    break
+                step += 1
 
-            # Update progress bar
-            if not rank:
-                progress.update()
+                # Update progress bar
+                if not rank:
+                    progress.update()
 
-            # torch.cuda.empty_cache()
-            # print(torch.cuda.memory_allocated() / (1024 ** 3), torch.cuda.memory_reserved() / (1024 ** 3))
+                # torch.cuda.empty_cache()
+                # print(torch.cuda.memory_allocated() / (1024 ** 3), torch.cuda.memory_reserved() / (1024 ** 3))
 
-        # update epoch
-        train_loader.batch_sampler.epoch += 1
+            # update epoch
+            train_loader.batch_sampler.epoch += 1
+    except KeyboardInterrupt:
+        ppgs.checkpoint.save(
+            model,
+            optimizer,
+            step,
+            output_directory / f'{step:08d}.pt'
+        )
 
     # Close progress bar
     if not rank:
