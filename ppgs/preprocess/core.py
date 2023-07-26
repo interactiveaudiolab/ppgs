@@ -1,21 +1,22 @@
 """core.py - data preprocessing"""
 
 
+from typing import Iterator, Tuple, List
 import ppgs
-from os import listdir, makedirs
-from os.path import join, isdir
-from shutil import copy as cp
-from ppgs.preprocess.charsiu import charsiu
+from pathlib import Path
+import time
 from ppgs.notify import notify_on_finish
-from ppgs.preprocess.accel import multiprocessed_preprocess
-from tqdm import tqdm
+from ppgs.data.disk import stop_if_disk_full
+import multiprocessing as mp
+import tqdm
+import torch
 
 ###############################################################################
 # Constants
 ###############################################################################
 
 
-ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold', 'encodec']
+ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold', 'encodec', 'w2v2ft']
 
 
 ###############################################################################
@@ -23,124 +24,90 @@ ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogra
 ###############################################################################
 
 @notify_on_finish('preprocessing')
-def datasets(datasets, features=ALL_FEATURES, gpu=None, use_cached_inputs=False, num_workers=-1):
+def datasets(datasets, features=ALL_FEATURES, gpu=None, num_workers=0):
     """Preprocess a dataset
 
     Arguments
-        name - string
-            The name of the dataset to preprocess
+        datasets - List[str]
+            The names of the dataset to preprocess
+        features - List[str]
+            The names of the features to do preprocessing for
+        gpu - int
+            The gpu to use for preprocessing
+        num_workers - int
+            The number of worker threads to use  
     """
     for dataset in datasets:
-        input_directory = ppgs.DATA_DIR / dataset if not use_cached_inputs else ppgs.CACHE_DIR / dataset
-        output_directory = ppgs.CACHE_DIR / dataset
+        dataloader = loader(dataset, num_workers//2)
+        from_dataloader(dataloader, features, save_workers=(num_workers+1)//2, gpu=gpu)
 
-        if dataset == 'charsiu':
-            charsiu(input_directory, output_directory, features=features, num_workers=num_workers, gpu=gpu)
-            continue
+def from_dataloader(dataloader, features, save_workers=1, gpu=None, output_dir=None): #TODO make output_dir work
+    """Preprocess a dataset
 
-        if num_workers == -1:
-
-            speakers = [speaker for speaker in listdir(input_directory) if isdir(join(input_directory, speaker))]
-
-            for speaker in speakers:
-                print('Preprocessing for speaker', speaker, 'in dataset', dataset)
-                speaker_dir = input_directory / speaker
-
-                speaker_output_dir = output_directory / speaker
-                makedirs(speaker_output_dir, exist_ok=True)
-
-                audio_dir = speaker_dir / 'wav'
-                phoneme_dir = speaker_dir / 'lab'
-                word_dir = speaker_dir / 'word'
-
-                audio_files = sorted(list(audio_dir.glob('*.wav')))
-                phoneme_files = sorted(list(phoneme_dir.glob('*.csv')))
-
-                from_files_to_files(
-                    speaker_output_dir, 
-                    audio_files, 
-                    phoneme_files,
-                    word_dir,
-                    features=features, 
-                    gpu=gpu)
-        else:
-            print('using multiprocessed preprocessing')
-            multiprocessed_preprocess(dataset, None, features, num_workers, gpu)
-
+    Arguments
+        dataloader - torch.utils.data.DataLoader
+            A DataLoader object to do preprocessing for. 
+            the DataLoader must yield a batch of audio data and lengths
+        features - List[str]
+            The names of the features to do preprocessing for
+        gpu - int
+            The gpu to use for preprocessing
+        output_dir - Path
+            The directory to place the features
+        save_workers - int
+            The number of worker threads to use for async file saving
+    """
+    feature_processors = [ppgs.REPRESENTATION_MAP[f] for f in features]
+    iterator: Iterator[Tuple[torch.Tensor, List[Path], torch.Tensor]] = tqdm.tqdm(
+        dataloader,
+        desc=f'preprocessing {features} for dataset {dataloader.dataset.metadata.name}',
+        total=len(dataloader),
+        dynamic_ncols=True
+    )
+    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+    with mp.get_context('spawn').Pool(save_workers) as pool:
+        with torch.inference_mode():
+            for audios, lengths, audio_files in iterator:
+                audios = audios.to(device)
+                lengths = lengths.to(device)
+                for feature, feature_processor in zip(features, feature_processors):
+                    outputs = feature_processor.from_audios(audios, lengths, gpu=gpu).cpu()
+                    if feature != 'w2v2ft':
+                        new_lengths = lengths // ppgs.HOPSIZE
+                    else:
+                        new_lengths = lengths + ppgs.preprocess.w2v2ft.WINDOW_SIZE - ppgs.preprocess.w2v2ft.HOP_SIZE
+                    #TODO fix output_dir
+                    filenames = [audio_file.parent / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
+                    pool.starmap_async(save_masked, zip(outputs, filenames, new_lengths.cpu()))
+                    while pool._taskqueue.qsize() > 256:
+                        time.sleep(1)
+                stop_if_disk_full()
+        pool.close()
+        pool.join()
 
 
 def from_files_to_files(
-    output_directory,
     audio_files,
-    phone_files,
-    word_directory,
     features=ALL_FEATURES,
+    num_workers=0,
+    output_dir=None,
     gpu=None):
-    """Preprocess from files"""
-    # Change directory
-    with ppgs.data.chdir(output_directory):
-
-        #Copy phoneme files
-        if 'phonemes' in features:
-            ppgs.preprocess.align.from_files_to_files(
-                phone_files,
-                word_directory,
-                output_directory
-            )
-
-        # Preprocess spectrograms
-        # if 'spectrogram' in features:
-        #     spectrogram_files = [
-        #         f'{file.stem}-spectrogram.pt' for file in audio_files]
-        #     ppgs.preprocess.spectrogram.from_files_to_files(
-        #         audio_files,
-        #         spectrogram_files)
-
-        # Copy wav files
-        if 'wav' in features:
-            iterator = tqdm(
-                audio_files,
-                desc=f'copying audio files for speaker',
-                total=len(audio_files),
-                dynamic_ncols=True
-            )
-            for file in iterator:
-                cp(file, output_directory / file.name)
-
-        # Preprocess phonetic posteriorgrams
-        if 'bottleneck' in features:
-            ppg_files = [f'{file.stem}-bottleneck.pt' for file in audio_files]
-            ppgs.preprocess.bottleneck.from_files_to_files(
-                audio_files,
-                ppg_files,
-                gpu
-            )
-
-        # Preprocess wav2vec2-fs latents
-        if 'w2v2fs' in features:
-            w2v2fs_files = [f'{file.stem}-w2v2fs.pt' for file in audio_files]
-            ppgs.preprocess.w2v2fs.from_files_to_files(
-                audio_files,
-                w2v2fs_files,
-                gpu
-            )
-
-        # Preprocess wav2vec2-fb latents
-        if 'w2v2fb' in features:
-            w2v2fb_files = [f'{file.stem}-w2v2fb.pt' for file in audio_files]
-            ppgs.preprocess.w2v2fb.from_files_to_files(
-                audio_files,
-                w2v2fb_files,
-                gpu
-            )
-
-        if 'mel' in features:
-            mel_files = [f'{file.stem}-mel.pt' for file in audio_files]
-            ppgs.preprocess.spectrogram.from_files_to_files(audio_files, mel_files, mels=True)
-
-        if 'spectrogram' in features:
-            spectrogram_files = [f'{file.stem}-spectrogram.pt' for file in audio_files]
-            ppgs.preprocess.spectrogram.from_files_to_files(audio_files, spectrogram_files, mels=False)
+    """Preprocess from files
+    Arguments
+        audio_files - List[str]
+            A list of audio files to process
+        features - List[str]
+            The names of the features to do preprocessing for
+        num_workers - int
+            The number of workers to use
+        output_dir - Path
+            The directory to place the features
+        gpu - int
+            The gpu to use for preprocessing
+    """
+    dataloader = loader(audio_files, num_workers//2)
+    from_dataloader(dataloader, features, (num_workers+1)//2, gpu, output_dir)
+    
 
 def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=None, gpu=None):
     """Preprocess audio using given or configured representation"""
@@ -161,4 +128,30 @@ def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=
         sample_rate=sample_rate,
         config=config,
         gpu=gpu
+    )
+
+###############################################################################
+# Utilities
+###############################################################################
+
+def save_masked(tensor: torch.Tensor, file, length: torch.Tensor):
+    if str(tensor.device) != 'cpu' or str(length.device) != 'cpu':
+        print('tensors (and lengths) must be on cpu for thread safety', flush=True)
+        raise ValueError('tensors (and lengths) must be on cpu for thread safety')
+    try:
+        sub_tensor = tensor[..., :length].clone()
+        torch.save(sub_tensor, file)
+    except Exception as e:
+        print(f'error saving file {file}: {e}', flush=True)
+
+def loader(sources, loader_workers):
+    dataset_object = ppgs.data.Dataset(sources, features=['wav', 'length', 'audio_file'])
+    sampler_object = ppgs.data.Sampler(dataset_object)
+    collator_object = ppgs.data.Collator(features=['wav', 'length', 'audio_file'])
+    return torch.utils.data.DataLoader(
+        dataset=dataset_object,
+        batch_sampler=sampler_object,
+        num_workers=loader_workers,
+        pin_memory=True,
+        collate_fn=collator_object
     )

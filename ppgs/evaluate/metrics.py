@@ -170,7 +170,10 @@ class Loss:
         self.reset()
 
     def __call__(self):
-        return {f'Loss/{self.kind}/{self.display_suffix}': float((self.total / self.count).cpu().numpy())}
+        if self.kind == 'CTC':
+            return {f'Loss/{self.kind}/{self.display_suffix}': float((self.total).cpu().numpy())}
+        else:
+            return {f'Loss/{self.kind}/{self.display_suffix}': float((self.total / self.count).cpu().numpy())}
 
     def reset(self):
         self.total = 0.

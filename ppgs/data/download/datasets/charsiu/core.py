@@ -91,9 +91,9 @@ def format():
 
     print(f"Failed to find {num_not_found}/{len(stems)} mp3 files ({num_not_found/(len(stems)+1e-6)*100}%)!")
 
-    charsiu_data_dir = ppgs.DATA_DIR / 'charsiu'
-    charsiu_wav_dir = charsiu_data_dir / 'wav'
-    charsiu_textgrid_dir = charsiu_data_dir / 'textgrid'
+    charsiu_cache_dir = ppgs.CACHE_DIR / 'charsiu'
+    charsiu_wav_dir = charsiu_cache_dir / 'wav'
+    charsiu_textgrid_dir = charsiu_cache_dir / 'textgrid'
 
     charsiu_wav_dir.mkdir(exist_ok=True, parents=True)
     charsiu_textgrid_dir.mkdir(exist_ok=True, parents=True)
