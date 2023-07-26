@@ -1,22 +1,25 @@
 <h1 align="center">Phonetic Posteriorgrams (PPGS)</h1>
 <div align="center">
 
-<!-- [![PyPI](https://img.shields.io/pypi/v/promonet.svg)](https://pypi.python.org/pypi/promonet)
+[![PyPI](https://img.shields.io/pypi/v/promonet.svg)](https://pypi.python.org/pypi/promonet)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://pepy.tech/badge/promonet)](https://pepy.tech/project/promonet) -->
+[![Downloads](https://pepy.tech/badge/promonet)](https://pepy.tech/project/promonet)
 
 </div>
 
-<!-- Official code for the paper _Adaptive Neural Speech Prosody Editing_
-[[paper]](https://www.maxrmorrison.com/pdfs/morrison2023adaptive.pdf)
-[[companion website]](https://www.maxrmorrison.com/sites/promonet/) -->
+Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in PyTorch. Includes the original code for the paper _Disentangling Speech with Phonetic Posteriorgrams_. [[Paper]](TODO) [[Website]](TODO)
 
 
 ## Table of contents
 
 - [Installation](#installation)
-- [Usage](#usage)
-    * [Example](#example)
+- [Inference](#inference)
+    * [Application programming interface (API)](#application-programming-interface-api)
+        * [`ppgs.from_audio`](#ppgsfrom_audio)
+        * [`ppgs.from_file`](#ppgsfrom_file)
+        * [`ppgs.from_file_to_file`](#ppgsfrom_file_to_file)
+        * [`ppgs.from_files_to_files`](#ppgsfrom_files_to_files)
+    * [Command-line interface (CLI)](#command-line-interface-cli)
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -32,40 +35,89 @@
 `pip install ppgs`
 
 
-## Usage
-
-### Examples
-
-To use `ppgs` you simply pass in audio files and a destination to save PPG tensor files (.pt) to.
-
-
-#### Application programming interface (API)
+## Inference
 
 ```
 import ppgs
 
+# Load speech audio at correct sample rate
+audio = ppgs.load.audio(audio_file)
 
-# from audio files
-audio_files = [...] # you define this
-predicted_ppgs = ppgs.from_files_to_files(audio_files, gpu=0)
+# Choose a gpu index to use for inference. Set to None to use cpu.
+gpu = 0
 
-# from audio files to memory
-predicted_ppgs = ppgs.from_files(audio_files)
+# Infer PPGs
+ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
+```
 
-# from audio tensors (e.g. in a pipeline/dataset)
-audios = TODO (list OR tensor)
-predicted_ppgs = ppgs.from_audio(audios)
+#### Application programming interface (API)
+
+#### `ppgs.from_audio`
+
+```
+"""TODO
+
+Args:
+    TODO
+
+Returns:
+    TODO
+"""
+```
+
+
+#### `ppgs.from_file`
+
+```
+"""TODO
+
+Args:
+    TODO
+
+Returns:
+    TODO
+"""
+```
+
+
+#### `ppgs.from_file_to_file`
+
+```
+"""TODO
+
+Args:
+    TODO
+
+Returns:
+    TODO
+"""
+```
+
+
+#### `ppgs.from_files_to_files`
+
+```
+"""TODO
+
+Args:
+    TODO
+
+Returns:
+    TODO
+"""
 ```
 
 #### Command-line interface (CLI)
+
+**TODO** - use `python -m ppgs -h` and edit to look like, e.g., `penn` example
 
 ```
 Compute phonetic posteriorgram (PPG) features
 
 python -m ppgs
-    --sources <list of files or directory>
-    --output <output files or directory>
-    --num-workers <number of workers>
+    --sources <list of files or directories> \
+    --output <output files or directory> \
+    --num-workers <number of CPU workers> \
     --gpu <gpu number>
 ```
 
@@ -86,9 +138,16 @@ python -m ppgs.data.download --datasets <datasets>
 Prepares features for training. Features are stored in `data/cache/`.
 wav and phoneme (ground truth alignment) features must be preprocessed first
 
+TODO - update this to be a single command
+
 ```
 python -m ppgs.data.preprocess --datasets <datasets> --features wav phonemes
-python -m ppgs.data.preprocess --datasets <datasets> --gpu <gpu> --num-workers <workers> --use-cached-inputs --features <latent features>
+python -m ppgs.data.preprocess \
+   --datasets <datasets> \
+   --gpu <gpu> \
+   --num-workers <workers> \
+   --use-cached-inputs \
+   --features <latent features>
 ```
 
 
@@ -136,8 +195,44 @@ Also performs benchmarking of speed. Results are stored in `eval/`.
 python -m ppgs.evaluate \
     --config <name> \
     --datasets <datasets> \
-    --checkpoint <checkpoint>
+    --checkpoint <checkpoint> \
     --gpus <gpus>
 ```
 
-TODO add citation section
+## Citation
+
+### IEEE
+C. Churchwell, M. Morrison, and B. Pardo, "Disentangling Speech with Phonetic Posteriorgrams," Submitted
+to ICASSP 2024, January 2024.
+
+
+### BibTex
+
+```
+@inproceedings{churchwell2024disentangling,
+    title={Disentangling Speech with Phonetic Posteriorgrams},
+    author={Churchwell, Cameron and Morrison, Max and Pardo, Bryan},
+    booktitle={Submitted to ICASSP 2024},
+    month={January},
+    year={2024}
+}
+```
+
+## Citation
+
+### IEEE
+C. Churchwell, M. Morrison, and B. Pardo, "Disentangling Speech with Phonetic Posteriorgrams," Submitted
+to ICASSP 2024, January 2024.
+
+
+### BibTex
+
+```
+@inproceedings{churchwell2024disentangling,
+    title={Disentangling Speech with Phonetic Posteriorgrams},
+    author={Churchwell, Cameron and Morrison, Max and Pardo, Bryan},
+    booktitle={Submitted to ICASSP 2024},
+    month={January},
+    year={2024}
+}
+```
