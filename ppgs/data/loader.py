@@ -18,7 +18,7 @@ def loader(dataset, partition, features=[ppgs.REPRESENTATION, 'phonemes', 'lengt
             num_workers=ppgs.NUM_WORKERS,
             pin_memory=True,
             collate_fn=collator_object,
-            batch_size=128
+            batch_size=256
         )
     else:
         return torch.utils.data.DataLoader(

@@ -1,4 +1,5 @@
 import ppgs
+from ppgs.data.dataset import ppgs_phoneme_list
 
 import tqdm
 import torch
@@ -9,6 +10,8 @@ import cv2
 from pathlib import Path
 import tempfile
 import os
+import pypar
+import pyfoal
 
 #TODO make config safe (get values dynamically)
 
@@ -44,7 +47,7 @@ text_vertical_offset = 1
 
 #TODO make scalefactor a parameter (currently is a hardcoded constant)
 # def from_logits_to_video_file(logits, audio_filename, video_filename, preprocess_only=False, labels=ppgs.PHONEME_LIST + ['<blank>']):
-def from_logits_to_video_file(logits, audio_filename, video_filename, preprocess_only=False, labels=ppgs.PHONEME_LIST):
+def from_logits_to_video_file(logits, audio_filename, video_filename, textgrid_filename=None, preprocess_only=False, labels=ppgs.PHONEME_LIST):
     """Takes logits of shape time,categories and creates a visualization"""
 
     if ppgs.BACKEND is not None:
@@ -54,11 +57,31 @@ def from_logits_to_video_file(logits, audio_filename, video_filename, preprocess
     audio = torchaudio.load(audio_filename)[0][0]
     audio_clip = mpy.AudioFileClip(audio_filename, fps=ppgs.SAMPLE_RATE)
 
+    if textgrid_filename is not None:
+        #prep phoneme mapping in pyfoal
+        # Load alignment
+        alignment = pypar.Alignment(textgrid_filename)
+
+        hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
+        num_frames = len(audio) // ppgs.HOPSIZE
+        times = np.linspace(hopsize/2, (num_frames-1)*hopsize+hopsize/2, num_frames)
+        times[-1] = alignment.duration()
+        with ppgs_phoneme_list():
+            phonemes = torch.tensor(pyfoal.convert.alignment_to_indices(
+                alignment,
+                hopsize=hopsize,
+                return_word_breaks=False,
+                times=times
+            ), dtype=torch.long)
+            phonemes = torch.nn.functional.one_hot(phonemes, num_classes=logits.shape[-1]) * 255
+
     pixels = torch.nn.functional.softmax(logits, dim=1) * 255 #softmax to get nice distribution
     # pixels = torch.nn.functional.one_hot(torch.argmax(logits, dim=1), logits.shape[-1]) * 255
     pixels = torch.nn.functional.pad(pixels, (0, 0, pad, pad)) #pad so playhead is centered
     pixels = pixels.unsqueeze(-1).repeat(1,1,3) #unsqueeze and convert form greyscale to rgb
-
+    if textgrid_filename is not None: #change to monochrome logits and add ground truth
+        pixels[..., 1:] = 0 #logits are red
+        pixels[pad:-pad, ..., 2] = phonemes #phonemes are blue
     #visual 'convolution' to create frames from ppg windows
     frames = []
     for i in range(0, (audio.shape[0]//ppgs.HOPSIZE)//display_hopsize):
@@ -112,16 +135,17 @@ def from_logits_to_video_file(logits, audio_filename, video_filename, preprocess
     composite = composite.set_audio(audio_clip)
 
     #TODO add audio_codec as a parameter
-    composite.write_videofile(video_filename, audio_codec='aac', logger=None)
+    # composite.write_videofile(video_filename, audio_codec='aac', threads=8, logger=None)
+    composite.write_videofile(video_filename, preset='ultrafast', audio_codec='aac', threads=8)
     composite.close()
 
 
-def from_file_to_file(audio_filename, video_filename, checkpoint=ppgs.DEFAULT_CHECKPOINT, prepocess_only=False, gpu=None):
+def from_file_to_file(audio_filename, video_filename, textgrid_filename=None, checkpoint=ppgs.DEFAULT_CHECKPOINT, prepocess_only=False, gpu=None):
     logits = ppgs.from_file(audio_filename, checkpoint=checkpoint, preprocess_only=prepocess_only, gpu=gpu).T
-    from_logits_to_video_file(logits.cpu(), audio_filename, video_filename, preprocess_only=prepocess_only)
+    from_logits_to_video_file(logits.cpu(), audio_filename, video_filename, textgrid_filename=textgrid_filename, preprocess_only=prepocess_only)
 
 
-def from_files_to_files(audio_filenames, output_dir, checkpoint=ppgs.DEFAULT_CHECKPOINT, preprocess_only=False, gpu=None):
+def from_files_to_files(audio_filenames, output_dir, textgrid_filename=None, checkpoint=ppgs.DEFAULT_CHECKPOINT, preprocess_only=False, gpu=None):
     iterator = tqdm.tqdm(
         audio_filenames,
         desc='Creating visualizations',
@@ -130,7 +154,7 @@ def from_files_to_files(audio_filenames, output_dir, checkpoint=ppgs.DEFAULT_CHE
     )
     for audio_filename in iterator:
         output_filename = str(Path(output_dir) / (Path(audio_filename).stem + '.mp4'))
-        from_file_to_file(audio_filename, output_filename, checkpoint=checkpoint, prepocess_only=preprocess_only, gpu=gpu)
+        from_file_to_file(audio_filename, output_filename, textgrid_filename=textgrid_filename, checkpoint=checkpoint, prepocess_only=preprocess_only, gpu=gpu)
 
 
 def from_logits_to_video(logits, audio_filename, labels=ppgs.PHONEME_LIST):
@@ -166,6 +190,6 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
     print(args)
 
-    from_files_to_files(args['files'], './tmp/', checkpoint='runs/w2v2fb-ctc/00114000.pt', preprocess_only=False, gpu=0)
+    from_files_to_files(args['files'], './tmp/', textgrid_filename='./tmp/100038.textgrid', checkpoint='runs/w2v2fb-ctc/00200000.pt', preprocess_only=False, gpu=1)
 
     
