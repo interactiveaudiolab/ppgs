@@ -66,7 +66,7 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
 
             # Setup test dataset
             ppgs.BATCH_SIZE = 1
-            dataloader = ppgs.data.loader.loader(dataset, partition, representation=ppgs.REPRESENTATION, reduced_features=True)
+            dataloader = ppgs.data.loader.loader(dataset, partition, features=[ppgs.REPRESENTATION, 'length', 'phonemes', 'stem'])
             iterator = tqdm.tqdm(
                 dataloader,
                 f'Evaluating {ppgs.CONFIG} on {dataset}',
@@ -75,7 +75,7 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
             )
 
             # Iterate over test set
-            for input_ppgs, indices, lengths, stems in iterator:
+            for input_ppgs, lengths, indices, stems in iterator:
 
                 # Reset file metrics
                 file_metrics.reset()

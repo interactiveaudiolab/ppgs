@@ -41,7 +41,8 @@ def from_features(
         else:
             from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'w2v2fb.pt')['model'])
         from_features.model = from_features.model.to(features.device)
-    return from_features.model(features, new_lengths)
+    with torch.autocast('cuda' if gpu is not None else 'cpu'):
+        return from_features.model(features, new_lengths)
 
 def from_audios(
     audio,
