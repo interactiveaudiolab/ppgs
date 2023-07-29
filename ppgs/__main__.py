@@ -19,7 +19,7 @@ def parse_args():
         type=Path,
         help='a list of files and/or directories to process')
     parser.add_argument(
-        '--output',
+        '--output-dir',
         type=Path,
         help='the directory to write features to')
     parser.add_argument(
@@ -32,7 +32,7 @@ def parse_args():
         type=int,
         help='The index of the GPU to use for inference. Defaults to CPU.')
     parser.add_argument(
-        '--from-feature',
+        '--representation',
         default=ppgs.REPRESENTATION,
         help='feature to synthesize PPGS from')
     parser.add_argument(
@@ -43,4 +43,4 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    ppgs.process(**vars(parse_args()))
+    ppgs.from_sources_to_files(**vars(parse_args()))

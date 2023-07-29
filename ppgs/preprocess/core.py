@@ -41,13 +41,19 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None, num_workers=0):
         dataloader = loader(dataset, num_workers//2)
         from_dataloader(dataloader, features, save_workers=(num_workers+1)//2, gpu=gpu)
 
-def from_dataloader(dataloader, features, save_workers=1, gpu=None, output_dir=None): #TODO make output_dir work
-    """Preprocess a dataset
+def from_dataloader(
+    dataloader,
+    features,
+    save_workers=1,
+    gpu=None,
+    output_dir=None
+): #TODO make output_dir work
+    """Preprocess from a dataloader
 
     Arguments
         dataloader - torch.utils.data.DataLoader
             A DataLoader object to do preprocessing for. 
-            the DataLoader must yield a batch of audio data and lengths
+            the DataLoader must yield batches (audio, length, audio_filename)
         features - List[str]
             The names of the features to do preprocessing for
         gpu - int
