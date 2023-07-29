@@ -26,6 +26,29 @@ def partition(dataset):
     """Load partitions for dataset"""
     with open(ppgs.PARTITION_DIR / f'{dataset}.json') as file:
         return json.load(file)
+    
+def model(checkpoint=ppgs.DEFAULT_CHECKPOINT):
+    """Load a model from a checkpoint file. Make sure the current configuration values match"""
+    try:
+        state_dict = torch.load(checkpoint, map_location='cpu')
+    except FileNotFoundError:
+        raise FileNotFoundError(f'could not find model checkpoint {checkpoint}')
+    
+    # disregard optimizer from training
+    if 'model' in state_dict:
+        state_dict = state_dict['model']
+    
+    model = ppgs.Model()()
+
+    try:
+        model.load_state_dict(state_dict)
+    except RuntimeError:
+        try:
+            model.load_state_dict(ddp_to_single_state_dict(state_dict))
+        except RuntimeError:
+            model.load_state_dict(state_dict, strict=False)
+    
+    return model
 
 def ddp_to_single_state_dict(state_dict):
     """Convert a DDP model state dict to one which can be loaded on a single device"""
