@@ -124,7 +124,7 @@ LEARNING_RATE = 2e-4
 LOSS_FUNCTION = 'CE'
 
 ###############################################################################
-# Model parameters #TODO extract to separate config file?
+# Model parameters
 ###############################################################################
 
 # This function takes as input a torch.Device and returns a callable frontend
@@ -156,7 +156,7 @@ KERNEL_SIZE = 5
 
 
 ###############################################################################
-# Partition parameters #TODO extract to separate config file
+# Partition parameters
 ###############################################################################
 
 CHARSIU_REJECT = [
@@ -555,7 +555,7 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'p': 'p',
     'pau': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
     'pcl': 'bck<p>', #backfill
-    'q': 't', #map to its allophone TODO check the validity of doing this?
+    'q': 't', #map to its allophone
     'r': 'r',
     's': 's',
     'sh': 'sh',

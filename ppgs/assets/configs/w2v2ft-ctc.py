@@ -31,7 +31,7 @@ def _backend_old(predicted_logits: torch.Tensor):
                 current_prediction = timestep_prediction
             elif timestep_prediction == len(timestep) - 1: # prediction is BLANK
                 # assign probability to current prediction instead
-                timestep[current_prediction] = timestep[-1] #TODO try summing instead?
+                timestep[current_prediction] = timestep[-1]
             else:
                 current_prediction = timestep_prediction
     return predicted_logits[:, :-1, :]

@@ -99,7 +99,6 @@ class Dataset(torch.utils.data.Dataset):
 
         feature_values = []
         for feature in self.features:
-            # TODO modularize
             if feature == 'wav':
                 audio = ppgs.load.audio(self.metadata.audio_files[index])
                 feature_values.append(audio)
