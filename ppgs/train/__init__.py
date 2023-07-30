@@ -1,2 +1,2 @@
-from .core import run, evaluate
+from .core import evaluate, run
 from .loss import Loss

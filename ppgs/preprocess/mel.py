@@ -1,12 +1,12 @@
 import multiprocessing as mp
 import os
 
-import torch
 import librosa
+import torch
 
 import ppgs
-from . import spectrogram
 
+from . import spectrogram
 
 ###############################################################################
 # Spectrogram computation

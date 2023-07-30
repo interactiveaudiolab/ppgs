@@ -1,15 +1,16 @@
 """core.py - model evaluation"""
 
-import ppgs
 import json
 import time
-import tqdm
-from pathlib import Path
 from contextlib import ExitStack
-import numpy as np
-from ppgs.notify import notify_on_finish
-import torch
+from pathlib import Path
 
+import numpy as np
+import torch
+import tqdm
+
+import ppgs
+from ppgs.notify import notify_on_finish
 
 ###############################################################################
 # Evaluate

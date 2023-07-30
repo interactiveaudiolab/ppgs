@@ -1,7 +1,8 @@
-import torch
-import ppgs
-from matplotlib import pyplot as plt
 import numpy as np
+import torch
+from matplotlib import pyplot as plt
+
+import ppgs
 
 ###############################################################################
 # Aggregate batch metric state

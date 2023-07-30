@@ -1,12 +1,10 @@
 import contextlib
-import functools
 import os
 
 import torch
 import tqdm
 
 import ppgs
-from ppgs.evaluate import visualize
 
 ###############################################################################
 # Training interface

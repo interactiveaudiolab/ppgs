@@ -1,15 +1,17 @@
 """core.py - data preprocessing"""
 
 
-from typing import Iterator, Tuple, List
-import ppgs
-from pathlib import Path
-import time
-from ppgs.notify import notify_on_finish
-from ppgs.data.disk import stop_if_disk_full
 import multiprocessing as mp
-import tqdm
+import time
+from pathlib import Path
+from typing import Iterator, List, Tuple
+
 import torch
+import tqdm
+
+import ppgs
+from ppgs.data.disk import stop_if_disk_full
+from ppgs.notify import notify_on_finish
 
 ###############################################################################
 # Constants

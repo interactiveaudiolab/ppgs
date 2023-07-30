@@ -1,5 +1,6 @@
-import ppgs
 import torch
+
+import ppgs
 
 ###############################################################################
 # Model selection

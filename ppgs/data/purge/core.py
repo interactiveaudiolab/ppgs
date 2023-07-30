@@ -1,7 +1,9 @@
-import ppgs
-import shutil
 import os
+import shutil
 from pathlib import Path
+
+import ppgs
+
 
 def datasets(datasets, features=None, kinds=None, force=False):
     """Purge datasets from local memory"""

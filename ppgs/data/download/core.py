@@ -1,7 +1,9 @@
 import ppgs
-from ppgs.notify import notify_on_finish
 import ppgs.data.purge
+from ppgs.notify import notify_on_finish
+
 from . import datasets as dataset_objects
+
 
 #TODO this file could use a refactor
 @notify_on_finish('download')

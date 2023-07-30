@@ -1,17 +1,18 @@
-import ppgs
-from ppgs.data.dataset import ppgs_phoneme_list
+import os
+import tempfile
+from pathlib import Path
 
-import tqdm
+import cv2
+import numpy as np
+import pyfoal
+import pypar
 import torch
 import torchaudio
+import tqdm
 from moviepy import editor as mpy
-import numpy as np
-import cv2
-from pathlib import Path
-import tempfile
-import os
-import pypar
-import pyfoal
+
+import ppgs
+from ppgs.data.dataset import ppgs_phoneme_list
 
 #TODO make config safe (get values dynamically)
 

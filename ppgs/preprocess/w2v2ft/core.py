@@ -1,11 +1,9 @@
-from transformers import Wav2Vec2FeatureExtractor, Wav2Vec2Model
-from transformers.utils import logging
 import torch
-import torchaudio
 import tqdm
-from ppgs.model.transformer import mask_from_lengths
+from transformers.utils import logging
 
 import ppgs
+from ppgs.model.transformer import mask_from_lengths
 
 ###############################################################################
 # Constants
@@ -27,22 +25,6 @@ HOP_SIZE = 160
 ###############################################################################
 
 logging.set_verbosity_error()
-
-def from_features(
-    features: torch.Tensor,
-    new_lengths: torch.Tensor,
-    checkpoint=None,
-    gpu=0
-):
-    raise NotImplementedError('not implemented')
-    # if not hasattr(from_features, 'model'):
-    #     from_features.model = ppgs.Model()()
-    #     if checkpoint is not None:
-    #         from_features.model.load_state_dict(torch.load(checkpoint)['model'])
-    #     else:
-    #         from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'w2v2fb.pt')['model'])
-    #     from_features.model = from_features.model.to(features.device)
-    # return from_features.model(features, new_lengths)
 
 def from_audios(
     audio,

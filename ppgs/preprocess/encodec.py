@@ -1,6 +1,7 @@
-from encodec import EncodecModel
 import torch
+from encodec import EncodecModel
 from torchaudio.transforms import Resample
+
 import ppgs
 
 

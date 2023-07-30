@@ -1,6 +1,9 @@
 import math
+
 import torch
+
 import ppgs
+
 
 def mask_from_lengths(lengths, padding=0):
     """Create boolean mask from sequence lengths and offset to start. shape is batch x 1 x max_length"""
