@@ -1,14 +1,20 @@
+import multiprocessing as mp
+from os import PathLike
+from pathlib import Path
+from time import sleep
+from typing import Dict, Iterator, List, Tuple, Union
+
 import torch
 import torchaudio
 import tqdm
-from pathlib import Path
+from torch.utils.data import DataLoader
+
 import ppgs
-from typing import List, Iterator, Tuple
 from ppgs.data import aggregate
-from ppgs.preprocess import save_masked
 from ppgs.data.disk import stop_if_disk_full
-import multiprocessing as mp
-from time import sleep
+from ppgs.preprocess import save_masked
+
+path = Union[Path, PathLike, str]
 
 ###############################################################################
 # API
@@ -17,21 +23,20 @@ from time import sleep
 def from_features(
     features: torch.Tensor,
     lengths: torch.Tensor,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
-    gpu=None
-):
+    checkpoint: path = ppgs.DEFAULT_CHECKPOINT,
+    gpu: int = None) -> torch.Tensor:
     """infer ppgs from input features (e.g. w2v2fb, mel, etc.)
 
     Arguments
-        features - torch.Tensor
+        features
             The input features to process in the shape BATCH x DIMS x TIME
-        lengths - torch.Tensor
+        lengths
             The lengths of the features
-        representation - str
+        representation
             The type of features to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
-        checkpoint - str
+        checkpoint
             Path to the checkpoint to use
-        gpu - int
+        gpu
             The gpu to use for preprocessing
     """
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
@@ -40,37 +45,39 @@ def from_features(
     with torch.inference_mode(), torch.autocast('cuda' if gpu is not None else 'cpu'):
         return from_features.model(features, lengths)
 
-def from_sources_to_files(
-    sources,
-    output_dir=None,
-    extensions=['wav'],
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
-    representation=ppgs.REPRESENTATION,
-    save_intermediate_features=False,
-    gpu=None,
-    num_workers=1
-):
+def from_sources_to_sinks(
+    sources: List[path],
+    sinks: List[path] = None,
+    audio_extensions: List[str] = ['wav'],
+    checkpoint: path = ppgs.DEFAULT_CHECKPOINT,
+    representation: str = ppgs.REPRESENTATION,
+    save_intermediate_features: bool = False,
+    gpu: int = None,
+    num_workers: int = 1) -> None:
     """Infer ppgs from audio files and save to torch tensor files
 
     Arguments
-        sources - List[str]
+        sources
             paths to audio files and/or directories
-        output_dir - Path
-            The directory to place the ppgs
-            If not provided, ppgs will be stored in same locations as audio files
-        extensions - List[str]
+        sinks
+            The one-to-one corresponding 
+        extensions
             extensions to glob for in directories
-        representation - str
+        representation
             The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
-        checkpoint - str
+        checkpoint
             Path to the checkpoint to use
-        gpu - int
+        gpu
             The gpu to use for preprocessing  
     """
-    files = aggregate(sources, extensions)
+    if sinks is not None:
+        input_files, output_files = aggregate(sources, sinks, source_extensions=audio_extensions, sink_extension=f'-{representation}-ppg.pt')
+    else:
+        input_files = aggregate(sources, source_extensions=audio_extensions)
+        output_files = None
     from_files_to_files(
-        files,
-        output_dir=output_dir,
+        input_files,
+        output=output_files,
         checkpoint=checkpoint,
         representation=representation,
         save_intermediate_features=save_intermediate_features,
@@ -79,32 +86,31 @@ def from_sources_to_files(
     )
 
 def from_dataloader(
-    dataloader,
-    representation,
-    save_intermediate_features=False,
-    gpu=None,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
-    output_dir=None,
-    save_workers=1
-):
+    dataloader: DataLoader,
+    output: Union[path, Dict[path, path]] = None,
+    representation: str = ppgs.REPRESENTATION,
+    save_intermediate_features: bool = False,
+    gpu: int = None,
+    checkpoint: path = ppgs.DEFAULT_CHECKPOINT,
+    save_workers: int = 1) -> None:
     """Infer ppgs from a dataloader yielding audio files
 
     Arguments
-        dataloader - torch.utils.data.DataLoader
+        dataloader
             A DataLoader object to do preprocessing for
             the DataLoader must yield batches (audio, length, audio_filename)
-        representation - str
+        representation
             The type of features to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
             Due to a limitation with yapecs, only one kind can be processed at once
         save_intermediate_features - bool
             Saves the intermediate features (e.g. Wav2Vec 2.0 latents) in addition to ppgs
-        gpu - int
+        gpu
             The gpu to use for preprocessing
-        checkpoint - str
+        checkpoint
             Path to the checkpoint to use
-        output_dir - Union[str, Path]
-            The directory to place the ppgs (and intermediate features)
-        save_workers - int
+        output
+            A directory to put output files, or a dictionary mapping audio filenames to output filenames
+        save_workers
             The number of worker threads to use for async file saving
     """
     iterator: Iterator[Tuple[torch.Tensor, List[Path], torch.Tensor]] = tqdm.tqdm(
@@ -113,6 +119,9 @@ def from_dataloader(
         total=len(dataloader),
         dynamic_ncols=True
     )
+    if output is not None:
+        if isinstance(output, str):
+            output = Path(output)
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
     with mp.get_context('spawn').Pool(save_workers) as pool:
         with torch.inference_mode(), torch.autocast('cuda' if gpu is not None else 'cpu'):
@@ -126,13 +135,19 @@ def from_dataloader(
                 new_lengths = lengths // ppgs.HOPSIZE
                 ppg_outputs = from_features(features, new_lengths, checkpoint=checkpoint, gpu=gpu)
                 if save_intermediate_features:
-                    if output_dir is not None:
-                        filenames = [output_dir / f'{audio_file.stem}-{representation}.pt' for audio_file in audio_files]
+                    if output is not None:
+                        if isinstance(output, dict):
+                            raise ValueError('save_intermediate_features is not compatible with passing output files, pass a directory instead')
+                        else:
+                            filenames = [output / f'{audio_file.stem}-{representation}.pt' for audio_file in audio_files]
                     else:
                         filenames = [audio_file.parent / f'{audio_file.stem}-{representation}.pt' for audio_file in audio_files]
                     pool.starmap_async(save_masked, zip(features.cpu(), filenames, new_lengths.cpu()))
-                if output_dir is not None:
-                    filenames = [output_dir / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
+                if output is not None:
+                    if isinstance(output, dict):
+                        filenames = [output[audio_file] for audio_file in audio_files]
+                    else:
+                        filenames = [output / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
                 else:
                     filenames = [audio_file.parent / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
                 pool.starmap_async(save_masked, zip(ppg_outputs.cpu(), filenames, new_lengths.cpu()))
@@ -143,23 +158,23 @@ def from_dataloader(
         pool.join()
 
 def from_audio(
-    audio,
-    sample_rate,
-    representation=ppgs.REPRESENTATION,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
-    gpu=None):
+    audio: torch.Tensor,
+    sample_rate: Union[int, float],
+    representation: str = ppgs.REPRESENTATION,
+    checkpoint: path = ppgs.DEFAULT_CHECKPOINT,
+    gpu: int = None) -> torch.Tensor:
     """Infer ppgs from audio
 
     Arguments
-        audio - torch.Tensor
+        audio
             the batched audio to process in the shape BATCH x 1 x TIME
-        lengths - torch.Tensor
+        lengths
             The lengths of the features
-        representation - str
+        representation
             The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
-        checkpoint - str
+        checkpoint
             Path to the checkpoint to use
-        gpu - int
+        gpu
             The gpu to use for preprocessing  
     """
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
@@ -171,24 +186,21 @@ def from_audio(
         return from_features(features, torch.tensor([features.shape[-1]]), checkpoint=checkpoint, gpu=gpu)
 
 def from_file(
-        file,
-        representation=ppgs.REPRESENTATION,
-        preprocess_only=False, 
-        checkpoint=ppgs.DEFAULT_CHECKPOINT, 
+        file: path,
+        representation: str = ppgs.REPRESENTATION,
+        checkpoint: path = ppgs.DEFAULT_CHECKPOINT, 
         gpu=None
-    ):
+    ) -> torch.Tensor:
     """Infer ppgs from an audio file
 
     Arguments
-        file - str
+        file
             Path to audio file
-        representation - str
+        representation
             The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
-        preprocess_only - bool
-            Shortcut to just doing preprocessing for the given representation
-        checkpoint - str
+        checkpoint
             Path to the checkpoint to use
-        gpu - int
+        gpu
             The gpu to use for preprocessing  
     """
     # Load audio
@@ -196,30 +208,30 @@ def from_file(
     audio = ppgs.load.audio(file).to(device)
 
     # Compute PPGs
-    return from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, representation=representation, preprocess_only=preprocess_only, checkpoint=checkpoint, gpu=gpu)
+    return from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, representation=representation, checkpoint=checkpoint, gpu=gpu)
 
 
 def from_file_to_file(
-    audio_file,
-    output_file,
-    representation=ppgs.REPRESENTATION,
-    preprocess_only=False,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
-    gpu=None):
+    audio_file: path,
+    output_file: path,
+    representation: str = ppgs.REPRESENTATION,
+    preprocess_only: bool = False,
+    checkpoint: path = ppgs.DEFAULT_CHECKPOINT,
+    gpu: int =None) -> None:
     """Infer ppg from an audio file and save to a torch tensor file
 
     Arguments
-        audio_file - str
+        audio_file
             Path to audio file
-        output_file - str
+        output_file
             Path to output file (ideally '.pt')
-        representation - str
+        representation
             The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
-        preprocess_only - bool
+        preprocess_only
             Shortcut to just doing preprocessing for the given representation
-        checkpoint - str
+        checkpoint
             Path to the checkpoint to use
-        gpu - int
+        gpu
             The gpu to use for preprocessing  
     """
     # Compute PPGs
@@ -230,46 +242,54 @@ def from_file_to_file(
 
 
 def from_files_to_files(
-    audio_files,
-    output_dir=None,
-    representation=None,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
-    save_intermediate_features=False,
-    num_workers=1,
-    gpu=None):
+    audio_files: List[path],
+    output: Union[List[path], path] = None,
+    representation: str = None,
+    checkpoint: path = ppgs.DEFAULT_CHECKPOINT,
+    save_intermediate_features: bool = False,
+    num_workers: int = 1,
+    gpu: int = None) -> None:
     """Infer ppgs from audio files and save to torch tensor files
 
     Arguments
-        audio_file - List[str]
+        audio_files
             Path to audio files
-        output_dir - Path
-            The directory to place the ppgs
+        output
+            A list of output files or a path to an output directory
             If not provided, ppgs will be stored in same locations as audio files
-        representation - str
+        representation
             The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
-        checkpoint - str
+        checkpoint
             Path to the checkpoint to use
-        save_intermediate_features - bool
+        save_intermediate_features
             Saves the intermediate features (e.g. Wav2Vec 2.0 latents) in addition to ppgs
-        gpu - int
+        gpu
             The gpu to use for preprocessing
     """
     dataloader = ppgs.preprocess.loader(audio_files, num_workers//2)
+    if isinstance(output, list): #handle list of output files
+        output = {audio_file: output_file for audio_file, output_file in zip(audio_files, output)}
+    elif isinstance(output, str): #convert str to Path
+        output = Path(output)
+        assert output.is_dir(), "If a single output path is provided, it must be a directory"
     from_dataloader(
         dataloader,
+        output=output,
         representation=representation,
         checkpoint=checkpoint,
         save_workers=(num_workers+1)//2, 
         save_intermediate_features=save_intermediate_features,
-        gpu=gpu,
-        output_dir=output_dir)
+        gpu=gpu)
 
 
 ###############################################################################
 # Utilities
 ###############################################################################
 
-def resample(audio, sample_rate, target_rate=ppgs.SAMPLE_RATE):
+def resample(
+    audio: torch.Tensor,
+    sample_rate: Union[int, float],
+    target_rate: Union[int, float] = ppgs.SAMPLE_RATE):
     """Perform audio resampling"""
     if sample_rate == target_rate:
         return audio

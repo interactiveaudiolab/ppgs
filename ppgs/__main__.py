@@ -19,8 +19,9 @@ def parse_args():
         type=Path,
         help='a list of files and/or directories to process')
     parser.add_argument(
-        '--output-dir',
+        '--sinks',
         type=Path,
+        nargs='+',
         help='the directory to write features to')
     parser.add_argument(
         '--num-workers',
@@ -43,4 +44,4 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    ppgs.from_sources_to_files(**vars(parse_args()))
+    ppgs.from_sources_to_sinks(**vars(parse_args()))
