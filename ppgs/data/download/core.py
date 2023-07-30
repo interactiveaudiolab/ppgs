@@ -5,7 +5,6 @@ from ppgs.notify import notify_on_finish
 from . import datasets as dataset_objects
 
 
-#TODO this file could use a refactor
 @notify_on_finish('download')
 def datasets(datasets, format_only, purge_sources):
     """Downloads the datasets passed in"""
