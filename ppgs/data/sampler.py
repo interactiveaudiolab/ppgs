@@ -1,7 +1,9 @@
 """sampler.py - data sampling"""
 
-import torch
 import math
+
+import torch
+
 import ppgs
 
 ###############################################################################

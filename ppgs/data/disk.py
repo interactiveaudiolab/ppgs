@@ -1,5 +1,7 @@
 from shutil import disk_usage
+
 from ppgs import DATA_DIR, PRESERVED_DISK_SPACE_GB
+
 
 def get_free_space_GB():
     available_bytes = disk_usage(DATA_DIR).free

@@ -1,10 +1,11 @@
 import json
+from collections import OrderedDict
+from pathlib import Path
+
 import torch
 import torchaudio
 
 import ppgs
-from collections import OrderedDict
-from pathlib import Path
 
 ###############################################################################
 # Loading utilities

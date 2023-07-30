@@ -1,10 +1,12 @@
-import requests
 import tarfile
-from zipfile import ZipFile
-import gdown
-from tempfile import NamedTemporaryFile
-from tqdm import tqdm
 from pathlib import Path
+from tempfile import NamedTemporaryFile
+from zipfile import ZipFile
+
+import gdown
+import requests
+from tqdm import tqdm
+
 
 def download_file(url, path):
     """Download file from url"""

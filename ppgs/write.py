@@ -1,6 +1,6 @@
-from torch.utils.tensorboard import SummaryWriter
-from tensorboard.compat.proto.summary_pb2 import Summary
 from matplotlib.figure import Figure
+from tensorboard.compat.proto.summary_pb2 import Summary
+from torch.utils.tensorboard import SummaryWriter
 
 import ppgs
 

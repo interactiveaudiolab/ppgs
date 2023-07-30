@@ -1,11 +1,11 @@
 """__main__.py - entry point for ppgs.evaluate"""
 
 
-import yapecs
 from pathlib import Path
 
-import ppgs
+import yapecs
 
+import ppgs
 
 ###############################################################################
 # Entry point

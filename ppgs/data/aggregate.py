@@ -1,7 +1,9 @@
-import ppgs
 from pathlib import Path
 from typing import List, Union
 from warnings import warn
+
+import ppgs
+
 
 def aggregate(
     sources: List[Union[Path, str]], 

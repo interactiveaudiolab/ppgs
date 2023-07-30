@@ -1,5 +1,7 @@
-import ppgs
 import torch
+
+import ppgs
+
 
 def ctcloss_reference(log_probs, targets, input_lengths, target_lengths, blank=0, reduction='mean'):
     input_lengths = torch.as_tensor(input_lengths, dtype=torch.long)

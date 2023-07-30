@@ -1,8 +1,9 @@
+import torch
 from transformers import Wav2Vec2Model
 from transformers.utils import logging
-import torch
-from ppgs.model.transformer import mask_from_lengths
+
 import ppgs
+from ppgs.model.transformer import mask_from_lengths
 
 logging.set_verbosity_error()
 

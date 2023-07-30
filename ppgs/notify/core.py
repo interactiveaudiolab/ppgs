@@ -1,7 +1,9 @@
-import apprise
-from ppgs import NOTIFICATION_SERVICES
-import time
 import bdb
+import time
+
+import apprise
+
+from ppgs import NOTIFICATION_SERVICES
 
 messenger = apprise.Apprise()
 for service in NOTIFICATION_SERVICES:

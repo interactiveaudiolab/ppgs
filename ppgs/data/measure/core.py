@@ -1,7 +1,9 @@
-import ppgs
-from pathlib import Path
-import tqdm
 from math import ceil
+
+import tqdm
+
+import ppgs
+
 
 def datasets(datasets, features=None, unit='B'):
     """Purge datasets from local memory"""
