@@ -183,7 +183,7 @@ def from_audio(
         if features.dim() == 2:
             features = features[None]
         # Compute PPGs
-        return from_features(features, torch.tensor([features.shape[-1]]), checkpoint=checkpoint, gpu=gpu)
+        return from_features(features, torch.tensor([features.shape[-1]]).to(device), checkpoint=checkpoint, gpu=gpu)
 
 def from_file(
         file: path,
