@@ -82,7 +82,7 @@ def from_logits_to_pixels(logits, num_frames, textgrid_filename=None, padding=pa
 
 
 def from_logits_to_image_file(logits, audio_filename, image_filename, textgrid_filename=None, font_filename=None, preprocess_only=False, labels=ppgs.PHONEME_LIST):
-    scalefactor = (8, 16)
+    scalefactor = (32, 32)
     audio = torchaudio.load(audio_filename)[0][0]
     num_frames = len(audio) // ppgs.HOPSIZE
     pixels = from_logits_to_pixels(logits, num_frames=num_frames, textgrid_filename=textgrid_filename, padding=5*scalefactor[1]//scalefactor[0])
@@ -191,7 +191,7 @@ def from_files_to_files(audio_filenames, output_dir, textgrid_filename=None, che
             output_filename = str(Path(output_dir) / (Path(audio_filename).stem + '.mp4'))
             from_file_to_file(audio_filename, output_filename, textgrid_filename=textgrid_filename, checkpoint=checkpoint, prepocess_only=preprocess_only, gpu=gpu)
         elif mode == 'image':
-            output_filename = str(Path(output_dir) / (Path(audio_filename).stem + '.png'))
+            output_filename = str(Path(output_dir) / (Path(audio_filename).stem + '.jpg'))
             from_file_to_file(audio_filename, output_filename, textgrid_filename=textgrid_filename, checkpoint=checkpoint, font_filename=font_filename, prepocess_only=preprocess_only, gpu=gpu, mode='image')
 
 

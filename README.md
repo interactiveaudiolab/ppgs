@@ -55,13 +55,23 @@ ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 #### `ppgs.from_audio`
 
 ```
-"""TODO
+"""Infer ppgs from audio
 
-Args:
-    TODO
+Arguments
+    audio
+        The batched audio to process in the shape BATCH x 1 x TIME
+    lengths
+        The lengths of the features
+    representation
+        The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
+    checkpoint
+        Path to the checkpoint to use
+    gpu
+        The gpu to use for preprocessing
 
-Returns:
-    TODO
+Returns
+    ppgs
+        A tensor encoding ppgs with shape BATCH x DIMS x TIME
 """
 ```
 
@@ -69,13 +79,21 @@ Returns:
 #### `ppgs.from_file`
 
 ```
-"""TODO
+"""Infer ppgs from an audio file
 
-Args:
-    TODO
+Arguments
+    file
+        Path to audio file
+    representation
+        The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
+    checkpoint
+        Path to the checkpoint to use
+    gpu
+        The gpu to use for preprocessing
 
-Returns:
-    TODO
+Returns
+    ppgs
+        A tensor encoding ppgs with shape 1 x DIMS x TIME
 """
 ```
 
@@ -83,13 +101,21 @@ Returns:
 #### `ppgs.from_file_to_file`
 
 ```
-"""TODO
+"""Infer ppg from an audio file and save to a torch tensor file
 
-Args:
-    TODO
-
-Returns:
-    TODO
+Arguments
+    audio_file
+        Path to audio file
+    output_file
+        Path to output file (ideally '.pt')
+    representation
+        The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
+    preprocess_only
+        Shortcut to just doing preprocessing for the given representation
+    checkpoint
+        Path to the checkpoint to use
+    gpu
+        The gpu to use for preprocessing 
 """
 ```
 
@@ -97,26 +123,33 @@ Returns:
 #### `ppgs.from_files_to_files`
 
 ```
-"""TODO
+"""Infer ppgs from audio files and save to torch tensor files
 
-Args:
-    TODO
-
-Returns:
-    TODO
+Arguments
+    audio_files
+        Path to audio files
+    output
+        A list of output files or a path to an output directory
+        If not provided, ppgs will be stored in same locations as audio files
+    representation
+        The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
+    checkpoint
+        Path to the checkpoint to use
+    save_intermediate_features
+        Saves the intermediate features (e.g. Wav2Vec 2.0 latents) in addition to ppgs
+    gpu
+        The gpu to use for preprocessing
 """
 ```
 
 #### Command-line interface (CLI)
 
-**TODO** - use `python -m ppgs -h` and edit to look like, e.g., `penn` example
-
 ```
 Compute phonetic posteriorgram (PPG) features
 
 python -m ppgs
-    --sources <list of files or directories> \
-    --output <output files or directory> \
+    --sources <list of files and/or directories> \
+    --sinks <corresponding list of output files and/or directories> \
     --num-workers <number of CPU workers> \
     --gpu <gpu number>
 ```
@@ -146,7 +179,6 @@ python -m ppgs.data.preprocess \
    --datasets <datasets> \
    --gpu <gpu> \
    --num-workers <workers> \
-   --use-cached-inputs \
    --features <latent features>
 ```
 
