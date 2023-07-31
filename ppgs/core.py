@@ -27,7 +27,7 @@ def from_features(
     gpu: int = None) -> torch.Tensor:
     """infer ppgs from input features (e.g. w2v2fb, mel, etc.)
 
-    Arguments
+    Arguments:
         features
             The input features to process in the shape BATCH x DIMS x TIME
         lengths
@@ -38,6 +38,9 @@ def from_features(
             Path to the checkpoint to use
         gpu
             The gpu to use for preprocessing
+    Returns:
+        ppgs
+            A tensor encoding ppgs with shape BATCH x DIMS x TIME
     """
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
     if not hasattr(from_features, 'model'):
@@ -167,7 +170,7 @@ def from_audio(
 
     Arguments
         audio
-            the batched audio to process in the shape BATCH x 1 x TIME
+            The batched audio to process in the shape BATCH x 1 x TIME
         lengths
             The lengths of the features
         representation
@@ -175,7 +178,11 @@ def from_audio(
         checkpoint
             Path to the checkpoint to use
         gpu
-            The gpu to use for preprocessing  
+            The gpu to use for preprocessing
+
+    Returns
+        ppgs
+            A tensor encoding ppgs with shape BATCH x DIMS x TIME
     """
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
     with torch.inference_mode(), torch.autocast(device.type):
@@ -201,7 +208,11 @@ def from_file(
         checkpoint
             Path to the checkpoint to use
         gpu
-            The gpu to use for preprocessing  
+            The gpu to use for preprocessing
+    
+    Returns
+        ppgs
+            A tensor encoding ppgs with shape 1 x DIMS x TIME
     """
     # Load audio
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
