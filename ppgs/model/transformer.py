@@ -22,7 +22,7 @@ class Transformer(torch.nn.Module):
         super().__init__()
         self.position = PositionalEncoding(channels, .1)
         self.model = torch.nn.TransformerEncoder(
-            torch.nn.TransformerEncoderLayer(channels, 2),
+            torch.nn.TransformerEncoderLayer(channels, ppgs.ATTENTION_HEADS),
             num_layers)
 
     def forward(self, x, lengths):
