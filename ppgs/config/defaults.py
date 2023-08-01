@@ -6,10 +6,8 @@ import pypar
 # Metadata
 ###############################################################################
 
-
 # Configuration name
 CONFIG = 'base'
-
 
 ###############################################################################
 # Notification settings (apprise)
@@ -19,11 +17,6 @@ NOTIFICATION_SERVICES = []
 ###############################################################################
 # Audio parameters
 ###############################################################################
-
-
-# Minimum and maximum frequency
-FMIN = 50.  # Hz
-FMAX = 550.  # Hz
 
 # Audio hopsize
 HOPSIZE = 160 # samples
@@ -45,11 +38,9 @@ WINDOW_SIZE = 1024
 
 NUM_MELS = 80
 
-
 ###############################################################################
 # Directories
 ###############################################################################
-
 
 # Location to save assets to be bundled with pip release
 ASSETS_DIR = Path(__file__).parent.parent / 'assets'
@@ -69,14 +60,15 @@ EVAL_DIR = Path(__file__).parent.parent.parent / 'eval'
 # Location to save training and adaptation artifacts
 RUNS_DIR = Path(__file__).parent.parent.parent / 'runs'
 
+# Location of checkpoints
 CHECKPOINT_DIR = ASSETS_DIR / 'checkpoints'
 
-PRESERVED_DISK_SPACE_GB = 100
+# Roughly how much free disk space to preserve at all costs
+PRESERVED_DISK_SPACE_GB = 10
 
 ###############################################################################
 # Logging parameters
 ###############################################################################
-
 
 # Number of steps between saving checkpoints
 CHECKPOINT_INTERVAL = 25000  # steps
@@ -92,7 +84,6 @@ EVALUATION_INTERVAL = 2500  # steps
 
 # Maximum number of samples to create visualizations for during training
 VISUALIZATION_SAMPLES = 10
-
 
 ###############################################################################
 # Training parameters
@@ -115,9 +106,12 @@ NUM_WORKERS = 2
 # Seed for all random number generators
 RANDOM_SEED = 1234
 
+# L2 norm gradient clipping threshold
 GRAD_2_CLIP = 1.5
+# L-infinity norm gradient clipping threshold
 GRAD_INF_CLIP = 1.0
 
+# Learning rate value for training
 LEARNING_RATE = 2e-4
 
 # Loss function to use (CE = Cross-entropy, CTC)
@@ -159,6 +153,7 @@ KERNEL_SIZE = 5
 # Partition parameters
 ###############################################################################
 
+# Charsiu samples to reject due to data errors
 CHARSIU_REJECT = [
     'common_voice_en_26168033',
 ]
@@ -503,7 +498,6 @@ PHONEME_LIST = [
 	'z',
 	'zh',
 	pypar.SILENCE,
-	# '<unk>'
 ]
 
 PHONEME_TO_INDEX_MAPPING = {phone: i for i, phone in enumerate(PHONEME_LIST)}
