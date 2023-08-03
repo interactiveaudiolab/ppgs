@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import multiprocessing as mp
 from os import PathLike
 from pathlib import Path
@@ -126,37 +127,40 @@ def from_dataloader(
         if isinstance(output, str):
             output = Path(output)
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
-    with mp.get_context('spawn').Pool(save_workers) as pool:
-        with torch.inference_mode(), torch.autocast('cuda' if gpu is not None else 'cpu'):
-            for audios, lengths, audio_files in iterator:
-                audios = audios.to(device)
-                lengths = lengths.to(device)
-                feature_processor = ppgs.REPRESENTATION_MAP[representation]
-                # torch.cuda.empty_cache()
-                # print(torch.cuda.memory_summary(gpu, abbreviated=True))
-                features = feature_processor.from_audios(audios, lengths, gpu=gpu)
-                new_lengths = lengths // ppgs.HOPSIZE
-                ppg_outputs = from_features(features, new_lengths, checkpoint=checkpoint, gpu=gpu)
-                if save_intermediate_features:
-                    if output is not None:
-                        if isinstance(output, dict):
-                            raise ValueError('save_intermediate_features is not compatible with passing output files, pass a directory instead')
-                        else:
-                            filenames = [output / f'{audio_file.stem}-{representation}.pt' for audio_file in audio_files]
-                    else:
-                        filenames = [audio_file.parent / f'{audio_file.stem}-{representation}.pt' for audio_file in audio_files]
-                    pool.starmap_async(save_masked, zip(features.cpu(), filenames, new_lengths.cpu()))
+    pool = mp.get_context('spawn').Pool(save_workers) if save_workers > 0 else nullcontext
+    with pool, torch.inference_mode(), torch.autocast('cuda' if gpu is not None else 'cpu'):
+        for audios, lengths, audio_files in iterator:
+            audios = audios.to(device)
+            lengths = lengths.to(device)
+            feature_processor = ppgs.REPRESENTATION_MAP[representation]
+            # torch.cuda.empty_cache()
+            # print(torch.cuda.memory_summary(gpu, abbreviated=True))
+            features = feature_processor.from_audios(audios, lengths, gpu=gpu)
+            new_lengths = lengths // ppgs.HOPSIZE
+            ppg_outputs = from_features(features, new_lengths, checkpoint=checkpoint, gpu=gpu)
+            if save_intermediate_features:
                 if output is not None:
                     if isinstance(output, dict):
-                        filenames = [output[audio_file] for audio_file in audio_files]
+                        raise ValueError('save_intermediate_features is not compatible with passing output files, pass a directory instead')
                     else:
-                        filenames = [output / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
+                        filenames = [output / f'{audio_file.stem}-{representation}.pt' for audio_file in audio_files]
                 else:
-                    filenames = [audio_file.parent / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
+                    filenames = [audio_file.parent / f'{audio_file.stem}-{representation}.pt' for audio_file in audio_files]
+                pool.starmap_async(save_masked, zip(features.cpu(), filenames, new_lengths.cpu()))
+            if output is not None:
+                if isinstance(output, dict):
+                    filenames = [output[audio_file] for audio_file in audio_files]
+                else:
+                    filenames = [output / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
+            else:
+                filenames = [audio_file.parent / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
+            if isinstance(pool, mp.Pool):
                 pool.starmap_async(save_masked, zip(ppg_outputs.cpu(), filenames, new_lengths.cpu()))
                 while pool._taskqueue.qsize() > 100:
                     sleep(1)
-                stop_if_disk_full()
+            else:
+                map(save_masked, ppg_outputs.cpu(), filenames, new_lengths.cpu())
+            stop_if_disk_full()
         pool.close()
         pool.join()
 
