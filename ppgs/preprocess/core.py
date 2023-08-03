@@ -1,6 +1,6 @@
 """core.py - data preprocessing"""
 
-
+from contextlib import nullcontext
 import multiprocessing as mp
 import time
 from pathlib import Path
@@ -46,7 +46,7 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None, num_workers=0):
 def from_dataloader(
     dataloader,
     features,
-    save_workers=1,
+    save_workers=0,
     gpu=None,
     output_dir=None
 ): #TODO make output_dir work
@@ -73,23 +73,26 @@ def from_dataloader(
         dynamic_ncols=True
     )
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
-    with mp.get_context('spawn').Pool(save_workers) as pool:
-        with torch.inference_mode():
-            for audios, lengths, audio_files in iterator:
-                audios = audios.to(device)
-                lengths = lengths.to(device)
-                for feature, feature_processor in zip(features, feature_processors):
-                    outputs = feature_processor.from_audios(audios, lengths, gpu=gpu).cpu()
-                    if feature != 'w2v2ft':
-                        new_lengths = lengths // ppgs.HOPSIZE
-                    else:
-                        new_lengths = lengths + ppgs.preprocess.w2v2ft.WINDOW_SIZE - ppgs.preprocess.w2v2ft.HOP_SIZE
-                    #TODO fix output_dir
-                    filenames = [audio_file.parent / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
+    pool = mp.get_context('spawn').Pool(save_workers) if save_workers > 0 else nullcontext
+    with pool, torch.inference_mode():
+        for audios, lengths, audio_files in iterator:
+            audios = audios.to(device)
+            lengths = lengths.to(device)
+            for feature, feature_processor in zip(features, feature_processors):
+                outputs = feature_processor.from_audios(audios, lengths, gpu=gpu).cpu()
+                if feature != 'w2v2ft':
+                    new_lengths = lengths // ppgs.HOPSIZE
+                else:
+                    new_lengths = lengths + ppgs.preprocess.w2v2ft.WINDOW_SIZE - ppgs.preprocess.w2v2ft.HOP_SIZE
+                #TODO fix output_dir
+                filenames = [audio_file.parent / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
+                if isinstance(pool, mp.Pool):
                     pool.starmap_async(save_masked, zip(outputs, filenames, new_lengths.cpu()))
                     while pool._taskqueue.qsize() > 256:
                         time.sleep(1)
-                stop_if_disk_full()
+                else:
+                    map(save_masked, outputs, filenames, new_lengths.cpu())
+            stop_if_disk_full()
         pool.close()
         pool.join()
 
