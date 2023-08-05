@@ -154,7 +154,7 @@ def from_dataloader(
                     filenames = [output / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
             else:
                 filenames = [audio_file.parent / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
-            if isinstance(pool, mp.Pool):
+            if save_workers > 0:
                 pool.starmap_async(save_masked, zip(ppg_outputs.cpu(), filenames, new_lengths.cpu()))
                 while pool._taskqueue.qsize() > 100:
                     sleep(1)

@@ -86,7 +86,7 @@ def from_dataloader(
                     new_lengths = lengths + ppgs.preprocess.w2v2ft.WINDOW_SIZE - ppgs.preprocess.w2v2ft.HOP_SIZE
                 #TODO fix output_dir
                 filenames = [audio_file.parent / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
-                if isinstance(pool, mp.Pool):
+                if save_workers > 0:
                     pool.starmap_async(save_masked, zip(outputs, filenames, new_lengths.cpu()))
                     while pool._taskqueue.qsize() > 256:
                         time.sleep(1)
