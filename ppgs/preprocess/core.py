@@ -4,7 +4,7 @@ from contextlib import nullcontext
 import multiprocessing as mp
 import time
 from pathlib import Path
-from typing import Iterator, List, Tuple
+from typing import Dict, Iterator, List, Tuple, Union
 
 import torch
 import tqdm
@@ -17,8 +17,9 @@ from ppgs.notify import notify_on_finish
 # Constants
 ###############################################################################
 
+path = Union[Path, str]
 
-ALL_FEATURES = ['phonemes', 'wav', 'w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold', 'encodec', 'w2v2ft']
+ALL_FEATURES = ['w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold', 'encodec', 'w2v2ft']
 
 
 ###############################################################################
@@ -30,13 +31,13 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None, num_workers=0):
     """Preprocess a dataset
 
     Arguments
-        datasets - List[str]
+        datasets
             The names of the dataset to preprocess
-        features - List[str]
+        features
             The names of the features to do preprocessing for
-        gpu - int
+        gpu
             The gpu to use for preprocessing
-        num_workers - int
+        num_workers
             The number of worker threads to use  
     """
     for dataset in datasets:
@@ -46,23 +47,23 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None, num_workers=0):
 def from_dataloader(
     dataloader,
     features,
-    save_workers=0,
-    gpu=None,
-    output_dir=None
-): #TODO make output_dir work
+    output: Union[path, Dict[path, path]] = None,
+    save_workers: int = 0,
+    gpu: int = None,
+):
     """Preprocess from a dataloader
 
     Arguments
-        dataloader - torch.utils.data.DataLoader
+        dataloader
             A DataLoader object to do preprocessing for. 
             the DataLoader must yield batches (audio, length, audio_filename)
-        features - List[str]
+        features
             The names of the features to do preprocessing for
-        gpu - int
+        gpu
             The gpu to use for preprocessing
-        output_dir - Path
-            The directory to place the features
-        save_workers - int
+        output
+            A directory to put output files, or a dictionary mapping audio filenames to output filenames
+        save_workers
             The number of worker threads to use for async file saving
     """
     feature_processors = [ppgs.REPRESENTATION_MAP[f] for f in features]
@@ -72,6 +73,9 @@ def from_dataloader(
         total=len(dataloader),
         dynamic_ncols=True
     )
+    if output is not None:
+        if isinstance(output, str):
+            output = Path(output)
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
     pool = mp.get_context('spawn').Pool(save_workers) if save_workers > 0 else nullcontext
     with pool, torch.inference_mode():
@@ -84,8 +88,13 @@ def from_dataloader(
                     new_lengths = lengths // ppgs.HOPSIZE
                 else:
                     new_lengths = lengths + ppgs.preprocess.w2v2ft.WINDOW_SIZE - ppgs.preprocess.w2v2ft.HOP_SIZE
-                #TODO fix output_dir
-                filenames = [audio_file.parent / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
+                if output is not None:
+                    if isinstance(output, dict):
+                        filenames = [output[audio_file] for audio_file in audio_files]
+                    else:
+                        filenames = [output / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
+                else:
+                    filenames = [audio_file.parent / f'{audio_file.stem}-{feature}.pt' for audio_file in audio_files]
                 if save_workers > 0:
                     pool.starmap_async(save_masked, zip(outputs, filenames, new_lengths.cpu()))
                     while pool._taskqueue.qsize() > 256:
@@ -99,25 +108,26 @@ def from_dataloader(
 
 def from_files_to_files(
     audio_files,
+    output_files,
     features=ALL_FEATURES,
     num_workers=0,
     output_dir=None,
     gpu=None):
     """Preprocess from files
     Arguments
-        audio_files - List[str]
+        audio_files
             A list of audio files to process
-        features - List[str]
+        features
             The names of the features to do preprocessing for
-        num_workers - int
+        num_workers
             The number of workers to use
-        output_dir - Path
+        output_dir
             The directory to place the features
-        gpu - int
+        gpu
             The gpu to use for preprocessing
     """
     dataloader = loader(audio_files, num_workers//2)
-    from_dataloader(dataloader, features, (num_workers+1)//2, gpu, output_dir)
+    from_dataloader(dataloader, output_files, features, (num_workers+1)//2, gpu, output_dir)
     
 
 def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=None, gpu=None):
