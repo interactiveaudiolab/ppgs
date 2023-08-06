@@ -64,7 +64,7 @@ def from_sources_to_sinks(
         sources
             paths to audio files and/or directories
         sinks
-            The one-to-one corresponding 
+            The one-to-one corresponding outputs
         extensions
             extensions to glob for in directories
         representation
