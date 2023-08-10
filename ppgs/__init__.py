@@ -1,3 +1,8 @@
+# This line is necessary because the tensorboard devs have no idea how to code
+from torch.utils.tensorboard import SummaryWriter
+
+# import faulthandler; faulthandler.enable()
+
 ###############################################################################
 # Configuration
 ###############################################################################
@@ -8,18 +13,23 @@ from .config import defaults
 
 # Modify configuration
 import yapecs
-yapecs.configure(defaults)
+yapecs.configure('ppgs', defaults)
 
 # Import configuration parameters
 from .config.defaults import *
+try:
+    from .config.secrets import *
+except ImportError as e:
+    pass
 from .config.static import *
-
 
 ###############################################################################
 # Module imports
 ###############################################################################
 
 from .core import *
+from .model import Model
+from . import notify
 from . import checkpoint
 from . import data
 from . import evaluate
