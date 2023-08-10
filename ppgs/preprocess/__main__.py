@@ -29,7 +29,7 @@ def parse_args():
     parser.add_argument(
         '--num-workers',
         type=int,
-        default=-1,
+        default=0,
         help='The number of worker threads to use for loading data'
     )
     return parser.parse_args()

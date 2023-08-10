@@ -77,7 +77,7 @@ def from_dataloader(
         if isinstance(output, str):
             output = Path(output)
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
-    pool = mp.get_context('spawn').Pool(save_workers) if save_workers > 0 else nullcontext
+    pool = mp.get_context('spawn').Pool(save_workers) if save_workers > 0 else nullcontext()
     with pool, torch.inference_mode():
         for audios, lengths, audio_files in iterator:
             audios = audios.to(device)
