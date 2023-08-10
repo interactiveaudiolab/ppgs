@@ -1,7 +1,6 @@
 import torch
-import torchaudio
 import tqdm
-from transformers import Wav2Vec2FeatureExtractor, Wav2Vec2Model
+from transformers import Wav2Vec2Model
 from transformers.utils import logging
 
 import ppgs

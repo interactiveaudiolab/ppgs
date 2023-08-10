@@ -10,6 +10,7 @@ import pyfoal
 import pypar
 import torch
 import torchaudio
+from accelerate.state import PartialState
 
 import ppgs
 
@@ -20,43 +21,46 @@ import ppgs
 class Metadata:
 
     def __init__(self, sources, partition=None, overwrite_cache=False):
-        if isinstance(sources, str):
-            self.name = sources
-            self.cache = ppgs.CACHE_DIR / self.name
-            partition_dict = ppgs.load.partition(self.name)
-            if partition is not None:
-                self.stems = partition_dict[partition]
+        """Create a metadata object for the given dataset or sources"""
+        state = PartialState()
+        with state.main_process_first():
+            if isinstance(sources, str):
+                self.name = sources
+                self.cache = ppgs.CACHE_DIR / self.name
+                partition_dict = ppgs.load.partition(self.name)
+                if partition is not None:
+                    self.stems = partition_dict[partition]
+                else:
+                    self.stems = sum(partition_dict.values(), start=[])
+                self.audio_files = [self.cache / (stem + '.wav') for stem in self.stems]
+                metadata_file = self.cache / f'{partition}-metadata.json'
+                if overwrite_cache and metadata_file.exists():
+                    os.remove(metadata_file)
+                if metadata_file.exists():
+                    print('using cached metadata')
+                    with open(metadata_file, 'r') as f:
+                        metadata = json.load(f)
+                else:
+                    print('generating metadata from scratch')
+                    metadata = {}
             else:
-                self.stems = sum(partition_dict.values(), start=[])
-            self.audio_files = [self.cache / (stem + '.wav') for stem in self.stems]
-            metadata_file = self.cache / f'{partition}-metadata.json'
-            if overwrite_cache and metadata_file.exists():
-                os.remove(metadata_file)
-            if metadata_file.exists():
-                print('using cached metadata')
-                with open(metadata_file, 'r') as f:
-                    metadata = json.load(f)
-            else:
-                print('generating metadata from scratch')
+                self.name = '<list of files>'
+                self.audio_files = sources
+                self.stems = [Path(file).stem for file in self.audio_files]
+                self.cache = None
                 metadata = {}
-        else:
-            self.name = '<list of files>'
-            self.audio_files = sources
-            self.stems = [Path(file).stem for file in self.audio_files]
-            self.cache = None
-            metadata = {}
-        print('preparing dataset metadata (operation may be slow)')
-        self.lengths = []
-        for stem, audio_file in zip(self.stems, self.audio_files):
-            try:
-                self.lengths.append(metadata[stem])
-            except KeyError:
-                length = torchaudio.info(audio_file).num_frames // ppgs.HOPSIZE
-                metadata[stem] = length
-                self.lengths.append(length)
-        if self.cache is not None:
-            with open(metadata_file, 'w+') as f:
-                json.dump(metadata, f)
+            print('preparing dataset metadata (operation may be slow)')
+            self.lengths = []
+            for stem, audio_file in zip(self.stems, self.audio_files):
+                try:
+                    self.lengths.append(metadata[stem])
+                except KeyError:
+                    length = torchaudio.info(audio_file).num_frames // ppgs.HOPSIZE
+                    metadata[stem] = length
+                    self.lengths.append(length)
+            if self.cache is not None:
+                with open(metadata_file, 'w+') as f:
+                    json.dump(metadata, f)
 
     def __len__(self):
         return len(self.stems)
