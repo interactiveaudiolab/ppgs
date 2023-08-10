@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
+from matplotlib.colors import PowerNorm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import ppgs
 
@@ -11,18 +13,29 @@ import ppgs
 
 class Metrics:
 
-    def __init__(self, display_suffix):
-        self.metrics = [
-            Accuracy(display_suffix),
-            CategoricalAccuracy(display_suffix),
-            JensenShannon(display_suffix),
-            TopKAccuracy(display_suffix, 2),
-            TopKAccuracy(display_suffix, 3),
-            TopKAccuracy(display_suffix, 5),
-            DistanceMatrix(display_suffix),
-            ConfusionMatrix(display_suffix),
-            Loss(display_suffix),
-        ]
+    def __init__(self, display_suffix, include_figures=False):
+        if include_figures:
+            self.metrics = [
+                Accuracy(display_suffix),
+                CategoricalAccuracy(display_suffix),
+                JensenShannon(display_suffix),
+                TopKAccuracy(display_suffix, 2),
+                TopKAccuracy(display_suffix, 3),
+                TopKAccuracy(display_suffix, 5),
+                DistanceMatrix(display_suffix),
+                # ConfusionMatrix(display_suffix),
+                Loss(display_suffix),
+            ]
+        else:
+            self.metrics = [
+                Accuracy(display_suffix),
+                CategoricalAccuracy(display_suffix),
+                JensenShannon(display_suffix),
+                TopKAccuracy(display_suffix, 2),
+                TopKAccuracy(display_suffix, 3),
+                TopKAccuracy(display_suffix, 5),
+                Loss(display_suffix),
+            ]
 
     def __call__(self):
         results = {}
@@ -235,31 +248,46 @@ class DistanceMatrix:
         self.reset()
 
     def _normalized(self):
-        return (self.matrix / self.matrix.sum(dim=1)).cpu()
+        probabilities = (self.matrix / self.matrix.sum(dim=1))
+        normalized = probabilities
+        # total = self.count.sum()
+        # scaler = self.count / total
+        # for col, val in enumerate(scaler):
+        #     normalized[:, col] /= val
+        # import pdb; pdb.set_trace()
+        # normalized = probabilities / (self.count / self.count.sum())
+        return normalized.cpu()
 
     def _render(self):
         figure = plt.figure(dpi=400, figsize=(6, 6))
         ax = figure.add_subplot()
-        ax.matshow(self._normalized())
+        mat = ax.matshow(self._normalized(), norm=PowerNorm(gamma=1/3))
+        # mat = ax.matshow(self._normalized())
         phones = ppgs.PHONEME_LIST
         num_phones = len(ppgs.PHONEME_LIST)
         ax.locator_params('both', nbins=num_phones)
         ax.set_xticklabels([''] + phones, rotation='vertical')
         ax.set_yticklabels([''] + phones)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.1)
+        ax.figure.colorbar(mat, cax=cax)
         figure.align_labels()
         return figure
 
     def __call__(self):
         return {f'DistanceMatrix/{self.display_suffix}': self._render()}
-    
+
     def reset(self):
         self.matrix = None
+        self.count = None
 
     def update(self, predicted_logits, target_indices):
         """Assumes that predicted_logits are BATCH x DIMS x TIME"""
 
         if ppgs.BACKEND is not None:
             predicted_logits = ppgs.BACKEND(predicted_logits)
+
+        predicted_logits = predicted_logits.to(torch.float32)
 
         predicted_logits = torch.transpose(predicted_logits, 1, 2) #Batch,Class,Time->Batch,Time,Class
         predicted_logits = torch.flatten(predicted_logits, 0, 1) #Batch,Time,Class->Batch*Time,Class
@@ -274,9 +302,23 @@ class DistanceMatrix:
         num_categories = predicted_probs.shape[-1]
 
         if self.matrix is None:
-            self.matrix = torch.zeros((num_categories, num_categories)).to(predicted_logits.device)
+            self.matrix = torch.zeros((num_categories, num_categories)).to(device=predicted_logits.device, dtype=predicted_logits.dtype)
 
-        self.matrix[predicted_indices] += predicted_probs
+        if self.count is None:
+            self.count = torch.zeros(num_categories).to(predicted_logits.device, dtype=torch.long)
+
+        # for idx, probs in zip(predicted_indices, predicted_probs):
+        #     self.matrix[idx] += probs
+        self.matrix.scatter_add_(
+            0,
+            predicted_indices[:, None].expand(-1, predicted_probs.shape[-1]),
+            predicted_probs)
+        # self.matrix[predicted_indices] += predicted_probs
+
+        # target_indices = target_indices[nonpad_indices]
+
+        # self.count += target_indices.bincount()
+        # self.count[target_indices] += 1
 
         # for probs, index in zip(predicted_probs, predicted_indices):
         #     self.matrix[index] += probs
@@ -300,6 +342,8 @@ class ConfusionMatrix:
         ax.locator_params('both', nbins=num_phones)
         ax.set_xticklabels([''] + phones, rotation='vertical')
         ax.set_yticklabels([''] + phones)
+        ax.set_ylabel('Ground Truth Phoneme')
+        ax.set_xlabel('Model Predicted Probabilities')
         figure.align_labels()
         return figure
 
