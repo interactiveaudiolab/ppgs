@@ -2,6 +2,7 @@ import contextlib
 import os
 
 import torch
+from accelerate import Accelerator
 import tqdm
 
 import ppgs
@@ -20,30 +21,13 @@ def run(
     gpus=None,
     eval_only=False):
     """Run model training"""
-    # Distributed data parallelism
-    if gpus and len(gpus) > 1:
-        args = (
-            dataset,
-            checkpoint_directory,
-            output_directory,
-            log_directory,
-            gpus)
-        torch.multiprocessing.spawn(
-            train_ddp,
-            args=args,
-            nprocs=len(gpus),
-            join=True)
-
-    else:
-        # Single GPU or CPU training
-        train(
-            dataset,
-            checkpoint_directory,
-            output_directory,
-            log_directory,
-            # no_cache,
-            None if gpus is None else gpus[0],
-            eval_only)
+    train(
+        dataset=dataset,
+        checkpoint_directory=checkpoint_directory,
+        output_directory=output_directory,
+        log_directory=log_directory,
+        gpus=gpus,
+        eval_only=eval_only)
 
     # Return path to model checkpoint
     return ppgs.checkpoint.latest_path(output_directory)
@@ -59,18 +43,16 @@ def train(
     checkpoint_directory,
     output_directory,
     log_directory,
-    # no_cache=False,
-    gpu=None,
     eval_only=False):
     """Train a model"""
-    # Get DDP rank
-    if torch.distributed.is_initialized():
-        rank = torch.distributed.get_rank()
-    else:
-        rank = None
 
-    # Get torch device
-    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+    # Initialize accelerator and get device
+    accelerator = Accelerator(
+        mixed_precision='fp16',
+        even_batches=False,
+        # log_with='tensorboard'
+    )
+    device = accelerator.device
 
     #################
     # Create models #
@@ -78,15 +60,6 @@ def train(
 
     #TODO config?
     model = ppgs.Model()().to(device)
-
-    ##################################################
-    # Maybe setup distributed data parallelism (DDP) #
-    ##################################################
-
-    if rank is not None:
-        model = torch.nn.parallel.DistributedDataParallel(
-            model,
-            device_ids=[rank])
 
     ####################
     # Create optimizer #
@@ -115,7 +88,8 @@ def train(
         (
             model,
             optimizer,
-            step
+            step,
+            epoch
         ) = ppgs.checkpoint.load(
             path[0],
             model,
@@ -126,16 +100,17 @@ def train(
 
         # Train from scratch
         step = 0
+        epoch = 0
 
     #######################
     # Create data loaders #
     #######################
 
     torch.manual_seed(ppgs.RANDOM_SEED)
-    # if no_cache:
-    #     raise NotImplementedError()
-    # else:
     train_loader, valid_loader = ppgs.data.loaders(dataset)
+    train_batch_sampler = train_loader.batch_sampler
+    train_batch_sampler.epoch = epoch
+    model, optimizer, train_loader, valid_loader = accelerator.prepare(model, optimizer, train_loader, valid_loader)
 
     # Prepare FRONTEND
     if ppgs.FRONTEND is not None and callable(ppgs.FRONTEND):
@@ -151,33 +126,32 @@ def train(
             frontend,
             valid_loader,
             train_loader,
-            gpu)
+            accelerator)
         return
 
     #########
     # Train #
     #########
 
-    # Automatic mixed precision (amp) gradient scaler
-    scaler = torch.cuda.amp.GradScaler()
 
     # Get total number of steps
     steps = ppgs.NUM_STEPS
 
     loss_fn = ppgs.train.Loss()
 
-    # Setup progress bar
-    if not rank:
-        progress = tqdm.tqdm(
-            initial=step,
-            total=steps,
-            dynamic_ncols=True,
-            desc=f'Training {ppgs.CONFIG}')
+    progress = tqdm.tqdm(
+        initial=step,
+        total=steps,
+        dynamic_ncols=True,
+        desc=f'Training {ppgs.CONFIG}')
         
     try:
+        model.train()
         while step < steps:
 
-            model.train()
+            if not model.training:
+                model.train()
+                raise ValueError('this should never happen') #TODO remove
             for batch in train_loader:
 
                 # Unpack batch
@@ -187,68 +161,56 @@ def train(
                 lengths = batch[2].to(device)
                 stems = batch[3]
 
-                with torch.cuda.amp.autocast():
+                if frontend is not None:
+                    with torch.no_grad():
+                        input_ppgs = frontend(input_ppgs).to(torch.float16)
 
-                    if frontend is not None:
-                        with torch.no_grad():
-                            input_ppgs = frontend(input_ppgs).to(torch.float16)
+                optimizer.zero_grad()
 
-                    # Forward pass
-                    if ppgs.MODEL == 'convolution':
-                        predicted_ppgs = model(input_ppgs)
-                    else:
-                        predicted_ppgs = model(input_ppgs, lengths)
+                # Forward pass
+                if ppgs.MODEL == 'convolution':
+                    predicted_ppgs = model(input_ppgs)
+                else:
+                    predicted_ppgs = model(input_ppgs, lengths)
 
-                    # Compute loss
-                    # if step == 35:
-                    #     import pdb; pdb.set_trace()
-
-                    loss = loss_fn(predicted_ppgs, indices)
+                loss = loss_fn(predicted_ppgs, indices)
 
                 ######################
                 # Optimize model #
                 ######################
 
-                optimizer.zero_grad()
-
                 # Backward pass
-                try:
-                    scaler.scale(loss).backward()
-                except:
-                    import pdb; pdb.set_trace()
-                scaler.unscale_(optimizer)
+                accelerator.backward(loss)
+
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_INF_CLIP, norm_type='inf')
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_2_CLIP, norm_type=2)
-                for p in model.parameters():
+                # for p in model.parameters():
                     # if p.grad is not None and p.grad.norm() >= 1.25:
                     #     print(p.grad.norm(), '2', p.shape, step)#, stems)
                     # if p.grad is not None and p.grad.norm(4) >= 1:
                     #     print(p.grad.norm(4), '4', p.shape, step, stems)
-                    if p.grad is not None and p.grad.abs().max() >= 0.5:
-                        print(p.grad.abs().max(), 'inf', p.shape, step)#, stems)
+                    # if p.grad is not None and p.grad.abs().max() >= 0.5:
+                    #     print(p.grad.abs().max(), 'inf', p.shape, step)#, stems)
                 # Update weights
-                scaler.step(optimizer)
 
-                # Update gradient scaler
-                scaler.update()
+                optimizer.step()
 
                 ###########
                 # Logging #
                 ###########
 
-                if not rank:
 
-                    if step % ppgs.LOG_INTERVAL == 0:
+                if step % ppgs.LOG_INTERVAL == 0:
 
-                        # Log loss
-                        scalars = {
-                            'train/loss': loss,
-                            'learning_rate': optimizer.param_groups[0]['lr']}
-                        ppgs.write.scalars(log_directory, step, scalars)
+                    # Log loss
+                    scalars = {
+                        'train/loss': loss,
+                        'learning_rate': optimizer.param_groups[0]['lr']}
+                    ppgs.write.scalars(log_directory, step, scalars)
 
-                        # Log visualizations
-                        # visualization_batch = batch[:ppgs.VISUALIZATION_SAMPLES]
-                        # audio_filenames = [f + '.wav' for f in visualization_batch]
+                    # Log visualizations
+                    # visualization_batch = batch[:ppgs.VISUALIZATION_SAMPLES]
+                    # audio_filenames = [f + '.wav' for f in visualization_batch]
 
                     ############
                     # Evaluate #
@@ -269,7 +231,7 @@ def train(
                             frontend,
                             valid_loader,
                             train_loader,
-                            gpu)
+                            accelerator)
 
                     ###################
                     # Save checkpoint #
@@ -280,7 +242,9 @@ def train(
                             model,
                             optimizer,
                             step,
-                            output_directory / f'{step:08d}.pt')
+                            epoch,
+                            output_directory / f'{step:08d}.pt',
+                            accelerator)
 
                 # Update training step count
                 if step >= steps:
@@ -288,42 +252,40 @@ def train(
                 step += 1
 
                 # Update progress bar
-                if not rank:
-                    progress.update()
+                progress.update()
 
                 # torch.cuda.empty_cache()
                 # print(torch.cuda.memory_allocated() / (1024 ** 3), torch.cuda.memory_reserved() / (1024 ** 3))
 
             # update epoch
-            train_loader.batch_sampler.epoch += 1
+            train_batch_sampler.epoch += 1
     except KeyboardInterrupt:
         ppgs.checkpoint.save(
             model,
             optimizer,
             step,
-            output_directory / f'{step:08d}.pt'
-        )
-
-    # Close progress bar
-    if not rank:
+            epoch,
+            output_directory / f'{step:08d}.pt',
+            accelerator)
+    finally:
+        # Close progress bar
         progress.close()
 
-    # Save final model
     ppgs.checkpoint.save(
         model,
         optimizer,
         step,
-        output_directory / f'{step:08d}.pt')
+        epoch,
+        output_directory / f'{step:08d}.pt',
+        accelerator)
 
 
 ###############################################################################
 # Evaluation
 ###############################################################################
 
-
-def evaluate(directory, step, model, frontend, valid_loader, train_loader, gpu):
+def evaluate(directory, step, model, frontend, valid_loader, train_loader, accelerator: Accelerator=None):
     """Perform model evaluation"""
-    device = 'cpu' if gpu is None else f'cuda:{gpu}'
 
     # Prepare model for evaluation
     model.eval()
@@ -343,12 +305,7 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, gpu):
             for i, batch in enumerate(valid_loader):
 
                 # Unpack batch
-                (
-                    input_ppgs,
-                    indices,
-                    lengths,
-                    stems
-                ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
+                input_ppgs, indices, lengths, stems = batch
 
                 if frontend is not None:
                     with torch.no_grad():
@@ -360,23 +317,28 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, gpu):
                 else:
                     predicted_ppgs = model(input_ppgs, lengths)
 
+                # Accelerate gather across gpus
+                indices = accelerator.pad_across_processes(indices, dim=1, pad_index=-100)
+                indices = accelerator.pad_across_processes(indices, dim=0, pad_index=-100)
+                indices = accelerator.gather_for_metrics(indices)
+                non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
+                indices = indices[non_pad_batches]
+                predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=2, pad_index=0)
+                predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=0, pad_index=torch.nan)
+                predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
+                predicted_ppgs = predicted_ppgs[non_pad_batches]
+
                 # Update metrics
-                validation_metrics.update(predicted_ppgs, indices)
+                if accelerator.is_main_process:
+                    validation_metrics.update(predicted_ppgs, indices)
 
                 # Finish when we have completed all or enough batches
                 if i == ppgs.EVALUATION_BATCHES:
                     break
-
             for i, batch in enumerate(train_loader):
 
                 # Unpack batch
-                (
-                    input_ppgs,
-                    indices,
-                    lengths,
-                    stems
-                ) = (item.to(device) if isinstance(item, torch.Tensor) else item for item in batch)
-
+                input_ppgs, indices, lengths, stems = batch
 
                 if frontend is not None:
                     with torch.no_grad():
@@ -388,19 +350,29 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, gpu):
                 else:
                     predicted_ppgs = model(input_ppgs, lengths)
 
+                # Accelerate gather across gpus
+                indices = accelerator.pad_across_processes(indices, dim=1, pad_index=-100)
+                indices = accelerator.pad_across_processes(indices, dim=0, pad_index=-100)
+                indices = accelerator.gather_for_metrics(indices)
+                non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
+                indices = indices[non_pad_batches]
+                predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=2, pad_index=0)
+                predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=0, pad_index=torch.nan)
+                predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
+                predicted_ppgs = predicted_ppgs[non_pad_batches]
+
                 # Update metrics
-                training_metrics.update(predicted_ppgs, indices)
+                if accelerator.process_index == 0:
+                    training_metrics.update(predicted_ppgs, indices)
 
                 # Finish when we have completed all or enough batches
                 if i == ppgs.EVALUATION_BATCHES:
                     break
 
-    # print(training_metrics.metrics[0].count, training_metrics.metrics[0].true_positives)
-    # return
-
     # Write to tensorboard
-    ppgs.write.metrics(directory, step, validation_metrics())
-    ppgs.write.metrics(directory, step, training_metrics())
+    if accelerator.is_main_process:
+        ppgs.write.metrics(directory, step, validation_metrics())
+        ppgs.write.metrics(directory, step, training_metrics())
 
     # Prepare model for training
     model.train()

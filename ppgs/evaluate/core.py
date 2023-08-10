@@ -4,6 +4,7 @@ import json
 import time
 from contextlib import ExitStack
 from pathlib import Path
+from matplotlib.figure import Figure
 
 import numpy as np
 import torch
@@ -55,7 +56,7 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
         dataset_metrics = ppgs.evaluate.Metrics('per-dataset')
 
         # Aggregate metrics over all datasets
-        aggregate_metrics = ppgs.evaluate.Metrics('aggregate')
+        aggregate_metrics = ppgs.evaluate.Metrics('aggregate', include_figures=True)
 
         device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
@@ -102,8 +103,9 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
         directory.mkdir(exist_ok=True, parents=True)
 
         # Write to json files
-        with open(directory / f'overall-{partition}.json', 'w') as file:
-            json.dump(overall, file, indent=4)
+        # with open(directory / f'overall-{partition}.json', 'w') as file:
+        #     json.dump(overall, file, indent=4)
+        save(overall, f'overall-{partition}', directory)
         with open(directory / f'granular-{partition}.json', 'w') as file:
             json.dump(granular, file, indent=4)
 
@@ -137,3 +139,18 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
         # Write benchmarking information
         with open(directory / f'time-{partition}.json', 'w') as file:
             json.dump(results, file, indent=4)
+
+
+def save(metrics_dict, name, directory, save_json=True):
+    """Save metrics and maybe figures"""
+    fig_dir = directory / name
+    fig_dir.mkdir(exist_ok=True, parents=True)
+    for metric, value in list(metrics_dict.items()):
+        if isinstance(value, dict):
+            save(value, name, directory, save_json=False)
+        if isinstance(value, Figure):
+            value.savefig(fig_dir / f'{metric.replace("/", "-")}.pdf', bbox_inches='tight', pad_inches=0)
+            del metrics_dict[metric]
+    if save_json:
+        with open(directory / f'{name}.json', 'w') as file:
+            json.dump(metrics_dict, file, indent=4)
