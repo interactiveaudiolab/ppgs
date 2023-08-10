@@ -111,23 +111,23 @@ def from_files_to_files(
     output_files,
     features=ALL_FEATURES,
     num_workers=0,
-    output_dir=None,
     gpu=None):
     """Preprocess from files
     Arguments
         audio_files
             A list of audio files to process
+        output_files
+            A list of output files to use to save features
         features
             The names of the features to do preprocessing for
         num_workers
             The number of workers to use
-        output_dir
-            The directory to place the features
         gpu
             The gpu to use for preprocessing
     """
     dataloader = loader(audio_files, num_workers//2)
-    from_dataloader(dataloader, output_files, features, (num_workers+1)//2, gpu, output_dir)
+    output_map = dict(zip(audio_files, output_files))
+    from_dataloader(dataloader, features, output=output_map, save_workers=(num_workers+1)//2, gpu=gpu)
     
 
 def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=None, gpu=None):
