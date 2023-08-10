@@ -1,29 +1,31 @@
 from pathlib import Path
+import pypar
 
 
 ###############################################################################
 # Metadata
 ###############################################################################
 
-
 # Configuration name
 CONFIG = 'base'
 
+###############################################################################
+# Notification settings (apprise)
+###############################################################################
+NOTIFICATION_SERVICES = []
 
 ###############################################################################
 # Audio parameters
 ###############################################################################
-
-
-# Minimum and maximum frequency
-FMIN = 50.  # Hz
-FMAX = 550.  # Hz
 
 # Audio hopsize
 HOPSIZE = 160 # samples
 
 # Maximum sample value of 16-bit audio
 MAX_SAMPLE_VALUE = 32768
+
+MAX_FRAMES = 100000
+BUCKETS = 8
 
 # Number of spectrogram channels
 NUM_FFT = 1024
@@ -34,11 +36,11 @@ SAMPLE_RATE = 16000
 # Number of spectrogram channels
 WINDOW_SIZE = 1024
 
+NUM_MELS = 80
 
 ###############################################################################
 # Directories
 ###############################################################################
-
 
 # Location to save assets to be bundled with pip release
 ASSETS_DIR = Path(__file__).parent.parent / 'assets'
@@ -58,11 +60,15 @@ EVAL_DIR = Path(__file__).parent.parent.parent / 'eval'
 # Location to save training and adaptation artifacts
 RUNS_DIR = Path(__file__).parent.parent.parent / 'runs'
 
+# Location of checkpoints
+CHECKPOINT_DIR = ASSETS_DIR / 'checkpoints'
+
+# Roughly how much free disk space to preserve at all costs
+PRESERVED_DISK_SPACE_GB = 10
 
 ###############################################################################
 # Logging parameters
 ###############################################################################
-
 
 # Number of steps between saving checkpoints
 CHECKPOINT_INTERVAL = 25000  # steps
@@ -76,22 +82,23 @@ EVALUATION_BATCHES = 4
 # Number of steps between evaluation
 EVALUATION_INTERVAL = 2500  # steps
 
+# Maximum number of samples to create visualizations for during training
+VISUALIZATION_SAMPLES = 10
 
 ###############################################################################
 # Training parameters
 ###############################################################################
 
+MODEL = 'transformer'
+
 # Input representation
-REPRESENTATION = 'ppg'
+REPRESENTATION = 'w2v2fb'
 
 # Batch size (per gpu)
 BATCH_SIZE = 64
 
-# Per-epoch decay rate of the learning rate
-LEARNING_RATE_DECAY = .999875
-
 # Number of training steps
-NUM_STEPS = 300000
+NUM_STEPS = 200000
 
 # Number of data loading worker threads
 NUM_WORKERS = 2
@@ -99,16 +106,57 @@ NUM_WORKERS = 2
 # Seed for all random number generators
 RANDOM_SEED = 1234
 
+# L2 norm gradient clipping threshold
+GRAD_2_CLIP = 1.5
+# L-infinity norm gradient clipping threshold
+GRAD_INF_CLIP = 1.0
+
+# Learning rate value for training
+LEARNING_RATE = 2e-4
+
+# Loss function to use (CE = Cross-entropy, CTC)
+LOSS_FUNCTION = 'CE'
+
 ###############################################################################
-# Model parameters #TODO extract to separate config file?
+# Model parameters
 ###############################################################################
 
-INPUT_CHANNELS = 144 #dimensionality of input representation
-OUTPUT_CHANNELS = 42 #number of phonemes
+# This function takes as input a torch.Device and returns a callable frontend
+FRONTEND = None
+
+# this function takes predicted_ppgs and decodes them to a useable format
+BACKEND = None
+
+# Number of attention heads
+ATTENTION_HEADS = 2
+
+# Attention window size
+ATTENTION_WINDOW_SIZE = 4
+
+# Number of hidden layers
+NUM_HIDDEN_LAYERS = 5
+
+# Network width
+HIDDEN_CHANNELS = 512
+
+# Dimensionality of input representation
+INPUT_CHANNELS = 768
+
+# Dimensionality of output representation
+OUTPUT_CHANNELS = 40
+
+# Kernel width
+KERNEL_SIZE = 5
+
 
 ###############################################################################
-# Partition parameters #TODO extract to separate config file
+# Partition parameters
 ###############################################################################
+
+# Charsiu samples to reject due to data errors
+CHARSIU_REJECT = [
+    'common_voice_en_26168033',
+]
 
 ARCTIC_UNSEEN = ['bdl', 'slt']
 ARCTIC_VALIDATION_IDS = [ #sampled randomly
@@ -449,9 +497,7 @@ PHONEME_LIST = [
 	'y',
 	'z',
 	'zh',
-	'ax',
-	'sp',
-	'<unk>'
+	pypar.SILENCE,
 ]
 
 PHONEME_TO_INDEX_MAPPING = {phone: i for i, phone in enumerate(PHONEME_LIST)}
@@ -474,17 +520,17 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'dh': 'dh',
     'dx': 'd', #assumption
     'eh': 'eh',
-    'el': 'l', 
-    'em': 'm', 
-    'en': 'n', 
-    'eng': 'ng', 
-    'epi': 'pau', #differs from Kaldi (pau instead of sil)
+    'el': 'l',
+    'em': 'm',
+    'en': 'n',
+    'eng': 'ng',
+    'epi': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
     'er': 'er',
     'ey': 'ey',
     'f': 'f',
     'g': 'g',
     'gcl': 'bck<g>', #backfill
-    'h#': 'pau', #differs from Kaldi (pau instead of sil)
+    'h#': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
     'hh': 'hh',
     'hv': 'hh',
     'ih': 'ih',
@@ -501,9 +547,9 @@ TIMIT_TO_ARCTIC_MAPPING = {
     'ow': 'ow',
     'oy': 'oy',
     'p': 'p',
-    'pau': 'pau', #differs from Kaldi (pau instead of sil)
+    'pau': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
     'pcl': 'bck<p>', #backfill
-    'q': 't', #map to its allophone TODO check the validity of doing this?
+    'q': 't', #map to its allophone
     'r': 'r',
     's': 's',
     'sh': 'sh',

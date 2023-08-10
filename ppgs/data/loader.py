@@ -3,17 +3,27 @@ import torch
 import ppgs
 
 
-def loaders(dataset, representation='ppg'):
+def loaders(dataset, features=[ppgs.REPRESENTATION, 'phonemes', 'length', 'stem']):
     """Retrieve data loaders for training and evaluation"""
-    return loader(dataset, 'train', representation), loader(dataset, 'valid', representation)
+    return loader(dataset, 'train', features), loader(dataset, 'valid', features)
 
 
-def loader(dataset, partition, representation='ppg'):
+def loader(dataset, partition, features=[ppgs.REPRESENTATION, 'phonemes', 'length', 'stem']):
     """Retrieve a data loader"""
-    return torch.utils.data.DataLoader(
-        dataset=ppgs.data.Dataset(dataset, partition, representation),
-        batch_size=1 if partition == 'test' else ppgs.BATCH_SIZE,
-        shuffle=partition == 'train',
-        num_workers=ppgs.NUM_WORKERS,
-        pin_memory=True,
-        collate_fn=ppgs.data.collate)
+    dataset_object = ppgs.data.Dataset(dataset, partition, features)
+    collator_object = ppgs.data.Collator(features)
+    if partition == 'test':
+        return torch.utils.data.DataLoader(
+            dataset=dataset_object,
+            num_workers=ppgs.NUM_WORKERS,
+            pin_memory=True,
+            collate_fn=collator_object,
+            batch_size=256
+        )
+    else:
+        return torch.utils.data.DataLoader(
+            dataset=dataset_object,
+            batch_sampler=ppgs.data.sampler(dataset_object, partition),
+            num_workers=ppgs.NUM_WORKERS,
+            pin_memory=True,
+            collate_fn=collator_object)

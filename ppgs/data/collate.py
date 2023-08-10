@@ -1,28 +1,41 @@
 import torch
 
+class Collator():
 
-def collate(batch):
-    """Batch collation"""
-    # Unpack
-    input_ppgs, indices, alignments, word_breaks, waveforms, stems = zip(*batch)
+    def __init__(self, features=['wav']):
+        self.features = features
 
-    # Get padded tensor dimensions
-    channels, _ = input_ppgs[0].shape
-    max_length = max([ppg.shape[-1] for ppg in input_ppgs])
-    batch = len(input_ppgs)
-
-    # Allocate padded input ppgs
-    padded_ppgs = torch.zeros(
-        (batch, channels, max_length),
-        dtype=torch.float)
-
-    # Allocate padded target phoneme indices
-    # -100 is the default ignore_index value for cross entropy loss
-    padded_indices = torch.full((batch, max_length), -100, dtype=torch.long)
-
-    # Populate padded tensors
-    for i, (ppg, index) in enumerate(zip(input_ppgs, indices)):
-        padded_ppgs[i, :, :ppg.shape[-1]] = ppg
-        padded_indices[i, :ppg.shape[-1]] = index
-
-    return padded_ppgs, padded_indices, alignments, word_breaks, waveforms, stems
+    def __call__(self, batch):
+        batch_values = []
+        batch_size = len(batch)
+        for feature, values in zip(self.features, zip(*batch)):
+            if feature == 'wav':
+                max_length = max([audio.shape[-1] for audio in values])
+                padded_audio = torch.zeros(
+                (batch_size, 1, max_length),
+                dtype=torch.float)
+                for i, audio in enumerate(values):
+                    padded_audio[i, 0, :audio.shape[-1]] = audio[0]
+                batch_values.append(padded_audio)
+            elif feature == 'phonemes':
+                max_length = max([indices.shape[-1] for indices in values])
+                padded_indices = torch.full((batch_size, max_length), -100, dtype=torch.long)
+                for i, indices in enumerate(values):
+                    padded_indices[i, :indices.shape[-1]] = indices
+                batch_values.append(padded_indices)
+            elif feature == 'stem':
+                batch_values.append(values)
+            elif feature == 'audio_file':
+                batch_values.append(values)
+            elif feature == 'length':
+                batch_values.append(torch.tensor(values))
+            else:
+                max_length = max([latent.shape[-1] for latent in values])
+                padded_latents = torch.zeros(
+                    (batch_size,) + values[0].shape[:-1] + (max_length,),
+                    dtype=values[0].dtype
+                )
+                for i, latent in enumerate(values):
+                    padded_latents[i, ..., :latent.shape[-1]] = latent
+                batch_values.append(padded_latents)
+        return batch_values

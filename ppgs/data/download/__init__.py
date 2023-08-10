@@ -1,2 +1,1 @@
-from .core import *
-from .words import *
+from .core import datasets
