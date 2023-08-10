@@ -3,13 +3,13 @@
 import math
 
 import torch
+from torch.utils.data.sampler import BatchSampler, RandomSampler
 
 import ppgs
 
 ###############################################################################
 # Batch sampler
 ###############################################################################
-
 
 def sampler(dataset, partition):
     """Create batch index sampler"""
@@ -36,17 +36,17 @@ def sampler(dataset, partition):
     else:
         raise ValueError(f'Partition {partition} is not implemented')
 
-
 ###############################################################################
 # Custom samplers
 ###############################################################################
 
-class Sampler:
+class Sampler(BatchSampler):
 
     def __init__(self, dataset):
         self.epoch = 0
-        self.length = len(dataset)
         self.buckets = dataset.buckets()
+        self.sampler = None
+        self.drop_last = True
 
     def __iter__(self):
         return iter(self.batch())
@@ -57,7 +57,10 @@ class Sampler:
     def batch(self):
         """Produces batch indices for one epoch"""
         # Deterministic shuffling based on epoch
-        generator = torch.Generator()
+        if self.sampler is not None and hasattr(self.sampler, 'generator') and self.sampler.generator is not None:
+            generator = self.sampler.generator
+        else:
+            generator = torch.Generator()
         generator.manual_seed(ppgs.RANDOM_SEED + self.epoch)
 
         # Make variable-length batches with roughly equal number of frames
@@ -76,9 +79,11 @@ class Sampler:
                 [bucket[i:i + size] for i in range(0, len(bucket), size)])
 
         # Shuffle
-        return [
-            batches[i] for i in 
-            torch.randperm(len(batches), generator=generator).tolist()]
+        if self.sampler is None:
+            self.sampler = RandomSampler(range(len(batches)))
+            self.sampler.generator = torch.Generator()
+            return self.batch()
+        return [batches[i] for i in self.sampler]
 
     def set_epoch(self, epoch):
         self.epoch = epoch
