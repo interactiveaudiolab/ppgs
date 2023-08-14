@@ -20,7 +20,7 @@ def parse_args():
         nargs='+',
         default=['arctic'],
         help='The datasets to evaluate')
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument(
         '--checkpoint',
         type=Path,

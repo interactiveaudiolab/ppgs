@@ -17,8 +17,6 @@ def run(
     checkpoint_directory,
     output_directory,
     log_directory,
-    # no_cache=False,
-    gpus=None,
     eval_only=False):
     """Run model training"""
     train(
@@ -26,7 +24,6 @@ def run(
         checkpoint_directory=checkpoint_directory,
         output_directory=output_directory,
         log_directory=log_directory,
-        gpus=gpus,
         eval_only=eval_only)
 
     # Return path to model checkpoint

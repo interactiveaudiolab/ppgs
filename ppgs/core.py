@@ -161,8 +161,9 @@ def from_dataloader(
             else:
                 map(save_masked, ppg_outputs.cpu(), filenames, new_lengths.cpu())
             stop_if_disk_full()
-        pool.close()
-        pool.join()
+        if save_workers > 0:
+            pool.close()
+            pool.join()
 
 def from_audio(
     audio: torch.Tensor,
