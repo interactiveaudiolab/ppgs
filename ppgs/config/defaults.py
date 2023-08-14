@@ -500,6 +500,51 @@ PHONEME_LIST = [
 	pypar.SILENCE,
 ]
 
+CHARSIU_PHONE_ORDER = [
+    pypar.SILENCE,
+    "ng",
+    "f",
+    "m",
+    "ae",
+    "r",
+    "uw",
+    "n",
+    "iy",
+    "aw",
+    "v",
+    "uh",
+    "ow",
+    "aa",
+    "er",
+    "hh",
+    "z",
+    "k",
+    "ch",
+    "w",
+    "ey",
+    "zh",
+    "t",
+    "eh",
+    "y",
+    "ah",
+    "b",
+    "p",
+    "th",
+    "dh",
+    "ao",
+    "g",
+    "l",
+    "jh",
+    "oy",
+    "sh",
+    "d",
+    "ay",
+    "s",
+    "ih",
+]
+
+CHARSIU_PERMUTE = [CHARSIU_PHONE_ORDER.index(phone) for phone in PHONEME_LIST]
+
 PHONEME_TO_INDEX_MAPPING = {phone: i for i, phone in enumerate(PHONEME_LIST)}
 
 TIMIT_TO_ARCTIC_MAPPING = {

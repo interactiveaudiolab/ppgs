@@ -13,6 +13,7 @@ setup(
     author_email='interactiveaudiolab@gmail.com',
     url='https://github.com/interactiveaudiolab/ppgs',
     install_requires=[
+        'apprise',
         'espnet',
         'humanfriendly',
         'librosa',
@@ -34,7 +35,10 @@ setup(
         'transformers',
         'ffmpeg<5',
         'apprise',
-        'encodec'
+        'encodec',
+        'accelerate',
+        'g2pM',
+        'praatio',
     ],
     packages=['ppgs'],
     package_data={'ppgs': ['assets/*', 'assets/*/*']},

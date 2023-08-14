@@ -107,6 +107,11 @@ class TopKAccuracy:
         predicted_logits = predicted_logits.transpose(1, 2)
         predicted_logits = predicted_logits.flatten(0, 1)
         target_indices = target_indices.flatten()
+
+        nonpad_indices = target_indices != -100
+        predicted_logits = predicted_logits[nonpad_indices]
+        target_indices = target_indices[nonpad_indices]
+
         top_k = torch.topk(predicted_logits, self.k, dim=-1)
         top_k_indices = top_k.indices
         self.correct_in_top_k += ((top_k_indices == target_indices[:, None])).sum()
@@ -248,14 +253,16 @@ class DistanceMatrix:
         self.reset()
 
     def _normalized(self):
-        probabilities = (self.matrix / self.matrix.sum(dim=1))
+        probabilities = (self.matrix / self.matrix.sum(dim=1)[:, None])
         normalized = probabilities
         # total = self.count.sum()
         # scaler = self.count / total
         # for col, val in enumerate(scaler):
         #     normalized[:, col] /= val
         # import pdb; pdb.set_trace()
-        # normalized = probabilities / (self.count / self.count.sum())
+        # frequency_ratios = self.count / self.count.sum()
+        # import pdb; pdb.set_trace()
+        # normalized = probabilities / frequency_ratios
         return normalized.cpu()
 
     def _render(self):
@@ -313,12 +320,9 @@ class DistanceMatrix:
             0,
             predicted_indices[:, None].expand(-1, predicted_probs.shape[-1]),
             predicted_probs)
-        # self.matrix[predicted_indices] += predicted_probs
 
-        # target_indices = target_indices[nonpad_indices]
-
-        # self.count += target_indices.bincount()
-        # self.count[target_indices] += 1
+        target_indices = target_indices[nonpad_indices]
+        self.count += target_indices.bincount()
 
         # for probs, index in zip(predicted_probs, predicted_indices):
         #     self.matrix[index] += probs

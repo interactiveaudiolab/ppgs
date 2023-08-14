@@ -26,7 +26,7 @@ def parse_args():
     )
     parser.add_argument(
         '--unit',
-        default='B',
+        default='GB',
         choices=['B', 'KB', 'MB', 'GB', 'TB'],
         help='Unit to print filesizes with'
     )
