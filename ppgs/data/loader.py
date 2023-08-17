@@ -3,7 +3,7 @@ import torch
 import ppgs
 
 
-def loaders(dataset, features=[ppgs.REPRESENTATION, 'phonemes', 'length', 'stem']):
+def loaders(dataset, features=[ppgs.REPRESENTATION, 'length', 'phonemes', 'stem']):
     """Retrieve data loaders for training and evaluation"""
     return loader(dataset, 'train', features), loader(dataset, 'valid', features)
 
