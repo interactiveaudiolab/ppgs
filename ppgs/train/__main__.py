@@ -1,5 +1,6 @@
 import argparse
 import shutil
+import os
 from pathlib import Path
 
 import ppgs
@@ -10,7 +11,7 @@ from ppgs.notify import notify_on_finish
 ###############################################################################
 
 @notify_on_finish('training')
-def main(config, dataset, gpus=None, eval_only=False):
+def main(config, dataset, eval_only=False):
     # Create output directory
     directory = ppgs.RUNS_DIR / config.stem
     directory.mkdir(parents=True, exist_ok=True)
@@ -24,7 +25,6 @@ def main(config, dataset, gpus=None, eval_only=False):
         directory,
         directory,
         directory,
-        gpus,
         eval_only)
 
     # Evaluate
@@ -43,12 +43,12 @@ def parse_args():
         '--dataset',
         default='charsiu',
         help='The dataset to train on')
-    parser.add_argument(
-        '--gpus', '--gpu',
-        dest='gpus',
-        type=int,
-        nargs='+',
-        help='The gpus to run training on')
+    # parser.add_argument(
+    #     '--gpus', '--gpu',
+    #     dest='gpus',
+    #     type=int,
+    #     nargs='+',
+    #     help='The gpus to run training on')
     # parser.add_argument(
     #     '--no-cache',
     #     action='store_true',
@@ -63,4 +63,5 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    print('CUDA_VISIBLE_DEVICES =', os.environ['CUDA_VISIBLE_DEVICES'])
     main(**vars(parse_args()))

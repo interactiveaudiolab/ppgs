@@ -144,8 +144,13 @@ class Dataset(torch.utils.data.Dataset):
 
     def buckets(self):
         """Partition indices into buckets based on length for sampling"""
+        if len(self) < ppgs.BUCKETS:
+            num_buckets = len(self)
+        else:
+            num_buckets = ppgs.BUCKETS
+
         # Get the size of a bucket
-        size = len(self) // ppgs.BUCKETS
+        size = len(self) // num_buckets
 
         # Get indices in order of length
         lengths = []

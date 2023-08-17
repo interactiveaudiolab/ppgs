@@ -3,7 +3,7 @@ import torch
 import ppgs
 
 
-def loaders(dataset, features=[ppgs.REPRESENTATION, 'phonemes', 'length', 'stem']):
+def loaders(dataset, features=[ppgs.REPRESENTATION, 'length', 'phonemes', 'stem']):
     """Retrieve data loaders for training and evaluation"""
     return loader(dataset, 'train', features), loader(dataset, 'valid', features)
 
@@ -18,7 +18,7 @@ def loader(dataset, partition, features=[ppgs.REPRESENTATION, 'phonemes', 'lengt
             num_workers=ppgs.NUM_WORKERS,
             pin_memory=True,
             collate_fn=collator_object,
-            batch_size=256
+            batch_size=ppgs.BATCH_SIZE
         )
     else:
         return torch.utils.data.DataLoader(
