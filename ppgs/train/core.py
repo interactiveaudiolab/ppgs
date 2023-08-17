@@ -66,7 +66,8 @@ def train(
         model.parameters(),
         lr=ppgs.LEARNING_RATE,
         betas=[.80, .99],
-        eps=1e-9)
+        eps=1e-9,
+        weight_decay=ppgs.WEIGHT_DECAY)
 
     ##############################
     # Maybe load from checkpoint #
@@ -146,6 +147,8 @@ def train(
         model.train()
         while step < steps:
 
+            train_batch_sampler.epoch = epoch
+
             if not model.training:
                 model.train()
                 raise ValueError('this should never happen') #TODO remove
@@ -154,8 +157,8 @@ def train(
                 # Unpack batch
                 # input_ppgs, indices = (item.to(device) for item in batch)
                 input_ppgs = batch[0].to(device)
-                indices = batch[1].to(device)
-                lengths = batch[2].to(device)
+                lengths = batch[1].to(device)
+                indices = batch[2].to(device)
                 stems = batch[3]
 
                 if frontend is not None:
@@ -209,39 +212,38 @@ def train(
                     # visualization_batch = batch[:ppgs.VISUALIZATION_SAMPLES]
                     # audio_filenames = [f + '.wav' for f in visualization_batch]
 
-                    ############
-                    # Evaluate #
-                    ############
+                ############
+                # Evaluate #
+                ############
+                if step % ppgs.EVALUATION_INTERVAL == 0:
 
-                    if step % ppgs.EVALUATION_INTERVAL == 0:
+                    print(torch.cuda.max_memory_allocated(device) / (1024 ** 3), torch.cuda.max_memory_reserved(device) / (1024 ** 3))
 
-                        print(torch.cuda.max_memory_allocated(device) / (1024 ** 3), torch.cuda.max_memory_reserved(device) / (1024 ** 3))
+                    del loss
+                    del predicted_ppgs
+                    torch.cuda.empty_cache()
 
-                        del loss
-                        del predicted_ppgs
-                        torch.cuda.empty_cache()
+                    evaluate(
+                        log_directory,
+                        step,
+                        model,
+                        frontend,
+                        valid_loader,
+                        train_loader,
+                        accelerator)
 
-                        evaluate(
-                            log_directory,
-                            step,
-                            model,
-                            frontend,
-                            valid_loader,
-                            train_loader,
-                            accelerator)
+                ###################
+                # Save checkpoint #
+                ###################
 
-                    ###################
-                    # Save checkpoint #
-                    ###################
-
-                    if step and step % ppgs.CHECKPOINT_INTERVAL == 0:
-                        ppgs.checkpoint.save(
-                            model,
-                            optimizer,
-                            step,
-                            epoch,
-                            output_directory / f'{step:08d}.pt',
-                            accelerator)
+                if step and step % ppgs.CHECKPOINT_INTERVAL == 0:
+                    ppgs.checkpoint.save(
+                        model,
+                        optimizer,
+                        step,
+                        epoch,
+                        output_directory / f'{step:08d}.pt',
+                        accelerator)
 
                 # Update training step count
                 if step >= steps:
@@ -255,7 +257,7 @@ def train(
                 # print(torch.cuda.memory_allocated() / (1024 ** 3), torch.cuda.memory_reserved() / (1024 ** 3))
 
             # update epoch
-            train_batch_sampler.epoch += 1
+            epoch += 1
     except KeyboardInterrupt:
         ppgs.checkpoint.save(
             model,
@@ -281,7 +283,7 @@ def train(
 # Evaluation
 ###############################################################################
 
-def evaluate(directory, step, model, frontend, valid_loader, train_loader, accelerator: Accelerator=None):
+def evaluate(directory, step, model, frontend, valid_loader, train_loader, accelerator: Accelerator = None):
     """Perform model evaluation"""
 
     # Prepare model for evaluation
@@ -302,7 +304,7 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, accel
             for i, batch in enumerate(valid_loader):
 
                 # Unpack batch
-                input_ppgs, indices, lengths, stems = batch
+                input_ppgs, lengths, indices, stems = batch
 
                 if frontend is not None:
                     with torch.no_grad():
@@ -335,7 +337,7 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, accel
             for i, batch in enumerate(train_loader):
 
                 # Unpack batch
-                input_ppgs, indices, lengths, stems = batch
+                input_ppgs, lengths, indices, stems = batch
 
                 if frontend is not None:
                     with torch.no_grad():

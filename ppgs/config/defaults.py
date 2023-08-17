@@ -114,6 +114,10 @@ GRAD_INF_CLIP = 1.0
 # Learning rate value for training
 LEARNING_RATE = 2e-4
 
+# Weight decay value for training
+#  this is the default value used in torch's adamw optimizer
+WEIGHT_DECAY = 1e-2
+
 # Loss function to use (CE = Cross-entropy, CTC)
 LOSS_FUNCTION = 'CE'
 

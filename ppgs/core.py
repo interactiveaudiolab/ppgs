@@ -46,8 +46,17 @@ def from_features(
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
     if not hasattr(from_features, 'model'):
         from_features.model = ppgs.load.model(checkpoint=checkpoint).to(device)
-    with torch.inference_mode(), torch.autocast('cuda' if gpu is not None else 'cpu'):
-        return from_features.model(features, lengths)
+        from_features.model.train(False)
+        if ppgs.FRONTEND is not None:
+            from_features.frontend = ppgs.FRONTEND(device)
+    if ppgs.MODEL in ['W2V2FC']:
+        autocast_context = nullcontext()
+    else:
+        autocast_context = torch.autocast(device.type)
+    with torch.inference_mode(), autocast_context:
+        if hasattr(from_features, 'frontend'):
+            features = from_features.frontend(features)
+        return torch.nn.functional.softmax(from_features.model(features, lengths), dim=1)
 
 def from_sources_to_sinks(
     sources: List[path],
@@ -128,14 +137,17 @@ def from_dataloader(
             output = Path(output)
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
     pool = mp.get_context('spawn').Pool(save_workers) if save_workers > 0 else nullcontext()
-    with pool, torch.inference_mode(), torch.autocast('cuda' if gpu is not None else 'cpu'):
+    with pool:
         for audios, lengths, audio_files in iterator:
             audios = audios.to(device)
             lengths = lengths.to(device)
-            feature_processor = ppgs.REPRESENTATION_MAP[representation]
-            # torch.cuda.empty_cache()
-            # print(torch.cuda.memory_summary(gpu, abbreviated=True))
-            features = feature_processor.from_audios(audios, lengths, gpu=gpu)
+            if representation == 'wav':
+                features = audios
+            else:
+                feature_processor = ppgs.REPRESENTATION_MAP[representation]
+                # torch.cuda.empty_cache()
+                # print(torch.cuda.memory_summary(gpu, abbreviated=True))
+                features = feature_processor.from_audios(audios, lengths, gpu=gpu)
             new_lengths = lengths // ppgs.HOPSIZE
             ppg_outputs = from_features(features, new_lengths, checkpoint=checkpoint, gpu=gpu)
             if save_intermediate_features:
@@ -194,8 +206,8 @@ def from_audio(
         features = ppgs.preprocess.from_audio(audio, representation=representation, sample_rate=sample_rate, gpu=gpu)
         if features.dim() == 2:
             features = features[None]
-        # Compute PPGs
-        return from_features(features, torch.tensor([features.shape[-1]]).to(device), checkpoint=checkpoint, gpu=gpu)
+    # Compute PPGs
+    return from_features(features, torch.tensor([features.shape[-1]]).to(device), checkpoint=checkpoint, gpu=gpu)
 
 def from_file(
         file: path,

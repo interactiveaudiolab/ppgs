@@ -29,7 +29,10 @@ def aggregate(
                 for extension in source_extensions:
                     source_files += list(source.rglob(f'*{extension}'))
             else:
-                source_files += source
+                if isinstance(source, list):
+                    source_files += source
+                else:
+                    source_files.append(source)
 
         return source_files
     else:
