@@ -35,4 +35,8 @@ def Model(type=None):
     elif type == 'Wav2Vec2.0':
         print('using Wav2Vec 2.0 model')
         return lambda: ppgs.model.W2V2()
+    elif type == 'W2V2FC':
+        return lambda: ppgs.model.W2V2FC()
+    elif type == 'W2V2FS':
+        return lambda: ppgs.model.W2V2FS()
     raise ValueError('unknown model type:', type)

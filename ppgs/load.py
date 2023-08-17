@@ -30,6 +30,8 @@ def partition(dataset):
     
 def model(checkpoint=ppgs.DEFAULT_CHECKPOINT):
     """Load a model from a checkpoint file. Make sure the current configuration values match"""
+    if ppgs.MODEL in ['W2V2FC', 'W2V2FS']:
+        return ppgs.Model()()
     try:
         state_dict = torch.load(checkpoint, map_location='cpu')
     except FileNotFoundError:

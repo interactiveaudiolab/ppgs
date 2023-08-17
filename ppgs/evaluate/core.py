@@ -67,7 +67,6 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
             dataset_metrics.reset()
 
             # Setup test dataset
-            ppgs.BATCH_SIZE = 1
             dataloader = ppgs.data.loader.loader(dataset, partition, features=[ppgs.REPRESENTATION, 'length', 'phonemes', 'stem'])
             iterator = tqdm.tqdm(
                 dataloader,
@@ -149,6 +148,7 @@ def save(metrics_dict, name, directory, save_json=True):
         if isinstance(value, dict):
             save(value, name, directory, save_json=False)
         if isinstance(value, Figure):
+            value.savefig(fig_dir / f'{metric.replace("/", "-")}.jpg', bbox_inches='tight', pad_inches=0)
             value.savefig(fig_dir / f'{metric.replace("/", "-")}.pdf', bbox_inches='tight', pad_inches=0)
             del metrics_dict[metric]
     if save_json:

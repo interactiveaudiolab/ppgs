@@ -114,6 +114,10 @@ GRAD_INF_CLIP = 1.0
 # Learning rate value for training
 LEARNING_RATE = 2e-4
 
+# Weight decay value for training
+#  this is the default value used in torch's adamw optimizer
+WEIGHT_DECAY = 1e-2
+
 # Loss function to use (CE = Cross-entropy, CTC)
 LOSS_FUNCTION = 'CE'
 
@@ -499,6 +503,51 @@ PHONEME_LIST = [
 	'zh',
 	pypar.SILENCE,
 ]
+
+CHARSIU_PHONE_ORDER = [
+    pypar.SILENCE,
+    "ng",
+    "f",
+    "m",
+    "ae",
+    "r",
+    "uw",
+    "n",
+    "iy",
+    "aw",
+    "v",
+    "uh",
+    "ow",
+    "aa",
+    "er",
+    "hh",
+    "z",
+    "k",
+    "ch",
+    "w",
+    "ey",
+    "zh",
+    "t",
+    "eh",
+    "y",
+    "ah",
+    "b",
+    "p",
+    "th",
+    "dh",
+    "ao",
+    "g",
+    "l",
+    "jh",
+    "oy",
+    "sh",
+    "d",
+    "ay",
+    "s",
+    "ih",
+]
+
+CHARSIU_PERMUTE = [CHARSIU_PHONE_ORDER.index(phone) for phone in PHONEME_LIST]
 
 PHONEME_TO_INDEX_MAPPING = {phone: i for i, phone in enumerate(PHONEME_LIST)}
 

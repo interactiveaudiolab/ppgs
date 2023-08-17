@@ -1,0 +1,3 @@
+[submodule "ppgs/preprocess/charsiu"]
+	path = ppgs/preprocess/charsiu
+	url = git@github.com:lingjzhu/charsiu.git

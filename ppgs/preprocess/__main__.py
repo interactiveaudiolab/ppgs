@@ -32,6 +32,11 @@ def parse_args():
         default=0,
         help='The number of worker threads to use for loading data'
     )
+    parser.add_argument(
+        '--partition',
+        default=None,
+        help='The dataset partition to preprocess'
+    )
     return parser.parse_args()
 
 

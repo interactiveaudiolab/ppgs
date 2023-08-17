@@ -19,7 +19,7 @@ from ppgs.notify import notify_on_finish
 
 path = Union[Path, str]
 
-ALL_FEATURES = ['w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold', 'encodec', 'w2v2ft']
+ALL_FEATURES = ['bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold', 'encodec', 'w2v2ft']
 
 
 ###############################################################################
@@ -27,7 +27,7 @@ ALL_FEATURES = ['w2v2fs', 'bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold'
 ###############################################################################
 
 @notify_on_finish('preprocessing')
-def datasets(datasets, features=ALL_FEATURES, gpu=None, num_workers=0):
+def datasets(datasets, features=ALL_FEATURES, gpu=None, num_workers=0, partition=None):
     """Preprocess a dataset
 
     Arguments
@@ -41,7 +41,7 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None, num_workers=0):
             The number of worker threads to use  
     """
     for dataset in datasets:
-        dataloader = loader(dataset, num_workers//2)
+        dataloader = loader(dataset, partition=partition, loader_workers=num_workers//2)
         from_dataloader(dataloader, features, save_workers=(num_workers+1)//2, gpu=gpu)
 
 def from_dataloader(
@@ -102,8 +102,9 @@ def from_dataloader(
                 else:
                     map(save_masked, outputs, filenames, new_lengths.cpu())
             stop_if_disk_full()
-        pool.close()
-        pool.join()
+        if save_workers > 0:
+            pool.close()
+            pool.join()
 
 
 def from_files_to_files(
@@ -165,8 +166,8 @@ def save_masked(tensor: torch.Tensor, file, length: torch.Tensor):
     except Exception as e:
         print(f'error saving file {file}: {e}', flush=True)
 
-def loader(sources, loader_workers):
-    dataset_object = ppgs.data.Dataset(sources, features=['wav', 'length', 'audio_file'])
+def loader(sources, partition=None, loader_workers=0):
+    dataset_object = ppgs.data.Dataset(sources, partition=partition, features=['wav', 'length', 'audio_file'])
     sampler_object = ppgs.data.Sampler(dataset_object)
     collator_object = ppgs.data.Collator(features=['wav', 'length', 'audio_file'])
     return torch.utils.data.DataLoader(
