@@ -48,11 +48,10 @@ def from_audios(
     audio,
     lengths,
     sample_rate=None,
-    config=None,
     gpu=None):
     """Compute W2V2FB latents from audio"""
     if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
-    if config is None: config=W2V2FB_CONFIG
+    config=W2V2FB_CONFIG
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Cache model
@@ -84,7 +83,6 @@ def from_audios(
 def from_audio(
     audio: torch.Tensor,
     sample_rate: float = None,
-    config=None,
     gpu=None):
     """Compute W2V2FB latents from audio"""
     num_dims = audio.dim()
@@ -94,7 +92,6 @@ def from_audio(
         audio=audio,
         lengths = torch.tensor([audio.shape[-1]]),
         sample_rate=sample_rate,
-        config=config,
         gpu=gpu
     )
     if num_dims == 1:

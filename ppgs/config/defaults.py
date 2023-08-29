@@ -63,6 +63,8 @@ RUNS_DIR = Path(__file__).parent.parent.parent / 'runs'
 # Location of checkpoints
 CHECKPOINT_DIR = ASSETS_DIR / 'checkpoints'
 
+CUSTOM_CHECKPOINT = None
+
 # Roughly how much free disk space to preserve at all costs
 PRESERVED_DISK_SPACE_GB = 10
 

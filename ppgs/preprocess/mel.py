@@ -30,18 +30,30 @@ def from_features(
 def from_audios(
     audio,
     lengths,
+    sample_rate = ppgs.SAMPLE_RATE,
     gpu=None,
 ):
     spec = spectrogram.from_audios(audio, lengths)
     melspec = linear_to_mel(spec)
     return melspec.to(torch.float16)
 
-def from_audio(audio, mels=False):
-    """Compute spectrogram from audio"""
-    spec = spectrogram.from_audio(audio)
-    melspec = linear_to_mel(spec) if mels else spectrogram
+def from_audio(
+    audio,
+    sample_rate=ppgs.SAMPLE_RATE,
+    gpu=None
+):
+    if audio.dim() == 2:
+        audio = audio.unsqueeze(dim=0)
+    return from_audios(audio, lengths=audio.shape[-1], sample_rate=sample_rate, gpu=gpu)
 
-    return melspec.squeeze(0).to(torch.float16)
+# def from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
+#     """Compute spectrogram from audio"""
+#     audio = ppgs.resample(audio, sample_rate, ppgs.SAMPLE_RATE)
+
+#     spec = spectrogram.from_audio(audio)
+#     melspec = linear_to_mel(spec)
+#     raise ValueError(melspec.shape)
+#     return melspec.squeeze(0).to(torch.float16)
 
 
 def from_file(audio_file):
