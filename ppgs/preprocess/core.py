@@ -19,8 +19,7 @@ from ppgs.notify import notify_on_finish
 
 path = Union[Path, str]
 
-ALL_FEATURES = ['bottleneck', 'w2v2fb', 'spectrogram', 'mel', 'unfold', 'encodec', 'w2v2ft']
-
+ALL_FEATURES = ['bottleneck', 'w2v2fb', 'w2v2fs', 'w2v2fc', 'spectrogram', 'mel', 'unfold', 'encodec', 'w2v2ft']
 
 ###############################################################################
 # Preprocess
@@ -38,7 +37,7 @@ def datasets(datasets, features=ALL_FEATURES, gpu=None, num_workers=0, partition
         gpu
             The gpu to use for preprocessing
         num_workers
-            The number of worker threads to use  
+            The number of worker threads to use
     """
     for dataset in datasets:
         dataloader = loader(dataset, partition=partition, loader_workers=num_workers//2)
@@ -100,7 +99,9 @@ def from_dataloader(
                     while pool._taskqueue.qsize() > 256:
                         time.sleep(1)
                 else:
-                    map(save_masked, outputs, filenames, new_lengths.cpu())
+                    # map(save_masked, outputs, filenames, new_lengths.cpu())
+                    for latent_output, filename, new_length in zip(outputs.cpu(), filenames, new_lengths.cpu()):
+                        save_masked(latent_output, filename, new_length)
             stop_if_disk_full()
         if save_workers > 0:
             pool.close()
@@ -133,6 +134,9 @@ def from_files_to_files(
 
 def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=None, gpu=None):
     """Preprocess audio using given or configured representation"""
+
+    if representation == 'wav':
+        return ppgs.resample(audio, sample_rate, ppgs.SAMPLE_RATE)
 
     #Cache model/function
     if representation is None:
