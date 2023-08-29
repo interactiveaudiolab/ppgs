@@ -40,6 +40,11 @@ def parse_args():
         '--save-intermediate-features',
         action='store_true',
         help="save the intermediate features from which PPGs are computed (e.g. w2v2fb)")
+    parser.add_argument(
+        '--checkpoint',
+        default=ppgs.DEFAULT_CHECKPOINT,
+        help='the checkpoint to use to infer ppgs'
+    )
     return parser.parse_args()
 
 

@@ -25,7 +25,8 @@ def from_features(
     features: torch.Tensor,
     lengths: torch.Tensor,
     checkpoint: path = ppgs.DEFAULT_CHECKPOINT,
-    gpu: int = None) -> torch.Tensor:
+    gpu: int = None,
+    softmax=True) -> torch.Tensor:
     """infer ppgs from input features (e.g. w2v2fb, mel, etc.)
 
     Arguments:
@@ -56,7 +57,11 @@ def from_features(
     with torch.inference_mode(), autocast_context:
         if hasattr(from_features, 'frontend'):
             features = from_features.frontend(features)
-        return torch.nn.functional.softmax(from_features.model(features, lengths), dim=1)
+        logits = from_features.model(features, lengths)
+        if softmax:
+            return torch.nn.functional.softmax(logits, dim=1)
+        else:
+            return logits
 
 def from_sources_to_sinks(
     sources: List[path],
@@ -149,7 +154,11 @@ def from_dataloader(
                 # print(torch.cuda.memory_summary(gpu, abbreviated=True))
                 features = feature_processor.from_audios(audios, lengths, gpu=gpu)
             new_lengths = lengths // ppgs.HOPSIZE
-            ppg_outputs = from_features(features, new_lengths, checkpoint=checkpoint, gpu=gpu)
+            if representation == 'wav':
+                attention_mask_lengths = lengths
+            else:
+                attention_mask_lengths = new_lengths
+            ppg_outputs = from_features(features, attention_mask_lengths, checkpoint=checkpoint, gpu=gpu)
             if save_intermediate_features:
                 if output is not None:
                     if isinstance(output, dict):
@@ -158,20 +167,27 @@ def from_dataloader(
                         filenames = [output / f'{audio_file.stem}-{representation}.pt' for audio_file in audio_files]
                 else:
                     filenames = [audio_file.parent / f'{audio_file.stem}-{representation}.pt' for audio_file in audio_files]
-                pool.starmap_async(save_masked, zip(features.cpu(), filenames, new_lengths.cpu()))
+                pool.starmap_async(save_masked, zip(features.cpu(), filenames, new_lengths.cpu())) #todo make work with no save threads
             if output is not None:
                 if isinstance(output, dict):
                     filenames = [output[audio_file] for audio_file in audio_files]
                 else:
                     filenames = [output / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
             else:
-                filenames = [audio_file.parent / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
+                if ppgs.MODEL in ['W2V2FC']:
+                    filenames = [audio_file.parent / f'{audio_file.stem}-{ppgs.MODEL}-pretrained-ppg.pt' for audio_file in audio_files]
+                elif ppgs.MODEL == 'Wav2Vec2.0':
+                    filenames = [audio_file.parent / f'{audio_file.stem}-w2v2ft-ppg.pt' for audio_file in audio_files]
+                else:
+                    filenames = [audio_file.parent / f'{audio_file.stem}-{representation}-ppg.pt' for audio_file in audio_files]
             if save_workers > 0:
                 pool.starmap_async(save_masked, zip(ppg_outputs.cpu(), filenames, new_lengths.cpu()))
                 while pool._taskqueue.qsize() > 100:
                     sleep(1)
             else:
-                map(save_masked, ppg_outputs.cpu(), filenames, new_lengths.cpu())
+                # map(save_masked, ppg_outputs.cpu(), filenames, new_lengths.cpu())
+                for ppg_output, filename, new_length in zip(ppg_outputs.cpu(), filenames, new_lengths.cpu()):
+                    save_masked(ppg_output, filename, new_length)
             stop_if_disk_full()
         if save_workers > 0:
             pool.close()

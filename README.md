@@ -3,7 +3,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/promonet.svg)](https://pypi.python.org/pypi/promonet)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://pepy.tech/badge/promonet)](https://pepy.tech/project/promonet)
+[![Downloads](https://static.pepy.tech/badge/promonet)](https://pepy.tech/project/promonet)
 
 </div>
 
