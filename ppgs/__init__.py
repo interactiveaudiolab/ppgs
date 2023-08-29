@@ -22,6 +22,8 @@ try:
 except ImportError as e:
     pass
 from .config.static import *
+if CUSTOM_CHECKPOINT is not None:
+    DEFAULT_CHECKPOINT = CUSTOM_CHECKPOINT
 
 ###############################################################################
 # Module imports

@@ -131,7 +131,7 @@ def from_files_to_files(
     from_dataloader(dataloader, features, output=output_map, save_workers=(num_workers+1)//2, gpu=gpu)
     
 
-def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=None, gpu=None):
+def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
     """Preprocess audio using given or configured representation"""
 
     #Cache model/function
@@ -148,7 +148,6 @@ def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, config=
     return getattr(from_audio, representation)(
         audio, 
         sample_rate=sample_rate,
-        config=config,
         gpu=gpu
     )
 

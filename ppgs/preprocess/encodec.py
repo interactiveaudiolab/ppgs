@@ -25,11 +25,13 @@ def from_features(
 def from_audios(
     audio: torch.Tensor,
     lengths,
+    sample_rate=ppgs.SAMPLE_RATE,
     gpu=None
 ):
     expected_length = audio.shape[-1] // ppgs.HOPSIZE
-    if not hasattr(from_audios, 'resampler'):
-        from_audios.resampler = Resample(orig_freq=16000, new_freq=24000)
+    if not hasattr(from_audios, 'resampler') or sample_rate != from_audios.sample_rate:
+        from_audios.sample_rate = sample_rate
+        from_audios.resampler = Resample(orig_freq=sample_rate, new_freq=24000)
         from_audios.resampler.to(audio.device)
     #resample to 24khz
     audio = from_audios.resampler(audio)
@@ -47,3 +49,17 @@ def from_audios(
     #this messes up padding, but we use lengths to mask anyway
     # return upsampled_outputs
     return upsampled_outputs
+
+def from_audio(
+    audio: torch.Tensor,
+    sample_rate=ppgs.SAMPLE_RATE,
+    gpu=None
+):
+    if audio.dim() == 2:
+        audio = audio.unsqueeze(dim=0)
+    return from_audios(
+        audio,
+        audio.shape[-1],
+        sample_rate=sample_rate,
+        gpu=gpu
+    )
