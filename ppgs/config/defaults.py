@@ -24,6 +24,7 @@ HOPSIZE = 160 # samples
 # Maximum sample value of 16-bit audio
 MAX_SAMPLE_VALUE = 32768
 
+# MAX_FRAMES = 100000
 MAX_FRAMES = 100000
 BUCKETS = 8
 
