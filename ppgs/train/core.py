@@ -292,81 +292,77 @@ def evaluate(directory, step, model, frontend, valid_loader, train_loader, accel
     print(f'Evaluating model at step {step}')
 
     # Turn off gradient computation
-    with torch.no_grad():
+    with torch.no_grad(), torch.autocast(accelerator.device.type):
 
-        # Automatic mixed precision
-        with torch.cuda.amp.autocast():
+        # Setup evaluation metrics
+        training_metrics = ppgs.evaluate.Metrics('training')
+        validation_metrics = ppgs.evaluate.Metrics('validation')
 
-            # Setup evaluation metrics
-            training_metrics = ppgs.evaluate.Metrics('training')
-            validation_metrics = ppgs.evaluate.Metrics('validation')
+        for i, batch in enumerate(valid_loader):
 
-            for i, batch in enumerate(valid_loader):
+            # Unpack batch
+            input_ppgs, lengths, indices, stems = batch
 
-                # Unpack batch
-                input_ppgs, lengths, indices, stems = batch
+            if frontend is not None:
+                input_ppgs = frontend(input_ppgs).to(torch.float16)
 
-                if frontend is not None:
-                    with torch.no_grad():
-                        input_ppgs = frontend(input_ppgs).to(torch.float16)
+            # Forward pass
+            if ppgs.MODEL == 'convolution':
+                predicted_ppgs = model(input_ppgs)
+            else:
+                predicted_ppgs = model(input_ppgs, lengths)
 
-                # Forward pass
-                if ppgs.MODEL == 'convolution':
-                    predicted_ppgs = model(input_ppgs)
-                else:
-                    predicted_ppgs = model(input_ppgs, lengths)
+            # Accelerate gather across gpus
+            indices = accelerator.pad_across_processes(indices, dim=1, pad_index=-100)
+            indices = accelerator.pad_across_processes(indices, dim=0, pad_index=-100)
+            indices = accelerator.gather_for_metrics(indices)
+            non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
+            indices = indices[non_pad_batches]
+            predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=2, pad_index=0)
+            predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=0, pad_index=torch.nan)
+            predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
+            predicted_ppgs = predicted_ppgs[non_pad_batches]
 
-                # Accelerate gather across gpus
-                indices = accelerator.pad_across_processes(indices, dim=1, pad_index=-100)
-                indices = accelerator.pad_across_processes(indices, dim=0, pad_index=-100)
-                indices = accelerator.gather_for_metrics(indices)
-                non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
-                indices = indices[non_pad_batches]
-                predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=2, pad_index=0)
-                predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=0, pad_index=torch.nan)
-                predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
-                predicted_ppgs = predicted_ppgs[non_pad_batches]
+            # Update metrics
+            if accelerator.is_main_process:
+                validation_metrics.update(predicted_ppgs, indices)
 
-                # Update metrics
-                if accelerator.is_main_process:
-                    validation_metrics.update(predicted_ppgs, indices)
+            # Finish when we have completed all or enough batches
+            if i == ppgs.EVALUATION_BATCHES:
+                break
+        for i, batch in enumerate(train_loader):
 
-                # Finish when we have completed all or enough batches
-                if i == ppgs.EVALUATION_BATCHES:
-                    break
-            for i, batch in enumerate(train_loader):
+            # Unpack batch
+            input_ppgs, lengths, indices, stems = batch
 
-                # Unpack batch
-                input_ppgs, lengths, indices, stems = batch
+            if frontend is not None:
+                with torch.no_grad():
+                    input_ppgs = frontend(input_ppgs).to(torch.float16)
 
-                if frontend is not None:
-                    with torch.no_grad():
-                        input_ppgs = frontend(input_ppgs).to(torch.float16)
+            # Forward pass
+            if ppgs.MODEL == 'convolution':
+                predicted_ppgs = model(input_ppgs)
+            else:
+                predicted_ppgs = model(input_ppgs, lengths)
 
-                # Forward pass
-                if ppgs.MODEL == 'convolution':
-                    predicted_ppgs = model(input_ppgs)
-                else:
-                    predicted_ppgs = model(input_ppgs, lengths)
+            # Accelerate gather across gpus
+            indices = accelerator.pad_across_processes(indices, dim=1, pad_index=-100)
+            indices = accelerator.pad_across_processes(indices, dim=0, pad_index=-100)
+            indices = accelerator.gather_for_metrics(indices)
+            non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
+            indices = indices[non_pad_batches]
+            predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=2, pad_index=0)
+            predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=0, pad_index=torch.nan)
+            predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
+            predicted_ppgs = predicted_ppgs[non_pad_batches]
 
-                # Accelerate gather across gpus
-                indices = accelerator.pad_across_processes(indices, dim=1, pad_index=-100)
-                indices = accelerator.pad_across_processes(indices, dim=0, pad_index=-100)
-                indices = accelerator.gather_for_metrics(indices)
-                non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
-                indices = indices[non_pad_batches]
-                predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=2, pad_index=0)
-                predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=0, pad_index=torch.nan)
-                predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
-                predicted_ppgs = predicted_ppgs[non_pad_batches]
+            # Update metrics
+            if accelerator.process_index == 0:
+                training_metrics.update(predicted_ppgs, indices)
 
-                # Update metrics
-                if accelerator.process_index == 0:
-                    training_metrics.update(predicted_ppgs, indices)
-
-                # Finish when we have completed all or enough batches
-                if i == ppgs.EVALUATION_BATCHES:
-                    break
+            # Finish when we have completed all or enough batches
+            if i == ppgs.EVALUATION_BATCHES:
+                break
 
     # Write to tensorboard
     if accelerator.is_main_process:

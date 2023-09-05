@@ -1,6 +1,4 @@
 from encodec import EncodecModel
-from types import MethodType
-import torch
 
 CONFIG = 'encodec'
 MODULE = 'ppgs'
@@ -14,6 +12,9 @@ EVALUATION_BATCHES = 16
 NUM_HIDDEN_LAYERS = 5
 MAX_FRAMES = 100000
 HIDDEN_CHANNELS = 512
+
+GRAD_2_CLIP = 0.25
+GRAD_INF_CLIP = 0.1
 
 def _frontend(device='cpu'):
     import torch
