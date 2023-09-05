@@ -282,7 +282,10 @@ class DistanceMatrix:
         return figure
 
     def __call__(self):
-        return {f'DistanceMatrix/{self.display_suffix}': self._render()}
+        return {
+            f'DistanceMatrix/{self.display_suffix}': self._render(),
+            f'DistanceMatrix/{self.display_suffix}/data': self._normalized()
+        }
 
     def reset(self):
         self.matrix = None
