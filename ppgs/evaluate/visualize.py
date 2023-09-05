@@ -47,48 +47,61 @@ pad = display_window_size//2 - display_hopsize//2
 scalefactor = 16
 text_vertical_offset = 1
 
+def from_textgrid_to_pixels(textgrid_filename, num_frames, num_phonemes=len(ppgs.PHONEME_LIST), padding=pad):
+    alignment = pypar.Alignment(textgrid_filename)
+    hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
+    times = np.linspace(hopsize/2, (num_frames-1)*hopsize+hopsize/2, num_frames)
+    times[-1] = alignment.duration()
+    with ppgs_phoneme_list():
+        phonemes = torch.tensor(pyfoal.convert.alignment_to_indices(
+            alignment,
+            hopsize=hopsize,
+            return_word_breaks=False,
+            times=times
+        ), dtype=torch.long)
+        phonemes = torch.nn.functional.one_hot(phonemes, num_classes=num_phonemes)
 
-def from_logits_to_pixels(logits, num_frames, textgrid_filename=None, padding=pad):
-    if ppgs.BACKEND is not None:
-        logits = ppgs.BACKEND(logits.T.unsqueeze(dim=0)).squeeze(dim=0).T
+    pixels = phonemes * 255 #scale to [0,255]
+    pixels = torch.nn.functional.pad(pixels, (0, 0, padding, padding))
+    pixels = pixels.unsqueeze(-1).repeat(1, 1, 3)
 
-    logits = logits.to(torch.float)
-
-    if textgrid_filename is not None:
-        #prep phoneme mapping in pyfoal
-        # Load alignment
-        alignment = pypar.Alignment(textgrid_filename)
-
-        hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
-        times = np.linspace(hopsize/2, (num_frames-1)*hopsize+hopsize/2, num_frames)
-        times[-1] = alignment.duration()
-        with ppgs_phoneme_list():
-            phonemes = torch.tensor(pyfoal.convert.alignment_to_indices(
-                alignment,
-                hopsize=hopsize,
-                return_word_breaks=False,
-                times=times
-            ), dtype=torch.long)
-            phonemes = torch.nn.functional.one_hot(phonemes, num_classes=logits.shape[-1]) * 255
-
-    pixels = torch.nn.functional.softmax(logits, dim=1) * 255 #softmax to get nice distribution
-    # pixels = torch.nn.functional.one_hot(torch.argmax(logits, dim=1), logits.shape[-1]) * 255
-    pixels = torch.nn.functional.pad(pixels, (0, 0, padding, padding)) #pad so playhead is centered
-    pixels = pixels.unsqueeze(-1).repeat(1,1,3) #unsqueeze and convert form greyscale to rgb
-    if textgrid_filename is not None: #change to monochrome logits and add ground truth
-        pixels[..., 1:] = 0 #logits are red
-        pixels[padding:-padding, ..., 2] = phonemes #phonemes are blue
     return pixels
 
+def from_ppg_to_pixels(ppg, padding=pad):
+    ppg = ppg.to(torch.float)
+    pixels = ppg * 255 #scale to [0,255]
+    # pixels = torch.nn.functional.one_hot(torch.argmax(ppg, dim=1), ppg.shape[-1]) * 255
+    pixels = torch.nn.functional.pad(pixels, (0, 0, padding, padding)) #pad so playhead is centered
+    pixels = pixels.unsqueeze(-1).repeat(1,1,3) #unsqueeze and convert form greyscale to rgb
+    return pixels
 
-def from_logits_to_image_file(logits, audio_filename, image_filename, textgrid_filename=None, font_filename=None, preprocess_only=False, labels=ppgs.PHONEME_LIST):
+def combine_pixels(red, blue=None, green=None):
+    combined = torch.clone(red)
+
+    #clear all but red channels
+    combined[..., 1:] = 0
+    if blue is not None:
+        combined[..., 2] = blue[..., 2]
+    if green is not None:
+        combined[..., 1] = green[..., 1]
+
+    return combined
+
+def from_ppg_to_image_file(ppg, audio_filename, image_filename, textgrid_filename=None, second_ppg=None, font_filename=None, labels=ppgs.PHONEME_LIST):
     scalefactor = (32, 32)
     audio = torchaudio.load(audio_filename)[0][0]
     num_frames = len(audio) // ppgs.HOPSIZE
-    pixels = from_logits_to_pixels(logits, num_frames=num_frames, textgrid_filename=textgrid_filename, padding=5*scalefactor[1]//scalefactor[0])
-    pixels = pixels.permute(1, 0, 2).to(torch.uint8)
-    pixels = pixels.numpy()
-    image = Image.fromarray(pixels)
+    padding = 5*scalefactor[1]//scalefactor[0]
+    ppg_pixels = from_ppg_to_pixels(ppg, padding=padding)
+    alignment_pixels = from_textgrid_to_pixels(textgrid_filename, num_frames, padding=padding) if textgrid_filename is not None else None
+    if second_ppg is None:
+        combined = combine_pixels(ppg_pixels, alignment_pixels)
+    else:
+        ppg2_pixels = from_ppg_to_pixels(second_ppg, padding=padding)
+        combined = combine_pixels(ppg_pixels, alignment_pixels, ppg2_pixels)
+    combined = combined.permute(1, 0, 2).to(torch.uint8)
+    combined = combined.numpy()
+    image = Image.fromarray(combined)
     image = image.resize((image.width*scalefactor[0], image.height*scalefactor[1]), Image.NEAREST)
     
     #add labels
@@ -102,16 +115,15 @@ def from_logits_to_image_file(logits, audio_filename, image_filename, textgrid_f
 
 
 #TODO make scalefactor a parameter (currently is a hardcoded constant)
-# def from_logits_to_video_file(logits, audio_filename, video_filename, preprocess_only=False, labels=ppgs.PHONEME_LIST + ['<blank>']):
-def from_logits_to_video_file(logits, audio_filename, video_filename, textgrid_filename=None, preprocess_only=False, labels=ppgs.PHONEME_LIST):
-    """Takes logits of shape time,categories and creates a visualization"""
+def from_ppg_to_video_file(ppg, audio_filename, video_filename, textgrid_filename=None, preprocess_only=False, labels=ppgs.PHONEME_LIST):
+    """Takes ppg of shape time,categories and creates a visualization"""
 
     audio = torchaudio.load(audio_filename)[0][0]
     audio_clip = mpy.AudioFileClip(audio_filename, fps=ppgs.SAMPLE_RATE)
 
     num_frames = len(audio) // ppgs.HOPSIZE
 
-    pixels = from_logits_to_pixels(logits, num_frames, textgrid_filename)
+    pixels = from_ppg_to_pixels(ppg, num_frames, textgrid_filename)
 
     #visual 'convolution' to create frames from ppg windows
     frames = []
@@ -127,7 +139,7 @@ def from_logits_to_video_file(logits, audio_filename, video_filename, textgrid_f
     # clip = clip.fl_image(invert)
     clip = clip.fl_image(lambda frame: resizer(frame, scalefactor)) #apply scaler filter
     
-    if not hasattr(from_logits_to_video_file, 'overlay'):
+    if not hasattr(from_ppg_to_video_file, 'overlay'):
         #Create overlay on first call, then cache
 
         #Create labels only once
@@ -158,10 +170,10 @@ def from_logits_to_video_file(logits, audio_filename, video_filename, textgrid_f
         overlay_mask = mpy.ImageClip(np.where(overlay_mask.get_frame(0)>0, 1.0, 0.0), ismask=True).set_duration(clip.duration) #make mask all-or-nothing
         overlay = overlay.set_mask(overlay_mask) #apply mask
 
-        from_logits_to_video_file.overlay = overlay
+        from_ppg_to_video_file.overlay = overlay
 
-    from_logits_to_video_file.overlay.set_duration(clip.duration)
-    composite = mpy.CompositeVideoClip([clip, from_logits_to_video_file.overlay])
+    from_ppg_to_video_file.overlay.set_duration(clip.duration)
+    composite = mpy.CompositeVideoClip([clip, from_ppg_to_video_file.overlay])
     clip.close()
     composite = composite.set_audio(audio_clip)
 
@@ -170,16 +182,33 @@ def from_logits_to_video_file(logits, audio_filename, video_filename, textgrid_f
     composite.write_videofile(video_filename, preset='ultrafast', audio_codec='aac', threads=8)
     composite.close()
 
+def from_ppg_file_to_file(ppg_filename, audio_filename, output_filename, textgrid_filename=None, second_ppg_filename=None, font_filename=None, mode='image'):
+    ppg = torch.load(ppg_filename).T
+    if second_ppg_filename is not None:
+        ppg2 = torch.load(second_ppg_filename).T
+    else:
+        ppg2 = None
+    if mode == 'image':
+        from_ppg_to_image_file(
+            ppg=ppg,
+            audio_filename=audio_filename,
+            image_filename=output_filename,
+            textgrid_filename=textgrid_filename,
+            second_ppg=ppg2,
+            font_filename=font_filename
+        )
 
-def from_file_to_file(audio_filename, video_filename, textgrid_filename=None, checkpoint=ppgs.DEFAULT_CHECKPOINT, font_filename=None, prepocess_only=False, gpu=None, mode='video'):
-    logits = ppgs.from_file(audio_filename, checkpoint=checkpoint, gpu=gpu).squeeze(dim=0).T
+def from_audio_file_to_file(audio_filename, output_filename, textgrid_filename=None, checkpoint=ppgs.DEFAULT_CHECKPOINT, font_filename=None, prepocess_only=False, gpu=None, mode='video'):
+    ppg = ppgs.from_file(audio_filename, checkpoint=checkpoint, gpu=gpu).squeeze(dim=0).T
     if mode == 'video':
-        from_logits_to_video_file(logits.cpu(), audio_filename, video_filename, textgrid_filename=textgrid_filename)
+        from_ppg_to_video_file(ppg.cpu(), audio_filename, output_filename, textgrid_filename=textgrid_filename)
     elif mode == 'image':
-        from_logits_to_image_file(logits.cpu(), audio_filename, video_filename, textgrid_filename=textgrid_filename, font_filename=font_filename)
+        from_ppg_to_image_file(ppg.cpu(), audio_filename, output_filename, textgrid_filename=textgrid_filename, font_filename=font_filename)
+    else:
+        raise ValueError(mode)
 
 
-def from_files_to_files(audio_filenames, output_dir, textgrid_filename=None, checkpoint=ppgs.DEFAULT_CHECKPOINT, font_filename=None, preprocess_only=False, gpu=None, mode='video'):
+def from_audio_files_to_files(audio_filenames, output_dir, textgrid_filename=None, checkpoint=ppgs.DEFAULT_CHECKPOINT, font_filename=None, preprocess_only=False, gpu=None, mode='video'):
     iterator = tqdm.tqdm(
         audio_filenames,
         desc='Creating visualizations',
@@ -189,17 +218,17 @@ def from_files_to_files(audio_filenames, output_dir, textgrid_filename=None, che
     for audio_filename in iterator:
         if mode == 'video':
             output_filename = str(Path(output_dir) / (Path(audio_filename).stem + '.mp4'))
-            from_file_to_file(audio_filename, output_filename, textgrid_filename=textgrid_filename, checkpoint=checkpoint, prepocess_only=preprocess_only, gpu=gpu)
+            from_audio_file_to_file(audio_filename, output_filename, textgrid_filename=textgrid_filename, checkpoint=checkpoint, prepocess_only=preprocess_only, gpu=gpu)
         elif mode == 'image':
             output_filename = str(Path(output_dir) / (Path(audio_filename).stem + '.jpg'))
-            from_file_to_file(audio_filename, output_filename, textgrid_filename=textgrid_filename, checkpoint=checkpoint, font_filename=font_filename, prepocess_only=preprocess_only, gpu=gpu, mode='image')
+            from_audio_file_to_file(audio_filename, output_filename, textgrid_filename=textgrid_filename, checkpoint=checkpoint, font_filename=font_filename, prepocess_only=preprocess_only, gpu=gpu, mode='image')
 
 
 
-def from_logits_to_video(logits, audio_filename, labels=ppgs.PHONEME_LIST):
+def from_ppg_to_video(ppg, audio_filename, labels=ppgs.PHONEME_LIST):
     temp_filename = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False).name
-    from_logits_to_video_file(
-        logits=logits,
+    from_ppg_to_video_file(
+        ppg=ppg,
         audio_filename=audio_filename,
         video_filename=temp_filename,
         labels=labels
@@ -215,20 +244,43 @@ def from_logits_to_video(logits, audio_filename, labels=ppgs.PHONEME_LIST):
     return video
 
 
-def from_logits_to_videos(batched_logits, audio_filenames, labels=ppgs.PHONEME_LIST):
+def from_ppgs_to_videos(batched_ppgs, audio_filenames, labels=ppgs.PHONEME_LIST):
     videos = []
-    for logits, audio_filename in zip(batched_logits, audio_filenames):
-        videos.append(from_logits_to_video(logits, audio_filename, labels=labels))
+    for ppg, audio_filename in zip(batched_ppgs, audio_filenames):
+        videos.append(from_ppg_to_video(ppg, audio_filename, labels=labels))
     return videos
 
 if __name__ == '__main__':
     # audio_filenames = [f'data/cache/arctic/cmu_us_bdl_arctic/arctic_a000{i}.wav' for i in range(1,2)]
-    import yapecs
-    parser = yapecs.ArgumentParser()
-    parser.add_argument('files', nargs='+')
-    args = vars(parser.parse_args())
-    print(args)
+    # import yapecs
+    # parser = yapecs.ArgumentParser()
+    # parser.add_argument('files', nargs='+')
+    # args = vars(parser.parse_args())
+    # print(args)
 
-    from_files_to_files(args['files'], './tmp/', mode='image', checkpoint='runs/w2v2fb/00200000.pt', font_filename='/home/cameron/conda/envs/p/fonts/arial.ttf', preprocess_only=False, gpu=0)
+    # from_files_to_files(args['files'], './tmp/', mode='image', checkpoint='runs/w2v2fb/00200000.pt', font_filename='/home/cameron/conda/envs/p/fonts/arial.ttf', preprocess_only=False, gpu=0)
+    # from_file_to_file(
+    #     './tmp/100038.wav',
+    #     './tmp/100038-w2v2fc-pretrained.jpg',
+    #     mode='image',
+    #     checkpoint=None,
+    #     textgrid_filename='./tmp/100038.textgrid',
+    #     font_filename='/home/cameron/conda/envs/p/fonts/arial.ttf',
+    #     gpu=None)
 
-    
+    # from_ppg_file_to_file(
+    #     ppg_filename='./tmp/100038-W2V2FC-pretrained-ppg.pt', # red
+    #     audio_filename='./tmp/100038.wav',
+    #     output_filename='./tmp/comparison.jpg',
+    #     # textgrid_filename='./tmp/100038.textgrid', # blue
+    #     second_ppg_filename='./tmp/100038-w2v2ft-ppg.pt', # green
+    #     font_filename='/home/cameron/conda/envs/p/fonts/arial.ttf'
+    # )
+
+    from_ppg_file_to_file(
+        ppg_filename='./tmp/100038-w2v2ft-ppg.pt', # red
+        audio_filename='./tmp/100038.wav',
+        output_filename='./tmp/w2v2ft.jpg',
+        textgrid_filename='./tmp/100038.textgrid', # blue
+        font_filename='/home/cameron/conda/envs/p/fonts/arial.ttf'
+    )
