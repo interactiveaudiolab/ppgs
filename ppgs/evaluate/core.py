@@ -84,7 +84,7 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
                 input_ppgs = input_ppgs.to(device)
                 lengths = lengths.to(device)
                 indices = indices.to(device)
-                logits = ppgs.from_features(input_ppgs, lengths, checkpoint=checkpoint, gpu=gpu)
+                logits = ppgs.from_features(input_ppgs, lengths, checkpoint=checkpoint, gpu=gpu, softmax=False)
 
                 # Update metrics
                 file_metrics.update(logits, indices)
@@ -99,6 +99,7 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
 
         # Make output directory
         directory = ppgs.EVAL_DIR / ppgs.CONFIG
+        print(directory)
         directory.mkdir(exist_ok=True, parents=True)
 
         # Write to json files
@@ -147,9 +148,12 @@ def save(metrics_dict, name, directory, save_json=True):
     for metric, value in list(metrics_dict.items()):
         if isinstance(value, dict):
             save(value, name, directory, save_json=False)
-        if isinstance(value, Figure):
+        elif isinstance(value, Figure):
             value.savefig(fig_dir / f'{metric.replace("/", "-")}.jpg', bbox_inches='tight', pad_inches=0)
             value.savefig(fig_dir / f'{metric.replace("/", "-")}.pdf', bbox_inches='tight', pad_inches=0)
+            del metrics_dict[metric]
+        elif isinstance(value, torch.Tensor) and value.dim() >= 1:
+            torch.save(value, fig_dir / f'{metric.replace("/", "-")}.pt')
             del metrics_dict[metric]
     if save_json:
         with open(directory / f'{name}.json', 'w') as file:
