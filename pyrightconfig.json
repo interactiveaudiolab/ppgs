@@ -1,0 +1,8 @@
+{
+    "exclude": [
+        "data/",
+        "build/",
+        "eval/",
+        "tmp/"
+    ]
+}
