@@ -54,7 +54,7 @@ def from_audios(
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Cache model
-    if not hasattr(from_audio, 'model'):
+    if not hasattr(from_audios, 'model'):
         from_audios.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
             config,
             checkpoint_file,

@@ -45,6 +45,8 @@ def from_features(
             A tensor encoding ppgs with shape BATCH x DIMS x TIME
     """
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+    features = features.to(device)
+    lengths = lengths.to(device)
     if not hasattr(from_features, 'model'):
         from_features.model = ppgs.load.model(checkpoint=checkpoint).to(device)
         from_features.model.train(False)
@@ -142,7 +144,7 @@ def from_dataloader(
             output = Path(output)
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
     pool = mp.get_context('spawn').Pool(save_workers) if save_workers > 0 else nullcontext()
-    with pool:
+    with pool, torch.inference_mode():
         for audios, lengths, audio_files in iterator:
             audios = audios.to(device)
             lengths = lengths.to(device)

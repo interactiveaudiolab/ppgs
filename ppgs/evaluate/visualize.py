@@ -87,18 +87,18 @@ def combine_pixels(red, blue=None, green=None):
 
     return combined
 
-def from_ppg_to_image_file(ppg, audio_filename, image_filename, textgrid_filename=None, second_ppg=None, font_filename=None, labels=ppgs.PHONEME_LIST):
-    scalefactor = (32, 32)
+def from_ppg_to_image_file(ppg, audio_filename, image_filename, textgrid_filename=None, second_ppg=None, font_filename=None, labels=ppgs.PHONEME_LIST, scalefactor=(32, 32), padding=None):
     audio = torchaudio.load(audio_filename)[0][0]
     num_frames = len(audio) // ppgs.HOPSIZE
-    padding = 5*scalefactor[1]//scalefactor[0]
+    if padding is None:
+        padding = 5*scalefactor[1]//scalefactor[0]
     ppg_pixels = from_ppg_to_pixels(ppg, padding=padding)
     alignment_pixels = from_textgrid_to_pixels(textgrid_filename, num_frames, padding=padding) if textgrid_filename is not None else None
     if second_ppg is None:
         combined = combine_pixels(ppg_pixels, alignment_pixels)
     else:
         ppg2_pixels = from_ppg_to_pixels(second_ppg, padding=padding)
-        combined = combine_pixels(ppg_pixels, alignment_pixels, ppg2_pixels)
+        combined = combine_pixels(ppg_pixels, green=alignment_pixels, blue=ppg2_pixels)
     combined = combined.permute(1, 0, 2).to(torch.uint8)
     combined = combined.numpy()
     image = Image.fromarray(combined)
@@ -123,7 +123,7 @@ def from_ppg_to_video_file(ppg, audio_filename, video_filename, textgrid_filenam
 
     num_frames = len(audio) // ppgs.HOPSIZE
 
-    pixels = from_ppg_to_pixels(ppg, num_frames, textgrid_filename)
+    pixels = from_ppg_to_pixels(ppg, num_frames)
 
     #visual 'convolution' to create frames from ppg windows
     frames = []

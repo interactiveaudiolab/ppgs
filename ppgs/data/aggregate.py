@@ -55,9 +55,15 @@ def aggregate(
                     raise ValueError('two or more files have the same stem with different extensions')
                 sink_files += [sink / (file.stem + sink_extension) for file in source_files]
             else:
-                source_files += source
+                if isinstance(source, list):
+                    source_files += source
+                else:
+                    source_files.append(source)
                 if sink.is_dir():
                     raise OSError(f'sink {sink} is a directory')
-                sink_files += sink
+                if isinstance(sink, list):
+                    sink_files += sink
+                else:
+                    sink_files.append(sink)
         return source_files, sink_files
                 
