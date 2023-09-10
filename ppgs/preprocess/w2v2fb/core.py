@@ -59,7 +59,7 @@ def from_audios(
         from_audios.model = Wav2Vec2Model.from_pretrained(config).to(device)
 
     # Maybe resample
-    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
+    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).to(device)
     lengths = torch.ceil(lengths * (SAMPLE_RATE/sample_rate)).to(torch.long)
     pad = WINDOW_SIZE//2 - HOP_SIZE//2
     padded_audio = torch.nn.functional.pad(audio, (pad, pad)).squeeze(dim=1)

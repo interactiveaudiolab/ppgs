@@ -389,22 +389,34 @@ class ConfusionMatrix:
 ###############################################################################
 # Additional Metric Functions
 ###############################################################################
-def jensenShannonDivergence(p_tensor, q_tensor, as_logits=False):
+def jensenShannonDivergence(p_tensor, q_tensor, as_logits=False, reduction='sum'):
     """Computes the pointwise Jensen Shannon divergence between tensors sampled from P and Q
     Note that p_tensor and q_tensor are both (possibly batched) probability tensors, NOT in the log space
     unless as_logits=True, in which case BOTH p_tensor and q_tensor are taken as probability logits"""
     m_tensor = (p_tensor+q_tensor)/2
     if not as_logits:
         kl_pm = torch.nn.functional.kl_div(torch.log(m_tensor), p_tensor, reduction="none")
-        kl_pm = torch.nan_to_num(kl_pm).sum(dim=-1)
+        kl_pm = torch.nan_to_num(kl_pm)
+        if reduction == 'sum':
+            kl_pm = kl_pm.sum(dim=-1)
         kl_qm = torch.nn.functional.kl_div(torch.log(m_tensor), q_tensor, reduction="none")
-        kl_qm = torch.nan_to_num(kl_qm).sum(dim=-1)
+        kl_qm = torch.nan_to_num(kl_qm)
+        if reduction == 'sum':
+            kl_qm = kl_qm.sum(dim=-1)
     else:
         kl_pm = torch.nn.functional.kl_div(m_tensor, p_tensor, log_target=True, reduction="none")
-        kl_pm = torch.nan_to_num(kl_pm).sum(dim=-1)
+        kl_pm = torch.nan_to_num(kl_pm)
+        if reduction == 'sum':
+            kl_pm = kl_pm.sum(dim=-1)
         kl_qm = torch.nn.functional.kl_div(m_tensor, q_tensor, log_target=True, reduction='none')
-        kl_qm = torch.nan_to_num(kl_qm).sum(dim=-1)
-    return torch.sqrt((kl_pm+kl_qm)/2).sum(dim=0)
+        kl_qm = torch.nan_to_num(kl_qm)
+        if reduction == 'sum':
+            kl_qm = kl_qm.sum(dim=-1)
+    combined = (kl_pm+kl_qm)/2
+    combined[combined < 0] = 0
+    sqrt = torch.sqrt(combined)
+    summed = sqrt.sum(dim=0)
+    return summed
 
 
 if __name__ == '__main__':

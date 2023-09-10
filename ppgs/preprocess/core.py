@@ -149,11 +149,12 @@ def from_audio(audio, representation=None, sample_rate=ppgs.SAMPLE_RATE, gpu=Non
         setattr(from_audio, representation, representation_module.from_audio)
 
     #Compute representation
-    return getattr(from_audio, representation)(
-        audio, 
-        sample_rate=sample_rate,
-        gpu=gpu
-    )
+    with torch.autocast('cuda' if gpu is not None else 'cpu'):
+        return getattr(from_audio, representation)(
+                audio, 
+                sample_rate=sample_rate,
+                gpu=gpu
+            )
 
 ###############################################################################
 # Utilities

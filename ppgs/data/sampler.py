@@ -71,7 +71,8 @@ class Sampler(BatchSampler):
             bucket = bucket[
                 torch.randperm(len(bucket), generator=generator).tolist()]
 
-            # Get current batch size
+            # Get current batch size 
+            #TODO fix this assumption that MAX_FRAMES > max_length
             size = ppgs.MAX_FRAMES // max_length
 
             # Make batches
