@@ -38,7 +38,8 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
     else:
         checkpoint = model_source
 
-    with ExitStack() as stack:
+    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+    with torch.autocast(device.type):
     
         # Start benchmarking
         ppgs.BENCHMARK = True
@@ -58,7 +59,6 @@ def datasets(datasets, model_source: Path=None, gpu=None, partition=None):
         # Aggregate metrics over all datasets
         aggregate_metrics = ppgs.evaluate.Metrics('aggregate', include_figures=True)
 
-        device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
         # Evaluate each dataset
         for dataset in datasets:

@@ -63,10 +63,17 @@ def CTC(logits, targets):
     mean_loss = loss.mean()
     return mean_loss
 
+def balanced(input, target):
+    if not hasattr(balanced, 'weights'):
+        balanced.weights = torch.load(ppgs.CLASS_WEIGHT_FILE).to(input.device)
+    return torch.nn.functional.cross_entropy(input, target, balanced.weights)
+
 
 def Loss(kind=ppgs.LOSS_FUNCTION):
     if kind == 'CE':
         return torch.nn.functional.cross_entropy
+    if kind == 'balanced':
+        return balanced
     if kind == 'CTC':
         return CTC
     raise ValueError('Unknown loss function:', kind)
