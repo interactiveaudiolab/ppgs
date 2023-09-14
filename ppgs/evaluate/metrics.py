@@ -248,13 +248,19 @@ class JensenShannon:
 
 class DistanceMatrix:
 
-    def __init__(self, display_suffix):
+    def __init__(self, display_suffix, weighted=True):
         self.display_suffix = display_suffix
+        if weighted:
+            self.weights = torch.load(ppgs.CLASS_WEIGHT_FILE)
+        else:
+            self.weights = torch.ones(ppgs.OUTPUT_CHANNELS)
         self.reset()
 
     def _normalized(self):
-        probabilities = (self.matrix / self.matrix.sum(dim=1)[:, None])
-        normalized = probabilities
+        # col_normed = self.matrix / self.matrix.sum(dim=0)[None, :]
+        # row_normed = torch.nn.functional.log_softmax(col_normed, dim=1)
+        row_normed = self.matrix / self.matrix.sum(dim=1)[:, None]
+        normalized = row_normed
         # total = self.count.sum()
         # scaler = self.count / total
         # for col, val in enumerate(scaler):
@@ -275,10 +281,39 @@ class DistanceMatrix:
         ax.locator_params('both', nbins=num_phones)
         ax.set_xticklabels([''] + phones, rotation='vertical')
         ax.set_yticklabels([''] + phones)
+        ax.tick_params(axis='x', top=True, bottom=True, labelbottom=True, labeltop=True)
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         ax.figure.colorbar(mat, cax=cax)
         figure.align_labels()
+
+        phone_pairs = [
+            ('f', 'v'),
+            ('s', 'z'),
+            ('sh', 'zh')
+        ]
+
+        padding = 0.5 + 0.2
+
+        for phone0, phone1 in phone_pairs:
+            idx0 = ppgs.PHONEME_LIST.index(phone0)
+            idx1 = ppgs.PHONEME_LIST.index(phone1)
+            indices = [idx0, idx1]
+            for center in [indices, list(reversed(indices))]:
+                box_start_coords = (center[0]-padding, center[1]-padding)
+                box_width = padding*2
+                box_height = padding*2
+                ax.add_patch(
+                    plt.Rectangle(
+                        box_start_coords,
+                        box_width,
+                        box_height,
+                        facecolor='none',
+                        edgecolor='red',
+                        linewidth=0.5
+                    )
+                )
+
         return figure
 
     def __call__(self):
@@ -297,11 +332,15 @@ class DistanceMatrix:
         if ppgs.BACKEND is not None:
             predicted_logits = ppgs.BACKEND(predicted_logits)
 
+        if self.weights.device != target_indices.device:
+            self.weights = self.weights.to(target_indices.device)
+
         predicted_logits = predicted_logits.to(torch.float32)
 
         predicted_logits = torch.transpose(predicted_logits, 1, 2) #Batch,Class,Time->Batch,Time,Class
         predicted_logits = torch.flatten(predicted_logits, 0, 1) #Batch,Time,Class->Batch*Time,Class
         predicted_probs = torch.nn.functional.softmax(predicted_logits, dim=1)
+        predicted_probs = torch.mul(predicted_probs, self.weights[None, :])
         predicted_indices = predicted_probs.argmax(dim=1)
         target_indices = torch.flatten(target_indices)
 
