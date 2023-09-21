@@ -16,3 +16,6 @@ ppgs/assets/checkpoints/*
 
 tmp/
 ppgs/config/secrets.py
+notebooks/*
+notebooks/.ipynb_checkpoints/
+!notebooks/*.ipynb
