@@ -18,4 +18,4 @@ tmp/
 ppgs/config/secrets.py
 notebooks/*
 !notebooks/*.ipynb
-notebooks/.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/*
