@@ -69,6 +69,8 @@ def from_textgrid_to_pixels(textgrid_filename, num_frames, num_phonemes=len(ppgs
 
 def from_ppg_to_pixels(ppg, padding=pad):
     ppg = ppg.to(torch.float)
+    if ppg.dim() == 3:
+        ppg = ppg.squeeze(dim=0).T
     pixels = ppg * 255 #scale to [0,255]
     # pixels = torch.nn.functional.one_hot(torch.argmax(ppg, dim=1), ppg.shape[-1]) * 255
     pixels = torch.nn.functional.pad(pixels, (0, 0, padding, padding)) #pad so playhead is centered
