@@ -19,6 +19,8 @@ DEFAULT_CHECKPOINT = ppgs.ASSETS_DIR / 'checkpoints' / 'default.pt'
 # Default configuration file
 DEFAULT_CONFIGURATION = ppgs.ASSETS_DIR / 'configs' / 'ppgs.py'
 
+# weighting file for class balancing
+CLASS_WEIGHT_FILE = ppgs.ASSETS_DIR / 'class_weights.pt'
 
 ###############################################################################
 # Representation

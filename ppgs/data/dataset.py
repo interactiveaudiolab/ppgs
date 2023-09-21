@@ -102,6 +102,8 @@ class Dataset(torch.utils.data.Dataset):
         stem = self.stems[index]
 
         feature_values = []
+        if isinstance(self.features, str):
+            self.features = [self.features]
         for feature in self.features:
             if feature == 'wav':
                 audio = ppgs.load.audio(self.metadata.audio_files[index])
