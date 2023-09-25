@@ -1,69 +1,23 @@
-from nltk import download, corpus, data
-from nltk.tokenize import TweetTokenizer
-from .align import align_one_to_many
-# import pypar
 import csv
-import tqdm
 
-try:
-    data.find('tokenizers/punkt')
-except LookupError:
-    download('punkt')
+import nltk
 
-try:
-    lookup = corpus.cmudict.dict()
-except LookupError:
-    download('cmudict')
-    lookup = corpus.cmudict.dict()
-
-tokenizer = TweetTokenizer()
-
-def remove_non_alpha(string):
-    return ''.join([char for char in string if char.isalpha()])
+import ppgs
 
 
-def get_word_phones(word):
-    #TODO handle unusual compound words
-    #TODO figure out what to do for unusual names
-    try:
-        pronunciations = lookup[word.lower()]
-    except KeyError:
-        if '-' in word:
-            word_parts = word.split('-')
-            return get_word_phones(word_parts[0]) + get_word_phones(word_parts[1])
-        elif word[-2:] == "'s":
-            return get_word_phones(word[:-2]) + ['S']
-        else:
-            raise KeyError(word)
+###############################################################################
+# Arctic text data wrangling
+###############################################################################
 
-    pronunciations_cleaned = [[remove_non_alpha(phn).lower() for phn in pro] for pro in pronunciations]
-
-    return pronunciations_cleaned
-
-
-
-def word_align_phones(word_seq, phone_seq):
-    """Uses CMUDICT to align phoneme sequences to word sequences"""
-    
-    word_seq_phones = [get_word_phones(word) for word in word_seq]
-
-    word_seq_phones = [phones[0] for phones in word_seq_phones]
-    #TODO explore using multiple phonetic transcriptions per word
-
-    alignment = align_one_to_many(
-        word_seq,
-        {word_seq[i]: word_seq_phones[i] for i in range(len(word_seq))},
-        phone_seq,
-        as_splits=True
-    )
-
-    return alignment
 
 def from_sequence_data(phone_seq, phone_start, phone_end, word_seq=None):
+    """Align words and phonemes, and fill gaps with silence"""
     if word_seq:
 
-        last_stop = phone_end[-1]
+        # Get audio duration
+        duration = phone_end[-1]
 
+        # Remove silence
         idx = 0
         while idx < len(phone_seq):
             if phone_seq[idx] == 'pau':
@@ -73,94 +27,179 @@ def from_sequence_data(phone_seq, phone_start, phone_end, word_seq=None):
             else:
                 idx += 1
 
+        # Align phoneme and word sequences
         alignment = word_align_phones(word_seq, phone_seq)
         assert len(alignment) == len(word_seq) + 1
+
+        # Extract word alignment
         words = []
         for i in range(1, len(alignment)):
             word_start = phone_start[alignment[i-1]]
             word_end = phone_end[alignment[i]-1]
             words.append([word_start, word_end, word_seq[i-1]])
 
-        #add silences back in
+        # Add silences back in
         silences = []
         for i in range(0, len(words)+1):
-            if i==0: #for preceding silence
+
+            # Get start time
+            if i == 0:
                 prior = 0
             else:
-                prior = words[i-1][1] #previous end
-            if i == len(words): #for trailing silence
-                current = last_stop
+                prior = words[i-1][1]
+
+            # Get end time
+            if i == len(words):
+                current = duration
             else:
-                current = words[i][0] #current start
+                current = words[i][0]
+
+            # Fill gaps with silence
             if current - prior > 1e-3:
                 silences.append(([prior, current, 'pau'], i))
+
+        # Update alignment
         for silence, idx in reversed(silences):
             words.insert(idx, silence)
 
         return words
-        
+
     else:
+
         return zip(phone_start, phone_end, phone_seq)
 
 
-
 def from_file(phone_file, prompt=None):
-    words = None
+    """Align words and phonemes from files, and fill gaps with silence"""
+    # Maybe tokenize text to retrieve words
     if prompt is not None:
-        words = tokenizer.tokenize(prompt)
-        words = [word.lower() for word in words if not (len(word) == 1 and not word.isalpha())]
 
+        # Maybe cache tokenizer
+        if not hasattr(from_file, 'tokenizer'):
+
+            # Download tokenizer if necessary
+            try:
+                nltk.data.find('tokenizers/punkt')
+            except LookupError:
+                nltk.download('punkt')
+
+            # Cache tokenizer
+            from_file.tokenizer = nltk.tokenize.TweetTokenizer()
+
+        # Tokenize
+        words = from_file.tokenizer.tokenize(prompt)
+
+        # Lint
+        words = [
+            word.lower() for word in words
+            if not (len(word) == 1 and not word.isalpha())]
+
+    else:
+        words = None
+
+    # Load phoneme alignment
     with open(phone_file, 'r') as f:
         reader = csv.reader(f)
         next(reader) #skip header
         phone_end, phone_seq = list(map(list, zip(*reader)))
         phone_end = [float(stop) for stop in phone_end]
         phone_start = [0] + phone_end[:-1]
-        
-    alignment = from_sequence_data(phone_seq, phone_start, phone_end, word_seq=words)
-    return alignment
+
+    # Align phonemes and words
+    return from_sequence_data(phone_seq, phone_start, phone_end, words)
+
 
 def from_file_to_file(phone_file, output_file, prompt=None):
+    """Align words and phonemes from files, fill gaps with silence, and save"""
+    # Align
     alignment = from_file(phone_file, prompt=prompt)
+
+    # Save
     with open(output_file, 'w') as f:
         writer = csv.writer(f)
         writer.writerow(['start', 'end', 'word'])
         writer.writerows(alignment)
 
+
 def from_files_to_files(phone_files, output_files, prompt_file=None):
-    print(phone_files[0], output_files[0], prompt_file)
+    """Align words and phonemes from files, fill gaps with silence, and save"""
     prompts = None
     if prompt_file is not None:
         with open(prompt_file, 'r') as f:
             reader = csv.reader(f)
             next(reader) #skip header
-            
             prompts = {k: v for k, v in reader}
 
-    iterator = tqdm.tqdm(
+    for phone_file, output_file in ppgs.iterator(
         zip(phone_files, output_files),
-        desc='Creating phoneme alignment representation',
-        total=len(phone_files),
-        dynamic_ncols=True
-    )
-
-    failed_alignments = []
-    for phone_file, output_file in iterator:
-        prompt = None
+        'Creating phoneme alignment representation',
+        total=len(phone_files)
+    ):
         if prompts:
+
             try:
+
+                # Get transcript
                 prompt = prompts[phone_file.stem]
-            except KeyError:
-                failed_alignments.append((phone_file.stem, phone_file.parents[1].stem, 'Prompt lookup'))
+
+                # Align
+                from_file_to_file(phone_file, output_file, prompt=prompt)
+
+            except (KeyError, ValueError):
+
+                # Recover words from phonemes and align
                 from_file_to_file(phone_file, output_file)
-                continue
+
+
+###############################################################################
+# Utilities
+###############################################################################
+
+
+def get_word_phones(word):
+    """Convert word to phonemes using CMU dictionary"""
+    if not hasattr(get_word_phones, 'lookup'):
         try:
-            from_file_to_file(phone_file, output_file, prompt=prompt)
-        except KeyError as e:
-            failed_alignments.append((phone_file.stem, phone_file.parents[1].stem, e))
-            from_file_to_file(phone_file, output_file)
-        except ValueError:
-            failed_alignments.append((phone_file.stem, phone_file.parents[1].stem, 'Alignment failure'))
-            from_file_to_file(phone_file, output_file)
-    # print(failed_alignments)
-    
+            get_word_phones.lookup = nltk.corpus.cmudict.dict()
+        except LookupError:
+            nltk.download('cmudict')
+            get_word_phones.lookup = nltk.corpus.cmudict.dict()
+
+
+    try:
+
+        # Query dictionary for word
+        pronunciations = get_word_phones.lookup[word.lower()]
+
+    except KeyError:
+
+        # Try again after some common linting
+        if '-' in word:
+            word_parts = word.split('-')
+            return (
+                get_word_phones(word_parts[0]) +
+                get_word_phones(word_parts[1]))
+        elif word[-2:] == "'s":
+            return get_word_phones(word[:-2]) + ['S']
+
+        # Give up
+        else:
+            raise KeyError(word)
+
+    # Remove numerics from phoneme labels
+    return [
+        [''.join([c for c in phn if c.isalpha()]).lower() for phn in pro]
+        for pro in pronunciations]
+
+
+def word_align_phones(word_seq, phone_seq):
+    """Align phoneme sequences to word sequences"""
+    # Get corresponding phonemes
+    word_seq_phones = [get_word_phones(word)[0] for word in word_seq]
+
+    # Align phonemes and words
+    return ppgs.data.download.datasets.arctic.words.align.align_one_to_many(
+        word_seq,
+        {word_seq[i]: word_seq_phones[i] for i in range(len(word_seq))},
+        phone_seq,
+        as_splits=True)

@@ -1,16 +1,19 @@
 import torch
-import tqdm
-from transformers.utils import logging
+import transformers
 
 import ppgs
-from ppgs.model.transformer import mask_from_lengths
+
+# Turn off logging
+transformers.utils.logging.set_verbosity_error()
+
 
 ###############################################################################
 # Constants
 ###############################################################################
 
+
 # W2V2 FB pretrained model config name
-W2V2FB_CONFIG = "facebook/wav2vec2-base"
+W2V2FB_CONFIG = 'facebook/wav2vec2-base'
 
 # Sample rate of the PPG model
 SAMPLE_RATE = 16000
@@ -21,39 +24,27 @@ HOP_SIZE = 160
 
 
 ###############################################################################
-# Phonetic posteriorgram
+# Preprocess fine-tuned wav2vec 2.0 features
 ###############################################################################
 
-logging.set_verbosity_error()
 
 def from_audios(
     audio,
     lengths,
-    sample_rate=None,
+    sample_rate=ppgs.SAMPLE_RATE,
     config=None,
     gpu=None):
     """Compute W2V2FB latents from audio"""
-    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
-
-    # Maybe resample
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze(dim=1)
-    pad = WINDOW_SIZE//2 - HOP_SIZE//2
-    padded_audio = torch.nn.functional.pad(audio, (pad, pad))
-    return padded_audio
+    pad = WINDOW_SIZE // 2 - HOP_SIZE // 2
+    return torch.nn.functional.pad(audio, (pad, pad))
 
-def from_audio(
-    audio,
-    sample_rate=None,
-    config=None,
-    gpu=None):
+
+def from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, config=None, gpu=None):
     """Compute audio tensor latents from audio"""
-    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
-
-    # Maybe resample
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze(dim=1)
-    pad = WINDOW_SIZE//2 - HOP_SIZE//2
-    padded_audio = torch.nn.functional.pad(audio, (pad, pad))
-    return padded_audio
+    pad = WINDOW_SIZE // 2 - HOP_SIZE // 2
+    return torch.nn.functional.pad(audio, (pad, pad))
 
 
 def from_file(audio_file, gpu=None):
@@ -69,10 +60,9 @@ def from_file_to_file(audio_file, output_file, gpu=None):
 
 def from_files_to_files(audio_files, output_files, gpu=None):
     """Compute audio tensors from files and save to files"""
-    iterator = tqdm.tqdm(
+    for audio_file, output_file in ppgs.iterator(
         zip(audio_files, output_files),
         desc='Extracting W2V2FT latents',
-        total=len(audio_files),
-        dynamic_ncols=True)
-    for audio_file, output_file in iterator:
+        total=len(audio_files)
+    ):
         from_file_to_file(audio_file, output_file, gpu)

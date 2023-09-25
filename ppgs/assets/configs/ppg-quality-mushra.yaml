@@ -26,9 +26,7 @@ crowdsource:
   title: Audio Listening Test
 
   # The survey description shown to potential participants
-  description: "Headphones required. Participants that complete the survey and correctly answer the attention-check questions will receive $3.34 through Amazon Mechanical Turk.
-
-You are invited to take part in Northwestern University research study - STU00216820 Evaluation of the quality of audio generation and modification algorithms, headed by Principal Investigator Prof. Bryan Pardo.  The purpose of this study is to evaluate the quality of the output of computer algorithms designed to modify or generate speech or music. If you participate, you will be asked to complete a consent form and then take a survey. In the survey, you will listen to a series of audio examples and rate or compare them. A small number of questions in the survey are very easy attention checks with obvious correct answers. We expect it will take roughly 15 minutes to complete the survey. Participants that complete the survey and correctly answer the attention-check questions will receive $3.34 through Amazon Mechanical Turk.  To contact us about this study, please reach out to Max Morrison at maxrmorrison@gmail.com."
+  description: "Headphones required. Participants that complete the survey and correctly answer the attention-check questions will receive $3.50 ($0.50 on accept; $3.00 bonus) through Amazon Mechanical Turk. Estimated 15 minutes ($14 / hour)."
 
   # Keywords that participants can use to find your survey
   keywords: audio, speech, listening, headphones
@@ -41,27 +39,27 @@ You are invited to take part in Northwestern University research study - STU0021
 
     # Only allow participants who have previously completed at least this
     # number of tasks
-    approved_tasks: 250
+    approved_tasks: 1000
 
     # Only allow participants who have a sufficiently high acceptance rating
-    approval_rating: 98
+    approval_rating: 99
 
   # How much you pay participants (in US dollars)
   # E.g., 2.00 is two dollars; 0.50 is fifty cents
   payment:
 
     # The amount that you pay even if they don't pass prescreening
-    base: 0.45
+    base: 0.50
 
     # The additional amount that you pay participants who complete evaluation
-    completion: 2.89
+    completion: 3.00
 
   # How long to wait for things (in seconds)
   duration:
 
     # Total lifespan of the evaluation, after which the evaluation is no
     # longer available for participants to take
-    total: 604800
+    total: 86400
 
     # The maximum time you will allow a participant to spend on your task
     assignment: 5400
@@ -70,72 +68,31 @@ You are invited to take part in Northwestern University research study - STU0021
     autoapprove: 172800
 
 # The number of participants
-participants: 30
+participants: 50
 
 # The number of evaluations each participant performs
-samples_per_participant: 15
+samples_per_participant: 10
 
 # A seed to use for deterministic random sampling
 random_seed: 0
 
 # Introduction text to display on the first page participants visit
+# N.B. This is not the actual IRB-approved survey text used in our studies,
+# as we do not want others claiming to be administering our IRB-approved study.
 welcome_text: "
-  ### **Consent to Participate in Research**
-\n##### **Title of Research Study:**  Evaluation of the quality of audio generation and modification algorithms
-\n##### **Principal Investigator:** Bryan Pardo
-\n##### **Supported By:** This research is supported by the Northwestern University Computer Science Department.
-\n##### **Key Information about this research study:**
-\n\n* ##### The purpose of this study is to evaluate the quality of the output of algorithms designed to modify or generate speech or music.
-\n* ##### You will be asked to take a survey where you will listen to a series of audio examples and rate or compare them. A small number of questions in the survey will be very easy attention checks with obvious correct answers. The remainder of the questions will be more difficult.
-\n* ##### We expect that it will take you roughly 15 minutes to complete this study.
-\n* ##### The primary potential risk of participation is boredom.
-\n* ##### There is no intrinsic benefit to you from completing this study.
-\n* ##### Participants that complete the study and that correctly answer the attention-check questions will receive $3.34.
-
-\n ##### **Why am I being asked to take part in this research study?**
-\n ##### We are asking you to take part in this research study because we are interested in the opinions of members of the general public about the sonic quality of the output of our algorithms. Any resident of the United States of America that is at least 18 years of age is eligible to take part.
-\n ##### **How many people will be in this study?**
-\n ##### We expect about 30 people will be in this research study.
-\n ##### **What should I know about participating in a research study?**
-\n\n* ##### Whether or not you take part is up to you.
-\n* ##### You can choose not to take part.
-\n* ##### You can agree to take part and later change your mind.
-\n* ##### Your decision will not be held against you.
-\n* ##### You can ask all the questions you want before you decide.
-\n* ##### You do not have to answer any question you do not want to answer.
-
-\n ##### **What happens if I say, “Yes, I want to be in this research”?**
-\n ##### You will first be presented a two-question listening test where you're presented a series of tones and asked to report how many tones you hear. You will then be asked a series of multiple-choice questions where you are asked to evaluate audio files that are presented to you with each question. You will then be asked about your listening environment. We will then provide you a code number you can use to be reimbursed for your time through Amazon Mechanical Turk. The entire process should take roughly 15 minutes.
-\n ##### **Will being in this study help me in any way?**
-\n ##### We cannot promise any benefits to you or others from your taking part in this research.
-\n ##### **Is there any way being in this study could be bad for me?**
-\n ##### We do not forsee any risks from participating in this study.
-\n ##### **What happens if I do not want to be in this research, or I change my mind later?**
-\n ##### Participation in research is voluntary. You can decide to participate or not to participate.  If you do not want to be in this study or withdraw from the study at any point, your decision will not affect your relationship with Northwestern University/Northwestern Memorial Healthcare. You can leave the research at any time and it will not be held against you. If you decide to withdraw from this study, any data already collected from you will be destroyed.
-\n ##### **How will the researchers protect my information?**
-\n ##### We will collect no personally identifiable information beyond your Amazon Mechanical Turk Worker ID, which is necessary for paying you. Once you have been paid, we will delete this information from our records. All responses will be stored on a password protected server.
-\n ##### **Who will have access to the information collected during this research study?**
-\n ##### Efforts will be made to limit the use and disclosure of your personal information, including research study records, to people who have a need to review this information. We cannot promise complete secrecy.
-There are reasons why information about you may be used or seen by other people beyond the research team during or after this study. Examples include:
-\n\n *	##### University officials, government officials, study funders, auditors, and the Institutional Review Board may need access to the study information to make sure the study is done in a safe and appropriate manner.
-\n ##### **How might the information collected in this study be shared in the future?**
-\n ##### We will not have access to any personally identifiable information beyond your Amazon Mechanical Turk Worker ID. We will delete your worker ID from our records, once you have been paid. De-identified data from this study may be shared with the research community, with journals in which study results are published, and with databases and data repositories used for research.
-\n ##### **Will I be paid or given anything for taking part in this study?**
-\n ##### A small number of questions in the survey will be very easy attention-checks with obvious correct answers. You will receive $3 through Amazon Mechanical Turk for your participation in this study if you complete the survey and correctly answer the attention checks. You will receive $.50 if you incorrectly answer the listening test or attention checks.
-\n ##### **Who can I talk to?**
-\n ##### If you have questions, concerns, or complaints, you can contact the Principal Investigator Bryan Pardo by calling 847-491-7184 or by emailing  pardo@northwestern.edu. Please put “MTurk Study” in the subject line of the email to ensure a speedy reply.
-This research has been reviewed and approved by an Institutional Review Board (“IRB”)  an IRB is a committee that protects the rights of people who participate in research studies. You may contact the IRB by phone at (312) 503-9338 or by email at irb@northwestern.edu if:
-\n\n * ##### Your questions, concerns, or complaints are not being answered by the research team.
-\n* ##### You cannot reach the research team.
-\n*	##### You want to talk to someone besides the research team.
-\n* ##### You have questions about your rights as a research participant.
-\n* ##### You want to get information or provide input about this research.
-
-\n ##### If you want a copy of this consent for your records, you can print it from the screen.
-\n ##### If you cannot print the consent and would like a copy for your records, contact the Principal Investigator with the contact information above.
-\n ##### If you wish to participate, please click the “I Agree” button and you will be taken to the survey.
-\n ##### If you do not wish to participate in this study, please select “I Disagree” or select X in the corner of your browser.
-  "
+  # **Welcome!**\n
+  We are conducting a research study to evaluate the
+  quality of an audio processing algorithm. If you agree to participate, you
+  will be asked to fill out a brief questionnaire. You will then be asked to
+  evaluate a series of audio samples.\n
+  ### **Privacy**\nThis survey is completely anonymous. We will NOT collect
+  any personally identifiable information. Your participation in this study
+  does not involve any risk to you beyond that of your everyday life.\n
+  ### **Consent**\nBy pressing **I Agree**, you confirm you are willing
+  to participate in this research. However, you are free to withdraw your
+  participation at any time.\n
+  ### **Contact Information**\nIf you have any questions or feedback,
+  please contact <contact info>."
 
 # Questions that participants must answer before they are permitted to
 # perform evaluation. If a multiple choice question has correct_answer
@@ -164,4 +121,4 @@ survey_instructions: "
   to **rate the quality of each audio file from 0 (worst) to 100 (best)**. The
   higher-quality audio files are the ones that are more natural sounding, or
   have fewer audio artifacts (e.g., clicks, pops, noise, or otherwise sound 'unnatural').
-  **Note** - Each slider cannot be moved until its corresponding audio file has been listened to in its entirety. "
+  **Note** - Each slider cannot be moved until its corresponding audio file has been listened to in its entirety."

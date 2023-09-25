@@ -1,18 +1,19 @@
 import torch
-import tqdm
-from transformers import Wav2Vec2Model
-from transformers.utils import logging
+import transformers
 
 import ppgs
-from ppgs.model.transformer import mask_from_lengths
+
+# Turn off logging
+transformers.utils.logging.set_verbosity_error()
+
 
 ###############################################################################
 # Constants
 ###############################################################################
 
+
 # W2V2FC pretrained model config name
-# W2V2_CONFIG = "facebook/wav2vec2-base-960h"
-W2V2FC_CONFIG = "charsiu/en_w2v2_fc_10ms"
+W2V2FC_CONFIG = 'charsiu/en_w2v2_fc_10ms'
 
 # Sample rate of the PPG model
 SAMPLE_RATE = 16000
@@ -22,94 +23,75 @@ WINDOW_SIZE = 400
 
 
 ###############################################################################
-# Phonetic posteriorgram
+# Preprocess Charsiu latents
 ###############################################################################
 
-logging.set_verbosity_error()
 
-def from_features(
-    features: torch.Tensor,
-    new_lengths: torch.Tensor,
-    checkpoint=None,
-    gpu=0
-):
+def from_features(features, new_lengths, checkpoint=None, gpu=0):
     if not hasattr(from_features, 'model'):
-        from_features.model = ppgs.Model()()
+        from_features.model = ppgs.Model()
         if checkpoint is not None:
-            from_features.model.load_state_dict(torch.load(checkpoint)['model'])
+            from_features.model.load_state_dict(
+                torch.load(checkpoint)['model'])
         else:
-            from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'w2v2fc.pt')['model'])
+            from_features.model.load_state_dict(
+                torch.load(ppgs.CHECKPOINT_DIR / 'w2v2fc.pt')['model'])
         from_features.model.to(features.device)
     return from_features.model(features, new_lengths)
+
 
 def from_audios(
     audio,
     lengths,
-    sample_rate=None,
-    config=None,
+    sample_rate=ppgs.SAMPLE_RATE,
+    config=W2V2FC_CONFIG,
     gpu=None):
     """Compute W2V2FC latents from audio"""
-    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
-    if config is None: config=W2V2FC_CONFIG
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Cache model
     if not hasattr(from_audio, 'model'):
-        from_audio.model = Wav2Vec2Model.from_pretrained(config).to(device)
-    # if not hasattr(from_audio, 'processor'):
-    #     from_audio.processor = Wav2Vec2FeatureExtractor.from_pretrained(config)
+        from_audio.model = transformers.Wav2Vec2Model.from_pretrained(
+            config).to(device)
 
     # Maybe resample
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
-    pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
+    pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
     padded_audio = torch.nn.functional.pad(audio, (pad, pad)).squeeze(dim=1)
 
     # Infer W2V2FC latents
-    mask = mask_from_lengths(lengths).squeeze(dim=1).to(torch.long).to(audio.device)
-    assert len(mask.shape) == 2
+    mask = ppgs.model.transformer.mask_from_lengths(
+        lengths
+    ).squeeze(dim=1).to(torch.long).to(audio.device)
     output = from_audio.model(padded_audio, mask).last_hidden_state
     output = torch.transpose(output, 1, 2)
-    try:
-        assert output.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct
-    except AssertionError:
-        import pdb; pdb.set_trace()
     return output.to(torch.float16)
+
 
 def from_audio(
     audio,
-    sample_rate=None,
-    config=None,
+    sample_rate=ppgs.SAMPLE_RATE,
+    config=W2V2FC_CONFIG,
     gpu=None):
     """Compute W2V2FC latents from audio"""
-    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
-    if config is None: config=W2V2FC_CONFIG
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Cache model
     if not hasattr(from_audio, 'model'):
-        from_audio.model = Wav2Vec2Model.from_pretrained(config).to(device)
-    # if not hasattr(from_audio, 'processor'):
-    #     from_audio.processor = Wav2Vec2FeatureExtractor.from_pretrained(config)
+        from_audio.model = transformers.Wav2Vec2Model.from_pretrained(
+            config).to(device)
 
     # Maybe resample
     audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
 
     # Setup features
-    # inputs = from_audio.processor(audio, sampling_rate=sample_rate, return_tensors='pt')
-    pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
-    #TODO investigate +1 here
+    pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
     inputs = torch.nn.functional.pad(audio, (pad, pad)).unsqueeze(dim=0)
-    # inputs = audio.unsqueeze(dim=0)
     inputs = inputs.to(device)
 
     # Infer W2V2FC latents
     with torch.no_grad():
-        output = from_audio.model(inputs).last_hidden_state.squeeze().T
-        try:
-            assert output.shape[-1] == audio.shape[-1] // ppgs.HOPSIZE #check that frames are centered and lengths are correct
-        except AssertionError:
-            import pdb; pdb.set_trace()
-        return output
+        return from_audio.model(inputs).last_hidden_state.squeeze().T
 
 
 def from_file(audio_file, gpu=None):
@@ -125,10 +107,9 @@ def from_file_to_file(audio_file, output_file, gpu=None):
 
 def from_files_to_files(audio_files, output_files, gpu=None):
     """Compute W2V2FC latents from audio files and save to disk"""
-    iterator = tqdm.tqdm(
+    for audio_file, output_file in ppgs.iterator(
         zip(audio_files, output_files),
-        desc='Extracting W2V2FC latents',
-        total=len(audio_files),
-        dynamic_ncols=True)
-    for audio_file, output_file in iterator:
+        'Extracting W2V2FC latents',
+        total=len(audio_files)
+    ):
         from_file_to_file(audio_file, output_file, gpu)

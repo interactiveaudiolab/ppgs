@@ -1,53 +1,57 @@
-from math import ceil
-
-import tqdm
+import math
 
 import ppgs
 
 
-def datasets(datasets, features=None, unit='B'):
-    """Purge datasets from local memory"""
+###############################################################################
+# Measure dataset sizes
+###############################################################################
+
+
+def datasets(datasets, features=None):
+    """Get dataset sizes in gigabytes"""
     if features is None:
         features = ppgs.preprocess.ALL_FEATURES
+
     total = 0
     for dataset in datasets:
+        print(f'Measuring {dataset}')
 
+        # Measure one dataset
         subtotal = 0
+        cache_directory = ppgs.CACHE_DIR / dataset
         for feature in features:
-            if feature in ppgs.REPRESENTATION_MAP.keys():
-                subtotal += measure_glob(ppgs.CACHE_DIR / dataset, f'**/*-{feature}.pt', unit)
+
+            # Measure one feature in one dataset
+            if feature in ppgs.ALL_REPRESENTATIONS:
+                feature_size = measure_glob(
+                    cache_directory,
+                    f'**/*-{feature}.pt')
             elif feature == 'wav':
-                subtotal += measure_glob(ppgs.CACHE_DIR / dataset, '**/*.wav', unit)
+                feature_size = measure_glob(cache_directory, '**/*.wav')
             elif feature == 'phonemes':
-                subtotal += measure_glob(ppgs.CACHE_DIR / dataset, '**/*.textgrid', unit)
-        print(f"total for dataset {dataset} is {file_size_to_string(subtotal, unit)}")
+                feature_size = measure_glob(cache_directory, '**/*.textgrid')
+            print(f'\t{feature}: {size_to_string(feature_size)}')
+
+            # Update dataset total
+            subtotal += feature_size
+
+        # Update aggregate total
+        print(f'{dataset} is {size_to_string(subtotal)}')
         total += subtotal
-    print(f"total is {file_size_to_string(total, unit)}")
+    print(f'Total is {size_to_string(total)}')
 
 
-def measure_glob(path, glob_string, unit='B'):
-    print(f"collecting files in glob {path}/{glob_string}")
-    files = list(path.glob(glob_string))
-    total = 0
-    iterator = tqdm.tqdm(
-        files,
-        "measuring files for glob: " + glob_string,
-        len(files),
-        dynamic_ncols=True
-    )
-    for file in iterator:
-        total += file.stat().st_size
-    print(f"total for glob \"{glob_string}\" is {file_size_to_string(total, unit)}")
-    return total
+###############################################################################
+# Utilities
+###############################################################################
 
-exponent_map = {
-    'B': 0,
-    'KB': 1,
-    'MB': 2,
-    'GB': 3,
-    'TB': 4,
-}
-def file_size_to_string(size_in_bytes, new_unit='B'):
-    exponent = exponent_map[new_unit]
-    divisor = 1024 ** exponent
-    return f"{ceil(size_in_bytes / divisor)} {new_unit}"
+
+def measure_glob(path, glob_string):
+    """Get the size in bytes of all files matching glob"""
+    return sum(file.stat().st_size for file in path.glob(glob_string))
+
+
+def size_to_string(size_in_bytes):
+    """Format size in gigabytes"""
+    return f'{math.ceil(size_in_bytes / (1024 ** 3))} GB'

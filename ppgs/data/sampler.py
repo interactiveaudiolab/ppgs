@@ -1,52 +1,20 @@
-"""sampler.py - data sampling"""
-
 import math
 
 import torch
-from torch.utils.data.sampler import BatchSampler, RandomSampler
 
 import ppgs
 
-###############################################################################
-# Batch sampler
-###############################################################################
-
-def sampler(dataset, partition):
-    """Create batch index sampler"""
-    # Get sampler indices
-    indices = list(range(len(dataset)))
-
-    # Maybe use distributed sampler for training
-    if partition == 'train':
-        print("creating train sampler")
-        # return Sampler(indices)
-        return Sampler(dataset)
-
-    # Possibly deterministic random sampler for validation
-    elif partition == 'valid':
-        print("creating valid sampler")
-        # return Sampler(indices)
-        return Sampler(dataset)
-
-    # Sample test data sequentially
-    elif partition == 'test':
-        print("creating test sampler")
-        return torch.utils.data.SequentialSampler(indices)
-
-    else:
-        raise ValueError(f'Partition {partition} is not implemented')
 
 ###############################################################################
 # Custom samplers
 ###############################################################################
 
-class Sampler(BatchSampler):
+
+class Sampler(torch.utils.data.sampler.BatchSampler):
 
     def __init__(self, dataset):
         self.epoch = 0
         self.buckets = dataset.buckets()
-        self.sampler = None
-        self.drop_last = True
 
     def __iter__(self):
         return iter(self.batch())
@@ -57,10 +25,7 @@ class Sampler(BatchSampler):
     def batch(self):
         """Produces batch indices for one epoch"""
         # Deterministic shuffling based on epoch
-        if self.sampler is not None and hasattr(self.sampler, 'generator') and self.sampler.generator is not None:
-            generator = self.sampler.generator
-        else:
-            generator = torch.Generator()
+        generator = torch.Generator()
         generator.manual_seed(ppgs.RANDOM_SEED + self.epoch)
 
         # Make variable-length batches with roughly equal number of frames
@@ -71,23 +36,21 @@ class Sampler(BatchSampler):
             bucket = bucket[
                 torch.randperm(len(bucket), generator=generator).tolist()]
 
-            # Get current batch size 
-            #TODO fix this assumption that MAX_FRAMES > max_length
+            # Get current batch size
             size = ppgs.MAX_FRAMES // max_length
 
             # Make batches
             batches.extend(
                 [bucket[i:i + size] for i in range(0, len(bucket), size)])
 
-        # Shuffle
-        if self.sampler is None:
-            self.sampler = RandomSampler(range(len(batches)))
-            self.sampler.generator = torch.Generator()
-            return self.batch()
-        return [batches[i] for i in self.sampler]
+        # Shuffle batches
+        return [
+            batches[i] for i in
+            torch.randperm(len(batches), generator=generator).tolist()]
 
     def set_epoch(self, epoch):
         self.epoch = epoch
+
 
 class DistributedSampler:
 

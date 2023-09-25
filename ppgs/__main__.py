@@ -5,48 +5,43 @@ import ppgs
 
 
 ###############################################################################
-# Compute phonetic posteriorgram
+# PPG inference command-line interface
 ###############################################################################
 
 
 def parse_args():
     """Parse command-line arguments"""
     parser = yapecs.ArgumentParser(
-        description='Compute phonetic posteriorgram (PPG) features')
+        description='Phonetic posteriorgram inference')
     parser.add_argument(
-        '--sources',
+        '--input_paths',
         nargs='+',
         type=Path,
-        help='a list of files and/or directories to process')
+        help='Paths to audio files and/or directories')
     parser.add_argument(
-        '--sinks',
+        '--output_paths',
         type=Path,
         nargs='+',
-        help='the directory to write features to')
+        help='The one-to-one corresponding output paths')
+    parser.add_argument(
+        '--extensions',
+        nargs='+',
+        help='Extensions to glob for in directories')
+    parser.add_argument(
+        '--checkpoint',
+        default=ppgs.DEFAULT_CHECKPOINT,
+        help='The checkpoint file')
     parser.add_argument(
         '--num-workers',
         type=int,
-        default=2,
-        help='The number of worker threads to use for loading data')
+        default=8,
+        help='Number of CPU threads for multiprocessing')
     parser.add_argument(
         '--gpu',
         type=int,
         help='The index of the GPU to use for inference. Defaults to CPU.')
-    parser.add_argument(
-        '--representation',
-        default=ppgs.REPRESENTATION,
-        help='feature to synthesize PPGS from')
-    parser.add_argument(
-        '--save-intermediate-features',
-        action='store_true',
-        help="save the intermediate features from which PPGs are computed (e.g. w2v2fb)")
-    parser.add_argument(
-        '--checkpoint',
-        default=ppgs.DEFAULT_CHECKPOINT,
-        help='the checkpoint to use to infer ppgs'
-    )
     return parser.parse_args()
 
 
 if __name__ == '__main__':
-    ppgs.from_sources_to_sinks(**vars(parse_args()))
+    ppgs.from_paths_to_paths(**vars(parse_args()))

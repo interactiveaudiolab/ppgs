@@ -1,1 +1,3 @@
-from . import arctic, charsiu, timit
+from . import arctic
+from . import charsiu
+from . import timit
