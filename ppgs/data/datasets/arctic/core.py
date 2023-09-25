@@ -26,10 +26,10 @@ def download(speakers=['bdl', 'slt', 'awb', 'jmk', 'ksp', 'clb', 'rms']):
         url = (
             'http://festvox.org/cmu_arctic/cmu_arctic/'
             f'packed/cmu_us_{speaker}_arctic-0.95-release.tar.bz2')
-        ppgs.data.download_tar_bz2(url, source_directory)
+        ppgs.data.download.download_tar_bz2(url, source_directory)
 
     # Download metadata
-    ppgs.data.download_file(
+    ppgs.data.download.download_file(
         'http://festvox.org/cmu_arctic/cmuarctic.data',
         source_directory / 'sentences.txt')
 
@@ -107,7 +107,7 @@ def format(speakers=None):
                 lines = f.readlines()
 
             # Remove header
-            non_header_lines = lines[lines.index('#\n')+1:]
+            non_header_lines = lines[lines.index('#\n') + 1:]
 
             # Parse phoneme alignment
             timestamps, _, phonemes = zip(*[
@@ -152,7 +152,7 @@ def format(speakers=None):
         new_word_dir.mkdir(parents=True, exist_ok=True)
         new_word_files = [
             new_word_dir / (file.stem + '.csv') for file in new_phone_files]
-        ppgs.data.download.arctic.words.from_files_to_files(
+        ppgs.data.datasets.arctic.words.from_files_to_files(
             new_phone_files,
             new_word_files,
             new_sentences_file)

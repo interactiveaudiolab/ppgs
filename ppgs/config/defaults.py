@@ -1,5 +1,4 @@
 from pathlib import Path
-import pypar
 
 
 ###############################################################################
@@ -16,6 +15,27 @@ CONFIG = 'base'
 ###############################################################################
 
 
+# Audio hopsize
+HOPSIZE = 160  # samples
+
+# Number of spectrogram channels
+NUM_FFT = 1024
+
+# Number of mel channels
+NUM_MELS = 80
+
+# Audio sample rate
+SAMPLE_RATE = 16000
+
+# Number of spectrogram channels
+WINDOW_SIZE = 1024
+
+
+###############################################################################
+# Data parameters
+###############################################################################
+
+
 # All supported input representations
 ALL_REPRESENTATIONS = [
     'bottleneck',
@@ -26,23 +46,14 @@ ALL_REPRESENTATIONS = [
     'encodec',
     'w2v2ft']
 
-# Audio hopsize
-HOPSIZE = 160  # samples
-
-# Number of spectrogram channels
-NUM_FFT = 1024
-
-# Number of mel channels
-NUM_MELS = 80
+# All datasets used by this codebase
+DATASETS = ['arctic', 'charsiu', 'timit']
 
 # Input representation
 REPRESENTATION = 'w2v2fb'
 
-# Audio sample rate
-SAMPLE_RATE = 16000
-
-# Number of spectrogram channels
-WINDOW_SIZE = 1024
+# Datasets used for training
+TRAINING_DATASET = 'charsiu'
 
 
 ###############################################################################
@@ -149,162 +160,3 @@ NUM_WORKERS = 6
 
 # Seed for all random number generators
 RANDOM_SEED = 1234
-
-
-###############################################################################
-# Phoneme parameters
-###############################################################################
-
-
-# TODO - move to new file
-PHONEMES = [
-	'aa',
-	'ae',
-	'ah',
-	'ao',
-	'aw',
-	'ay',
-	'b',
-	'ch',
-	'd',
-	'dh',
-	'eh',
-	'er',
-	'ey',
-	'f',
-	'g',
-	'hh',
-	'ih',
-	'iy',
-	'jh',
-	'k',
-	'l',
-	'm',
-	'n',
-	'ng',
-	'ow',
-	'oy',
-	'p',
-	'r',
-	's',
-	'sh',
-	't',
-	'th',
-	'uh',
-	'uw',
-	'v',
-	'w',
-	'y',
-	'z',
-	'zh',
-	pypar.SILENCE]
-
-CHARSIU_PHONE_ORDER = [
-    pypar.SILENCE,
-    'ng',
-    'f',
-    'm',
-    'ae',
-    'r',
-    'uw',
-    'n',
-    'iy',
-    'aw',
-    'v',
-    'uh',
-    'ow',
-    'aa',
-    'er',
-    'hh',
-    'z',
-    'k',
-    'ch',
-    'w',
-    'ey',
-    'zh',
-    't',
-    'eh',
-    'y',
-    'ah',
-    'b',
-    'p',
-    'th',
-    'dh',
-    'ao',
-    'g',
-    'l',
-    'jh',
-    'oy',
-    'sh',
-    'd',
-    'ay',
-    's',
-    'ih']
-
-CHARSIU_PERMUTE = [CHARSIU_PHONE_ORDER.index(phone) for phone in PHONEMES]
-
-PHONEME_TO_INDEX_MAPPING = {phone: i for i, phone in enumerate(PHONEMES)}
-
-TIMIT_TO_ARCTIC_MAPPING = {
-    'aa': 'aa',
-    'ae': 'ae',
-    'ah': 'ah',
-    'ao': 'ao', #differs from Kaldi, likely an error in Kaldi
-    'aw': 'aw',
-    'ax': 'ah',
-    'ax-h': 'ah',
-    'axr': 'er',
-    'ay': 'ay',
-    'b': 'b',
-    'bcl': 'bck<b>', #backfill
-    'ch': 'ch',
-    'd': 'd',
-    'dcl': 'bck<d,jh>', #backfill
-    'dh': 'dh',
-    'dx': 'd', #assumption
-    'eh': 'eh',
-    'el': 'l',
-    'em': 'm',
-    'en': 'n',
-    'eng': 'ng',
-    'epi': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
-    'er': 'er',
-    'ey': 'ey',
-    'f': 'f',
-    'g': 'g',
-    'gcl': 'bck<g>', #backfill
-    'h#': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
-    'hh': 'hh',
-    'hv': 'hh',
-    'ih': 'ih',
-    'ix': 'ih',
-    'iy': 'iy',
-    'jh': 'jh',
-    'k': 'k',
-    'kcl': 'bck<k>', #backfill
-    'l': 'l',
-    'm': 'm',
-    'n': 'n',
-    'ng': 'ng',
-    'nx': 'n',
-    'ow': 'ow',
-    'oy': 'oy',
-    'p': 'p',
-    'pau': pypar.SILENCE, #differs from Kaldi (pau instead of sil)
-    'pcl': 'bck<p>', #backfill
-    'q': 't', #map to its allophone
-    'r': 'r',
-    's': 's',
-    'sh': 'sh',
-    't': 't',
-    'tcl': 'bck<t,ch>', #backfill
-    'th': 'th',
-    'uh': 'uh',
-    'uw': 'uw',
-    'ux': 'uw',
-    'v': 'v',
-    'w': 'w',
-    'y': 'y',
-    'z': 'z',
-    'zh': 'zh' #differs from Kaldi
-}

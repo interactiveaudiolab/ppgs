@@ -40,7 +40,7 @@ def download():
 
     # Untar
     with tarfile.open(chosen_source) as tf:
-        tf.extractall(ppgs.DATA_DIR / 'timit')
+        tf.extractall(ppgs.DATA_DIR)
 
 
 def format():
@@ -49,9 +49,15 @@ def format():
     cache_directory = ppgs.CACHE_DIR / 'timit'
 
     # Get files
-    sphere_files = ppgs.data.files_with_extension('wav', data_directory)
-    word_files = ppgs.data.files_with_extension('wrd', data_directory)
-    phone_files = ppgs.data.files_with_extension('phn', data_directory)
+    sphere_files = ppgs.data.download.files_with_extension(
+        'wav',
+        data_directory)
+    word_files = ppgs.data.download.files_with_extension(
+        'wrd',
+        data_directory)
+    phone_files = ppgs.data.download.files_with_extension(
+        'phn',
+        data_directory)
 
     # Convert NIST sphere files to WAV format
     for sphere_file in ppgs.iterator(
@@ -122,8 +128,8 @@ def format():
                 for row in rows])
 
     # Prompt file
-    prompt_file = data_directory / 'DOC' / 'PROMPTS.TXT'
-    new_file = data_directory / 'sentences.csv'
+    prompt_file = data_directory / 'TIMIT' / 'DOC' / 'PROMPTS.TXT'
+    new_file = data_directory / 'TIMIT' / 'sentences.csv'
     with open(prompt_file) as f:
         content = f.read()
     rows = [
@@ -138,6 +144,12 @@ def format():
 
     # Align words and phonemes
     for speaker in data_directory.iterdir():
+
+        # Skip metadata
+        if speaker.name in ['CONVERT', 'README.DOC', 'SPHERE', 'TIMIT']:
+            continue
+
+        # Align
         phone_files = list((speaker / 'lab').glob('*.csv'))
         word_dir = speaker / 'word'
         output_dir = cache_directory / speaker.name

@@ -18,7 +18,7 @@ def parse_args():
         help='The configuration file')
     parser.add_argument(
         '--dataset',
-        default='charsiu',
+        default=ppgs.TRAINING_DATASET,
         help='The dataset to train on')
     return parser.parse_args()
 

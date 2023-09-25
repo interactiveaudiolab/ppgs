@@ -198,7 +198,7 @@ def word_align_phones(word_seq, phone_seq):
     word_seq_phones = [get_word_phones(word)[0] for word in word_seq]
 
     # Align phonemes and words
-    return ppgs.data.download.datasets.arctic.words.align.align_one_to_many(
+    return ppgs.data.datasets.arctic.words.align.align_one_to_many(
         word_seq,
         {word_seq[i]: word_seq_phones[i] for i in range(len(word_seq))},
         phone_seq,
