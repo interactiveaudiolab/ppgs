@@ -27,6 +27,11 @@ def loader(
     dataset = ppgs.data.Dataset(dataset_or_files, partition, features)
 
     # Initialize sampler
+    # TODO - use DistributedSampler if accelerate is active
+    # if accelerate_is_active:
+    #     sampler = ppgs.data.DistributedSampler(dataset)
+    # else:
+    #     sampler = ppgs.data.Sampler(dataset)
     sampler = ppgs.data.Sampler(dataset)
 
     # Initialize dataloader

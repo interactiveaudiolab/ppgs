@@ -30,6 +30,8 @@ def datasets(
             The gpu to use for preprocessing
         num_workers
             The number of worker threads to use
+        partition
+            The partition to preprocess. Default (None) uses all partitions.
     """
     for dataset in datasets:
         dataloader = ppgs.data.loader(
@@ -131,9 +133,9 @@ def from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
     # Compute representation
     with torch.autocast('cuda' if gpu is not None else 'cpu'):
         features = getattr(ppgs.preprocess, ppgs.REPRESENTATION)(
-                audio,
-                sample_rate=sample_rate,
-                gpu=gpu)
+            audio,
+            sample_rate=sample_rate,
+            gpu=gpu)
 
         if features.dim() == 2:
             features = features[None]

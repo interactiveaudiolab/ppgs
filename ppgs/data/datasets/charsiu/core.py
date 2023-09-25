@@ -24,7 +24,7 @@ def download():
     # Download alignments
     alignment_directory = source_directory / 'alignments'
     alignment_directory.mkdir(parents=True, exist_ok=True)
-    ppgs.data.download_google_drive_zip(
+    ppgs.data.download.download_google_drive_zip(
         'https://drive.google.com/uc?id=1J_IN8HWPXaKVYHaAf7IXzUd6wyiL9VpP',
         alignment_directory)
 

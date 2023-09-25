@@ -24,6 +24,7 @@ from .config.static import *
 ###############################################################################
 
 
+from .phonemes import *
 from .core import *
 from .model import Model
 from . import notify

@@ -173,9 +173,7 @@ def from_files_to_files(phone_files, word_dir, output_dir):
         output_dir / f'{file.stem}.textgrid' for file in phone_files]
 
     # Create textgrids from alignments
-    for phone_file, word_file, output_file in ppgs.iterator(
-        zip(phone_files, word_files, output_files),
-        'Creating pypar alignment files',
-        total=len(phone_files)
+    for phone_file, word_file, output_file in zip(
+        phone_files, word_files, output_files,
     ):
         from_file_to_file(phone_file, word_file, output_file)
