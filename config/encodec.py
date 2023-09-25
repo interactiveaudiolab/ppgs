@@ -1,20 +1,15 @@
 from encodec import EncodecModel
 
-CONFIG = 'encodec'
 MODULE = 'ppgs'
 
-INPUT_CHANNELS = 128 #dimensionality of encodec latents
+# Configuration name
+CONFIG = 'encodec'
+
+# Dimensionality of input representation
+INPUT_CHANNELS = 80
+
+# Input representation
 REPRESENTATION = 'encodec'
-MODEL = 'transformer'
-
-EVALUATION_BATCHES = 16
-
-NUM_HIDDEN_LAYERS = 5
-MAX_FRAMES = 100000
-HIDDEN_CHANNELS = 512
-
-GRAD_2_CLIP = 0.25
-GRAD_INF_CLIP = 0.1
 
 def _frontend(device='cpu'):
     import torch
@@ -28,4 +23,5 @@ def _frontend(device='cpu'):
 
     return _quantize
 
+# This function takes as input a torch.Device and returns a callable frontend
 FRONTEND = _frontend

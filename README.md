@@ -1,4 +1,4 @@
-<h1 align="center">Phonetic Posteriorgrams (PPGS)</h1>
+<h1 align="center">Phonetic Posteriorgrams (PPGs)</h1>
 <div align="center">
 
 [![PyPI](https://img.shields.io/pypi/v/promonet.svg)](https://pypi.python.org/pypi/promonet)
@@ -7,7 +7,7 @@
 
 </div>
 
-Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in PyTorch. Includes the original code for the paper _Disentangling Speech with Phonetic Posteriorgrams_. [[Paper]](TODO) [[Website]](TODO)
+Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in PyTorch. Includes the original code for the paper _High-Fidelity Neural Phonetic Posteriorgrams_. [[Paper]](https://www.maxrmorrison.com/pdfs/churchwell2024high.pdf) [[Website]](https://www.maxrmorrison.com/sites/ppgs/)
 
 
 ## Table of contents
@@ -115,7 +115,7 @@ Arguments
     checkpoint
         Path to the checkpoint to use
     gpu
-        The gpu to use for preprocessing 
+        The gpu to use for preprocessing
 """
 ```
 
@@ -232,18 +232,18 @@ python -m ppgs.evaluate \
 ## Citation
 
 ### IEEE
-C. Churchwell, M. Morrison, and B. Pardo, "Disentangling Speech with Phonetic Posteriorgrams," Submitted
-to ICASSP 2024, January 2024.
+C. Churchwell, M. Morrison, and B. Pardo, "High-Fidelity Neural Phonetic Posteriorgrams," Submitted
+to ICASSP 2024, April 2024.
 
 
 ### BibTex
 
 ```
-@inproceedings{churchwell2024disentangling,
-    title={Disentangling Speech with Phonetic Posteriorgrams},
+@inproceedings{churchwell2024high,
+    title={High-Fidelity Neural Phonetic Posteriorgrams},
     author={Churchwell, Cameron and Morrison, Max and Pardo, Bryan},
     booktitle={Submitted to ICASSP 2024},
-    month={January},
+    month={April},
     year={2024}
 }
 ```

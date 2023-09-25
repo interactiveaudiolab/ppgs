@@ -1,18 +1,23 @@
-__pycache__/
-build/
-.vscode
-
-data/*/*
-!data/*/.gitkeep
-runs/*
+data/cache/*
+!data/cache/.gitkeep
+data/datasets/*
+!data/datasets/.gitkeep
+data/sources/*
+!data/sources/.gitkeep
 eval/*
+!eval/.gitkeep
+runs/*
+!runs/.gitkeep
 
-*.egg-info
-
+__pycache__/
+.DS_Store
+._.DS_Store
+.ipynb_checkpoints/
+.vscode/
+*.egg-info/
+*/.ipynb_checkpoints/*
+build/
 .pytest_cache
-
-ppgs/assets/checkpoints/*
-!ppgs/assets/checkpoints/ppg.pt
 
 tmp/
 ppgs/config/secrets.py

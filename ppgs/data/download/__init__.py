@@ -1,1 +1,2 @@
-from .core import datasets
+from .core import *
+from . import datasets

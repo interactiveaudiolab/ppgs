@@ -3,27 +3,30 @@ import tqdm
 
 import ppgs
 
+
 ###############################################################################
 # Constants
 ###############################################################################
 
 
-# PPG model checkpoint file
+# Checkpoint file
+# TODO - move to huggingface
 CHECKPOINT_FILE = ppgs.ASSETS_DIR / 'checkpoints' / 'ppg.pt'
 
-# PPG model configuration
-CONFIG_FILE = ppgs.ASSETS_DIR / 'configs' / 'ppg.yaml'
+# Configuration
+CONFIG_FILE = ppgs.ASSETS_DIR / 'configs' / 'bottleneck.yaml'
 
 # Sample rate of the PPG model
 SAMPLE_RATE = 16000
 
-#Window size of the model
+# Window size of the model
 WINDOW_SIZE = 1024
 
 
 ###############################################################################
-# Phonetic posteriorgram
+# Preprocess ASR bottleneck features
 ###############################################################################
+
 
 def from_features(
     features: torch.Tensor,
@@ -32,13 +35,16 @@ def from_features(
     gpu=0
 ):
     if not hasattr(from_features, 'model'):
-        from_features.model = ppgs.Model()()
+        from_features.model = ppgs.Model()
         if checkpoint is not None:
-            from_features.model.load_state_dict(torch.load(checkpoint)['model'])
+            from_features.model.load_state_dict(
+                torch.load(checkpoint)['model'])
         else:
-            from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'bottleneck.pt')['model'])
+            from_features.model.load_state_dict(
+                torch.load(ppgs.CHECKPOINT_DIR / 'bottleneck.pt')['model'])
         from_features.model.to(features.device)
     return from_features.model(features, new_lengths)
+
 
 def from_audios(
     audio,
@@ -48,9 +54,6 @@ def from_audios(
     checkpoint_file=CHECKPOINT_FILE,
     gpu=None):
     """Compute Bottleneck PPGs from audio"""
-    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
-    if config is None: config=CONFIG_FILE
-    if checkpoint_file is None: checkpoint_file=CHECKPOINT_FILE
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Cache model
@@ -71,9 +74,9 @@ def from_audios(
     audio = audio.squeeze(dim=1)
 
     # Infer Bottleneck PPGs
-    # with torch.no_grad():
     output = from_audios.model(audio, lengths).transpose(1, 2)
     return output.to(torch.float16)
+
 
 def from_audio(
     audio,
@@ -82,9 +85,6 @@ def from_audio(
     checkpoint_file=CHECKPOINT_FILE,
     gpu=None):
     """Compute Bottleneck PPGs from audio"""
-    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
-    if config is None: config=CONFIG_FILE
-    if checkpoint_file is None: checkpoint_file=CHECKPOINT_FILE
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Cache model
@@ -99,8 +99,10 @@ def from_audio(
 
     # Setup features
     audio = audio.to(device)
-    pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
-    length = torch.tensor([audio.shape[-1]], dtype=torch.long, device=device) + 2*pad #needs to be caluclated prior to padding
+    pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
+    length = (
+        torch.tensor([audio.shape[-1]], dtype=torch.long, device=device) +
+        2 * pad)
     audio = torch.nn.functional.pad(audio, (pad, pad))
 
     # Infer Bottleneck PPGs

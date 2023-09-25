@@ -5,32 +5,41 @@ import torch
 import ppgs
 
 
-def mask_from_lengths(lengths, padding=0):
-    """Create boolean mask from sequence lengths and offset to start. shape is batch x 1 x max_length"""
-    x = torch.arange(lengths.max()+2*padding, dtype=lengths.dtype, device=lengths.device)
-
-    return (x.unsqueeze(0)-2*padding < lengths.unsqueeze(1))
-
 ###############################################################################
-# Transformer stack
+# Transformer model
 ###############################################################################
 
 
 class Transformer(torch.nn.Module):
 
-    def __init__(self, num_layers=ppgs.NUM_HIDDEN_LAYERS, channels=ppgs.HIDDEN_CHANNELS):
+    def __init__(
+        self,
+        num_layers=ppgs.NUM_HIDDEN_LAYERS,
+        channels=ppgs.HIDDEN_CHANNELS):
         super().__init__()
-        self.position = PositionalEncoding(channels, .1)
+        self.position = PositionalEncoding(channels)
+        self.input_layer = torch.nn.Conv1d(
+            ppgs.INPUT_CHANNELS,
+            ppgs.HIDDEN_CHANNELS,
+            kernel_size=ppgs.KERNEL_SIZE,
+            padding='same')
         self.model = torch.nn.TransformerEncoder(
             torch.nn.TransformerEncoderLayer(channels, ppgs.ATTENTION_HEADS),
             num_layers)
+        self.output_layer = torch.nn.Conv1d(
+            ppgs.HIDDEN_CHANNELS,
+            ppgs.OUTPUT_CHANNELS,
+            kernel_size=ppgs.KERNEL_SIZE,
+            padding='same')
 
     def forward(self, x, lengths):
         mask = mask_from_lengths(lengths)
-        return self.model(
+        x = self.input_layer(x) * mask
+        x = self.model(
             self.position(x.permute(2, 0, 1)),
             src_key_padding_mask=~mask.squeeze(1)
         ).permute(1, 2, 0)
+        return self.output_layer(x) * mask
 
 
 ###############################################################################
@@ -55,3 +64,12 @@ class PositionalEncoding(torch.nn.Module):
         if x.size(0) > self.encoding.size(0):
             raise ValueError('size is too large')
         return self.dropout(x + self.encoding[:x.size(0)])
+
+
+def mask_from_lengths(lengths, padding=0):
+    """Create boolean mask from sequence lengths and offset to start"""
+    x = torch.arange(
+        lengths.max() + 2 * padding,
+        dtype=lengths.dtype,
+        device=lengths.device)
+    return x.unsqueeze(0) - 2 * padding < lengths.unsqueeze(1)

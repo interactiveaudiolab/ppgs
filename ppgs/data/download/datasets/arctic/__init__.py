@@ -1,1 +1,2 @@
-from .core import download, format
+from .core import *
+from . import words
