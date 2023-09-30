@@ -170,7 +170,7 @@ def from_files_to_files(phone_files, word_dir, output_dir):
     """Convert many phone alignment and word alignment files to textgrid"""
     word_files = [word_dir / file.name for file in phone_files]
     output_files = [
-        output_dir / f'{file.stem}.textgrid' for file in phone_files]
+        output_dir / f'{file.stem}.TextGrid' for file in phone_files]
 
     # Create textgrids from alignments
     for phone_file, word_file, output_file in zip(

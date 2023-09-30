@@ -32,26 +32,26 @@ def run(config, dataset):
 
 
 @ppgs.notify.notify_on_finish('training')
-def train(dataset, directory=None):
+def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     """Train a model"""
     # Create output directory
-    if directory is None:
-        directory = ppgs.RUNS_DIR / ppgs.CONFIG
     directory.mkdir(parents=True, exist_ok=True)
 
-    # Initialize accelerator and get device
+    # Initialize distributed training
     accelerator = accelerate.Accelerator(
         mixed_precision='fp16',
-        even_batches=False,
-        # log_with='tensorboard'
-    )
-    device = accelerator.device
+        even_batches=False)
 
     #################
     # Create models #
     #################
 
-    model = ppgs.Model().to(device)
+    if ppgs.FRONTEND is not None and callable(ppgs.FRONTEND):
+        frontend = ppgs.FRONTEND(accelerator.device)
+    else:
+        frontend = None
+
+    model = ppgs.Model()
 
     ####################
     # Create optimizer #
@@ -93,15 +93,6 @@ def train(dataset, directory=None):
         train_loader,
         valid_loader)
 
-    ########################
-    # Setup model frontend #
-    ########################
-
-    if ppgs.FRONTEND is not None and callable(ppgs.FRONTEND):
-        frontend = ppgs.FRONTEND(device)
-    else:
-        frontend = None
-
     #########
     # Train #
     #########
@@ -128,9 +119,9 @@ def train(dataset, directory=None):
             for batch in train_loader:
 
                 # Unpack batch
-                input_ppgs = batch[0].to(device)
-                lengths = batch[1].to(device)
-                indices = batch[2].to(device)
+                input_ppgs = batch[0]
+                lengths = batch[1]
+                indices = batch[2]
 
                 if frontend is not None:
                     with torch.no_grad():
@@ -226,9 +217,6 @@ def train(dataset, directory=None):
         epoch,
         directory / f'{step:08d}.pt',
         accelerator)
-
-    # Return path to model checkpoint
-    return ppgs.checkpoint.latest_path(directory)
 
 
 ###############################################################################

@@ -1,7 +1,6 @@
 import multiprocessing as mp
 import os
 
-import librosa
 import torch
 
 import ppgs
@@ -68,6 +67,8 @@ def from_files_to_files(audio_files, output_files):
 
 
 def linear_to_mel(spectrogram):
+    import librosa
+
     # Create mel basis
     if not hasattr(linear_to_mel, 'mel_basis'):
         basis = librosa.filters.mel(

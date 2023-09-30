@@ -1,9 +1,30 @@
-#TODO fix this mess
-from pathlib import Path as __Path
-import importlib.util as __iu
-__charsiu_models_spec = __iu.spec_from_file_location('charsiu_models', __Path(__file__).parent / 'charsiu' / 'src' / 'models.py')
-charsiu_models = __iu.module_from_spec(__charsiu_models_spec)
-__charsiu_models_spec.loader.exec_module(charsiu_models)
+###############################################################################
+# Import Charsiu models from Git submodule
+###############################################################################
+
+
+from pathlib import Path
+import importlib.util
+
+try:
+
+    # Import Charsiu
+    charsiu_spec = importlib.util.spec_from_file_location(
+        'charsiu_models',
+        Path(__file__).parent / 'charsiu' / 'src' / 'models.py')
+    charsiu_models = importlib.util.module_from_spec(charsiu_spec)
+    charsiu_spec.loader.exec_module(charsiu_models)
+
+except (ImportError, ModuleNotFoundError):
+
+    # Continue without Charsiu
+    pass
+
+
+###############################################################################
+# Module imports
+###############################################################################
+
 
 from . import bottleneck
 from . import w2v2fc

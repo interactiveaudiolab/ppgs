@@ -49,7 +49,7 @@ def arctic():
     # Get stems
     stems = [
         f'{file.parents[0].name}/{file.stem}'
-        for file in (ppgs.CACHE_DIR / 'arctic').rglob(f'{id}.textgrid')]
+        for file in (ppgs.CACHE_DIR / 'arctic').rglob('*.TextGrid')]
 
     # Arctic is only used for evaluation
     return {'train': [], 'valid': [], 'test': stems}
@@ -60,7 +60,7 @@ def timit():
     # Get stems
     stems = [
         f'{file.parents[0].name}/{file.stem}'
-        for file in (ppgs.CACHE_DIR / 'timit').rglob(f'{id}.textgrid')]
+        for file in (ppgs.CACHE_DIR / 'timit').rglob('*.TextGrid')]
 
     # TIMIT is only used for evaluation
     return {'train': [], 'valid': [], 'test': stems}
@@ -70,8 +70,8 @@ def charsiu():
     """Partition dataset"""
     # Get stems
     stems = [
-        file.stem for file in (ppgs.CACHE_DIR / 'charsiu').glob('*.textgrid')
-        if file.stem not in ppgs.CHARSIU_REJECT]
+        file.stem for file in (ppgs.CACHE_DIR / 'charsiu').rglob('*.TextGrid')
+        if file.stem not in CHARSIU_REJECT]
     random.shuffle(stems)
 
     # Get split points

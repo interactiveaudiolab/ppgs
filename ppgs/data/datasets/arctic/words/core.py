@@ -1,7 +1,5 @@
 import csv
 
-import nltk
-
 import ppgs
 
 
@@ -76,6 +74,7 @@ def from_file(phone_file, prompt=None):
 
         # Maybe cache tokenizer
         if not hasattr(from_file, 'tokenizer'):
+            import nltk
 
             # Download tokenizer if necessary
             try:
@@ -159,6 +158,7 @@ def from_files_to_files(phone_files, output_files, prompt_file=None):
 def get_word_phones(word):
     """Convert word to phonemes using CMU dictionary"""
     if not hasattr(get_word_phones, 'lookup'):
+        import nltk
         try:
             get_word_phones.lookup = nltk.corpus.cmudict.dict()
         except LookupError:

@@ -17,11 +17,13 @@ def parse_args():
         '--input_paths',
         nargs='+',
         type=Path,
+        required=True,
         help='Paths to audio files and/or directories')
     parser.add_argument(
         '--output_paths',
         type=Path,
         nargs='+',
+        required=True,
         help='The one-to-one corresponding output paths')
     parser.add_argument(
         '--extensions',
