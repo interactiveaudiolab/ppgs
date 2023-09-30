@@ -17,6 +17,14 @@ def download(speakers=['bdl', 'slt', 'awb', 'jmk', 'ksp', 'clb', 'rms']):
     source_directory = ppgs.SOURCES_DIR / 'arctic'
     source_directory.mkdir(parents=True, exist_ok=True)
 
+    # Arctic has an error where one of the text files is read-only
+    error_file = (
+        source_directory /
+        'cmu_us_ksp_arctic' /
+        'etc' /
+        'txt.done.data')
+    error_file.unlink(missing_ok=True)
+
     # Download audio tarball
     for speaker in ppgs.iterator(
         speakers,
@@ -93,7 +101,9 @@ def format(speakers=None):
         new_lab_dir_path.mkdir(parents=True, exist_ok=True)
 
         # Get label files
-        lab_files = ppgs.data.files_with_extension('lab', lab_dir_path)
+        lab_files = ppgs.data.download.files_with_extension(
+            'lab',
+            lab_dir_path)
 
         new_phone_files = []
         for lab_file in lab_files:
@@ -121,15 +131,21 @@ def format(speakers=None):
             # Load audio
             audio = ppgs.load.audio(wav_dir_path / (lab_file.stem + '.wav'))
 
-            # Check that the length agrees
+            # Skip if length disagrees
             audio_duration = audio[0].shape[0] / ppgs.SAMPLE_RATE
-            assert abs(audio_duration - float(timestamps[-1])) <= 1e-1
+            if abs(audio_duration - float(timestamps[-1])) > 1e-1:
+                continue
+
+            # Skip utterances with unknown correspondence
+            stem = id_map(lab_file.stem)
+            if stem is None:
+                continue
 
             # Write alignment to CSV
             timestamps = list(timestamps)
             timestamps[-1] = str(audio_duration)
             rows = zip(timestamps, phonemes)
-            new_phone_file = new_lab_dir_path / f'{id_map(lab_file.stem)}.csv'
+            new_phone_file = new_lab_dir_path / f'{stem}.csv'
             new_phone_files.append(new_phone_file)
             with open(new_phone_file, 'w') as f:
                 writer = csv.writer(f)
@@ -137,15 +153,16 @@ def format(speakers=None):
                 writer.writerows(rows)
 
         # Transfer audio files
-        wav_files = ppgs.data.files_with_extension('wav', wav_dir_path)
-        for wav_file in ppgs.iterator(
-            wav_files,
-            f'Transferring audio files for arctic speaker {speaker.name}',
-            total=len(wav_files)
-        ):
-            shutil.copy(
-                wav_file,
-                cache_speaker_dir / (id_map(wav_file.stem) + '.wav'))
+        wav_files = ppgs.data.download.files_with_extension(
+            'wav',
+            wav_dir_path)
+        for wav_file in wav_files:
+            try:
+                shutil.copy(
+                    wav_file,
+                    cache_speaker_dir / (id_map(wav_file.stem) + '.wav'))
+            except TypeError:
+                continue
 
         # Align phonemes with words
         new_word_dir = new_speaker_dir / 'word'

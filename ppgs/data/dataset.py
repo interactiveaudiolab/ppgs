@@ -45,7 +45,7 @@ class Dataset(torch.utils.data.Dataset):
             elif feature == 'phonemes':
 
                 # Load alignment
-                alignment = pypar.Alignment(self.cache / f'{stem}.textgrid')
+                alignment = pypar.Alignment(self.cache / f'{stem}.TextGrid')
 
                 # Convert to indices
                 hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
@@ -93,7 +93,7 @@ class Dataset(torch.utils.data.Dataset):
     def buckets(self):
         """Partition data into buckets based on length to minimize padding"""
         # Prevent errors when using small datasets
-        num_buckets = min(ppgs.BUCKETS, len(self))
+        num_buckets = max(1, min(ppgs.BUCKETS, len(self)))
 
         # Get the size of a bucket
         size = len(self) // num_buckets
@@ -130,15 +130,16 @@ class Metadata:
                 partition_dict = ppgs.load.partition(self.name)
                 if partition is not None:
                     self.stems = partition_dict[partition]
+                    lengths_file = self.cache / f'{partition}-lengths.json'
                 else:
                     self.stems = sum(partition_dict.values(), start=[])
+                    lengths_file = self.cache / f'lengths.json'
 
                 # Get audio filenames
                 self.audio_files = [
                     self.cache / (stem + '.wav') for stem in self.stems]
 
                 # Maybe remove previous cached lengths
-                lengths_file = self.cache / f'{partition}-lengths.json'
                 if overwrite_cache and lengths_file.exists():
                     os.remove(lengths_file)
 
@@ -167,7 +168,9 @@ class Metadata:
                         json.dump(lengths, file)
 
             # Match ordering
-            self.lengths = [lengths[file] for file in self.audio_files]
+            self.lengths = [
+                lengths[f'{file.parent.name}/{file.stem}']
+                for file in self.audio_files]
 
     def __len__(self):
         return len(self.stems)

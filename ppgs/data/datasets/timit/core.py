@@ -96,7 +96,6 @@ def format():
         audio_duration = audio[0].shape[0] / ppgs.SAMPLE_RATE
         alignment_duration = float(end_times[-1]) / ppgs.SAMPLE_RATE
         if not abs(audio_duration - alignment_duration) <= 2.5e-1:
-            print(f'failed with stem {phone_file.stem}')
             continue
 
         # Write phoneme alignment

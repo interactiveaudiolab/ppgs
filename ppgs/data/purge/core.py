@@ -52,7 +52,7 @@ def datasets(
 
                 # Alignments
                 elif feature == 'phonemes':
-                    purger.add_glob(ppgs.CACHE_DIR / dataset, '**/*.textgrid')
+                    purger.add_glob(ppgs.CACHE_DIR / dataset, '**/*.TextGrid')
 
         # Add datasets
         if 'datasets' in kinds:

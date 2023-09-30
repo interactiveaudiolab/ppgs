@@ -8,8 +8,8 @@ import ppgs
 ###############################################################################
 
 
-# All possible features to load
-ALL_FEATURES = [ppgs.REPRESENTATION, 'phonemes', 'length', 'stem']
+# Features loaded for training
+TRAINING_FEATURES = [ppgs.REPRESENTATION, 'phonemes', 'length', 'stem']
 
 
 ###############################################################################
@@ -20,18 +20,13 @@ ALL_FEATURES = [ppgs.REPRESENTATION, 'phonemes', 'length', 'stem']
 def loader(
     dataset_or_files,
     partition=None,
-    features=ALL_FEATURES,
+    features=TRAINING_FEATURES,
     num_workers=ppgs.NUM_WORKERS):
     """Retrieve a data loader"""
     # Initialize dataset
     dataset = ppgs.data.Dataset(dataset_or_files, partition, features)
 
     # Initialize sampler
-    # TODO - use DistributedSampler if accelerate is active
-    # if accelerate_is_active:
-    #     sampler = ppgs.data.DistributedSampler(dataset)
-    # else:
-    #     sampler = ppgs.data.Sampler(dataset)
     sampler = ppgs.data.Sampler(dataset)
 
     # Initialize dataloader

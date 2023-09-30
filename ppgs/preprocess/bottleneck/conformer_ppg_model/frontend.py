@@ -2,9 +2,6 @@ import copy
 from typing import Tuple
 from typing import Union
 
-from functools import partial
-
-import humanfriendly
 import numpy as np
 import torch
 from torch_complex.tensor import ComplexTensor
@@ -40,6 +37,7 @@ class DefaultFrontend(torch.nn.Module):
     ):
         super().__init__()
         if isinstance(fs, str):
+            import humanfriendly
             fs = humanfriendly.parse_size(fs)
         self.downsample_rate = downsample_rate
 

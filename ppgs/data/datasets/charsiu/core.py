@@ -34,11 +34,11 @@ def download():
     cv_corpus_files = (
         list(source_directory.glob('cv-corpus*.tar.gz')) +
         list(source_directory.glob('cv-corpus*.tgz')))
-    if len(cv_corpus_files) >= 1:
+    if cv_corpus_files:
         corpus_file = sorted(cv_corpus_files)[-1]
         stems = set([
-            file.stem for file in ppgs.data.files_with_extension(
-                'textgrid',
+            file.stem for file in ppgs.data.download.files_with_extension(
+                'TextGrid',
                 alignment_directory)])
         with tarfile.open(corpus_file, 'r|gz') as corpus:
             for file_info in corpus:
@@ -55,19 +55,20 @@ def download():
             f'resource and place it in {source_directory}. This program '
             f'expects Common Voice tar.gz or tgz files to be present.')
 
+
 def format():
     """Formats the charsiu dataset"""
     source_directory = ppgs.SOURCES_DIR / 'charsiu'
 
     # Get alignment files
-    textgrid_files = ppgs.data.files_with_extension(
-        'textgrid',
+    textgrid_files = ppgs.data.download.files_with_extension(
+        'TextGrid',
         source_directory)
     stems = set([f.stem for f in textgrid_files])
 
     # Get audio files
     mp3_files = list(
-        ppgs.data.files_with_extension(
+        ppgs.data.download.files_with_extension(
             'mp3',
             ppgs.DATA_DIR / 'charsiu' / 'mp3'))
 
@@ -79,25 +80,21 @@ def format():
             found_stems.append(mp3_file.stem)
             mp3_found.append(mp3_file)
 
-    # Setup cache
-    cache_directory = ppgs.CACHE_DIR / 'charsiu'
-    audio_directory = cache_directory / 'wav'
-    audio_directory.mkdir(exist_ok=True, parents=True)
-    alignment_directory = cache_directory / 'textgrid'
-    alignment_directory.mkdir(exist_ok=True, parents=True)
-
     # Multiprocessed formatting
+    cache_directory = ppgs.CACHE_DIR / 'charsiu'
+    cache_directory.mkdir(exist_ok=True, parents=True)
     process = functools.partial(
         mp3_textgrid,
-        audio_directory=audio_directory,
-        alignment_directory=alignment_directory,
+        audio_directory=cache_directory,
+        alignment_directory=cache_directory,
         source_directory=source_directory)
     tqdm.contrib.concurrent.process_map(
         process,
         mp3_found,
         desc='Formatting Common Voice',
-        max_workers=16,
-        chunksize=512)
+        max_workers=ppgs.NUM_WORKERS,
+        chunksize=512,
+        dynamic_ncols=True)
 
 
 ###############################################################################

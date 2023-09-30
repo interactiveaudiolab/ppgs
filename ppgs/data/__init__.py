@@ -1,5 +1,5 @@
 from .collate import Collate
-from .sampler import DistributedSampler, Sampler
+from .sampler import Sampler
 from .loader import loader
 from .dataset import Dataset
 from . import datasets

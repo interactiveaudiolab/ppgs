@@ -19,8 +19,9 @@ class W2V2FC(torch.nn.Module):
         self.padding = 400 // 2 - 160 // 2
 
         # Load pretrained model
-        self.w2v2fc = ppgs.preprocess.charsiu_models.Wav2Vec2ForFrameClassification.from_pretrained(
-            'charsiu/en_w2v2_fc_10ms')
+        self.w2v2fc = \
+            ppgs.preprocess.charsiu_models.Wav2Vec2ForFrameClassification.from_pretrained(
+                'charsiu/en_w2v2_fc_10ms')
 
     def forward(self, input_tensor, lengths):
         # Pad input

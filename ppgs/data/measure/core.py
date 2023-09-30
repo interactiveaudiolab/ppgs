@@ -30,7 +30,7 @@ def datasets(datasets, features=None):
             elif feature == 'wav':
                 feature_size = measure_glob(cache_directory, '**/*.wav')
             elif feature == 'phonemes':
-                feature_size = measure_glob(cache_directory, '**/*.textgrid')
+                feature_size = measure_glob(cache_directory, '**/*.TextGrid')
             print(f'\t{feature}: {size_to_string(feature_size)}')
 
             # Update dataset total

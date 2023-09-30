@@ -15,16 +15,19 @@ import ppgs
 
 
 ###############################################################################
-# Visualize PPGs from audio input
+# Constants
 ###############################################################################
 
 
-#Tunable parameters for appearance of generated video
-display_window_size = ppgs.SAMPLE_RATE//ppgs.HOPSIZE
-display_hopsize = 2
-pad = display_window_size//2 - display_hopsize//2
-scalefactor = 16
-text_vertical_offset = 1
+# Display size
+DISPLAY_WINDOW_SIZE = ppgs.SAMPLE_RATE // ppgs.HOPSIZE
+DISPLAY_HOPSIZE = 2
+DISPLAY_PADDING = DISPLAY_WINDOW_SIZE // 2 - DISPLAY_HOPSIZE//2
+
+
+###############################################################################
+# Visualize PPGs from audio input
+###############################################################################
 
 
 def from_audio_file_to_file(
@@ -161,14 +164,14 @@ def from_ppg_to_image_file(
     image.save(image_filename)
 
 
-#TODO make scalefactor a parameter (currently is a hardcoded constant)
 def from_ppg_to_video_file(
     ppg,
     audio_filename,
     video_filename,
     textgrid_filename=None,
     preprocess_only=False,
-    labels=ppgs.PHONEMES):
+    labels=ppgs.PHONEMES,
+    scalefactor=16):
     """Takes ppg of shape time,categories and creates a visualization"""
     # Load audio
     audio = torchaudio.load(audio_filename)[0][0]
@@ -181,11 +184,11 @@ def from_ppg_to_video_file(
 
     # Chunk PPG into video frames
     frames = []
-    for i in range(0, (audio.shape[0] // ppgs.HOPSIZE) // display_hopsize):
+    for i in range(0, (audio.shape[0] // ppgs.HOPSIZE) // DISPLAY_HOPSIZE):
 
         # Chunk
-        left = i * display_hopsize
-        right = left + display_window_size
+        left = i * DISPLAY_HOPSIZE
+        right = left + DISPLAY_WINDOW_SIZE
         frame = pixels[left:right, :].transpose(0, 1)
 
         # Add black bar at bottom
@@ -198,7 +201,7 @@ def from_ppg_to_video_file(
     # Create clip
     clip = mpy.ImageSequenceClip(
         frames,
-        fps=display_window_size // display_hopsize)
+        fps=DISPLAY_WINDOW_SIZE // DISPLAY_HOPSIZE)
 
     # Resize
     clip = clip.fl_image(lambda frame: resizer(frame, scalefactor))
@@ -208,7 +211,6 @@ def from_ppg_to_video_file(
 
         text_clips = []
         if not preprocess_only:
-            text_vertical_offset = 1
             for i, label in enumerate(labels):
 
                 # Create text
@@ -225,7 +227,7 @@ def from_ppg_to_video_file(
                 # Set text location
                 text_clip = text_clip.set_position((
                     clip.size[0] // 2 - text_clip.size[0] - scalefactor,
-                    scalefactor * i + text_vertical_offset))
+                    scalefactor * i + 1))
 
                 # Add text
                 text_clips.append(text_clip)
@@ -381,7 +383,7 @@ def from_textgrid_to_pixels(
     textgrid_filename,
     num_frames,
     num_phonemes=len(ppgs.PHONEMES),
-    padding=pad):
+    padding=DISPLAY_PADDING):
     """Convert textgrid alignment to one-hot image data"""
     # Load alignment
     alignment = pypar.Alignment(textgrid_filename)
@@ -417,7 +419,7 @@ def from_textgrid_to_pixels(
     return pixels.unsqueeze(-1).repeat(1, 1, 3)
 
 
-def from_ppg_to_pixels(ppg, padding=pad):
+def from_ppg_to_pixels(ppg, padding=DISPLAY_PADDING):
     """Convert PPG to image data"""
     ppg = ppg.to(torch.float)
     if ppg.dim() == 3:

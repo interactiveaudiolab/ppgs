@@ -1,6 +1,5 @@
 import torch
 import torchaudio
-from encodec import EncodecModel
 
 import ppgs
 
@@ -41,6 +40,7 @@ def from_audios(audio, lengths, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
 
     # Cache model
     if not hasattr(from_audios, 'model'):
+        from encodec import EncodecModel
         from_audios.model = EncodecModel.encodec_model_24khz()
         from_audios.model.to(device)
 

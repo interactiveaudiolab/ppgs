@@ -14,8 +14,8 @@ import ppgs
 
 @ppgs.notify.notify_on_finish('preprocessing')
 def datasets(
-    datasets,
-    features=ppgs.ALL_REPRESENTATIONS,
+    datasets=ppgs.DATASETS,
+    representations=ppgs.ALL_REPRESENTATIONS,
     gpu=None,
     num_workers=0,
     partition=None):
@@ -24,8 +24,8 @@ def datasets(
     Arguments
         datasets
             The names of the dataset to preprocess
-        features
-            The names of the features to do preprocessing for
+        representations
+            The names of the representations to do preprocessing for
         gpu
             The gpu to use for preprocessing
         num_workers
@@ -34,15 +34,32 @@ def datasets(
             The partition to preprocess. Default (None) uses all partitions.
     """
     for dataset in datasets:
-        dataloader = ppgs.data.loader(
-            dataset,
-            partition,
-            features=['wav', 'length', 'audio_file'],
-            num_workers=num_workers // 2)
+        if dataset == 'charsiu':
+            import pdb; pdb.set_trace()
+
+        try:
+
+            # Setup multiprocessed dataloader
+            dataloader = ppgs.data.loader(
+                dataset,
+                partition,
+                features=['wav', 'length', 'audio_file'],
+                num_workers=num_workers // 2)
+
+        except ValueError:
+
+            # Empty partition
+            continue
+
+        output = {
+            file: f'{file.parent}/{file.stem}' + '-{}.pt'
+            for _, _, files in dataloader for file in files}
         from_dataloader(
             dataloader,
-            features,
-            num_workers=(num_workers + 1) // 2, gpu=gpu)
+            representations,
+            output,
+            num_workers=(num_workers + 1) // 2,
+            gpu=gpu)
 
 
 ###############################################################################
@@ -50,20 +67,20 @@ def datasets(
 ###############################################################################
 
 
-def from_dataloader(loader, features, output, num_workers=0, gpu=None):
+def from_dataloader(loader, representations, output, num_workers=0, gpu=None):
     """Preprocess from a dataloader
 
     Arguments
         loader
             A Pytorch DataLoader yielding batches of (audio, length, filename)
-        features
-            The names of the features to do preprocessing for
-        gpu
-            The gpu to use for preprocessing
+        representations
+            The names of the representations to do preprocessing for
         output
             A dictionary mapping audio filenames to output filenames
         num_workers
             The number of worker threads to use for async file saving
+        gpu
+            The gpu to use for preprocessing
     """
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
@@ -77,23 +94,24 @@ def from_dataloader(loader, features, output, num_workers=0, gpu=None):
         # Batch preprocess
         for audios, lengths, audio_files in ppgs.iterator(
             loader,
-            f'Preprocessing {features} for {loader.dataset.metadata.name}',
+            f'Preprocessing {", ".join(representations)} '
+            f'for {loader.dataset.metadata.name}',
             total=len(loader)
         ):
             # Copy to device
             audios = audios.to(device)
             lengths = lengths.to(device)
 
-            for feature in zip(features):
+            for representation in representations:
 
                 # Preprocess
                 outputs = getattr(
                     ppgs.preprocess,
-                    feature
+                    representation
                 ).from_audios(audios, lengths, gpu=gpu).cpu()
 
                 # Get length in frames
-                if feature != 'w2v2ft':
+                if representation != 'w2v2ft':
                     frame_lengths = lengths // ppgs.HOPSIZE
                 else:
                     frame_lengths = (
@@ -102,7 +120,13 @@ def from_dataloader(loader, features, output, num_workers=0, gpu=None):
                         ppgs.preprocess.w2v2ft.HOP_SIZE)
 
                 # Get output filenames
-                filenames = [output[audio_file] for audio_file in audio_files]
+                filenames = []
+                for file in audio_files:
+                    output_file = output[file]
+                    if '{}' in output_file:
+                        filenames.append(output_file.format(representation))
+                    else:
+                        filenames.append(output_file)
 
                 if num_workers == 0:
 
@@ -123,6 +147,11 @@ def from_dataloader(loader, features, output, num_workers=0, gpu=None):
                     # Wait if the queue is full
                     while pool._taskqueue.qsize() > 256:
                         time.sleep(1)
+
+    # Shutdown multiprocessing
+    if num_workers > 0:
+        pool.close()
+        pool.join()
 
 
 def from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
