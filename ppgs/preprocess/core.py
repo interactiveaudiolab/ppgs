@@ -34,8 +34,6 @@ def datasets(
             The partition to preprocess. Default (None) uses all partitions.
     """
     for dataset in datasets:
-        if dataset == 'charsiu':
-            import pdb; pdb.set_trace()
 
         try:
 
@@ -89,7 +87,7 @@ def from_dataloader(loader, representations, output, num_workers=0, gpu=None):
         pool = contextlib.nullcontext()
     else:
         pool = mp.get_context('spawn').Pool(num_workers)
-    with pool, torch.inference_mode():
+    with torch.inference_mode():
 
         # Batch preprocess
         for audios, lengths, audio_files in ppgs.iterator(
@@ -111,13 +109,7 @@ def from_dataloader(loader, representations, output, num_workers=0, gpu=None):
                 ).from_audios(audios, lengths, gpu=gpu).cpu()
 
                 # Get length in frames
-                if representation != 'w2v2ft':
-                    frame_lengths = lengths // ppgs.HOPSIZE
-                else:
-                    frame_lengths = (
-                        lengths +
-                        ppgs.preprocess.w2v2ft.WINDOW_SIZE -
-                        ppgs.preprocess.w2v2ft.HOP_SIZE)
+                frame_lengths = lengths // ppgs.HOPSIZE
 
                 # Get output filenames
                 filenames = []

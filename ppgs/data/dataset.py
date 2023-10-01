@@ -168,9 +168,7 @@ class Metadata:
                         json.dump(lengths, file)
 
             # Match ordering
-            self.lengths = [
-                lengths[f'{file.parent.name}/{file.stem}']
-                for file in self.audio_files]
+            self.lengths = [lengths[stem] for stem in self.stems]
 
     def __len__(self):
         return len(self.stems)

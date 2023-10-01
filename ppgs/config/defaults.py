@@ -43,8 +43,7 @@ ALL_REPRESENTATIONS = [
     'w2v2fc',
     'spectrogram',
     'mel',
-    'encodec',
-    'w2v2ft']
+    'encodec']
 
 # All datasets used by this codebase
 DATASETS = ['arctic', 'charsiu', 'timit']
