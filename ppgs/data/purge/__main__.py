@@ -13,23 +13,21 @@ def parse_args():
     parser.add_argument(
         '--datasets',
         nargs='+',
-        default=['timit', 'arctic', 'charsiu'],
-        choices=['timit', 'arctic', 'charsiu'],
-        help="The datasets to purge"
-    )
+        default=ppgs.DATASETS,
+        choices=ppgs.DATASETS,
+        help='The datasets to purge')
     parser.add_argument(
         '--features',
         nargs='+',
-        default=ppgs.preprocess.ALL_FEATURES,
-        choices=ppgs.preprocess.ALL_FEATURES + [rep + '-ppg' for rep in ppgs.REPRESENTATION_MAP.keys()],
-        help="Which cached features to purge. Note that this only affects purges of the cache directory"
-    )
+        default=ppgs.ALL_FEATURES,
+        choices=ppgs.ALL_FEATURES + [rep + '-ppg' for rep in ppgs.ALL_REPRESENTATIONS],
+        help='Which features to purge from the cache directory')
     parser.add_argument(
         '--kinds',
         nargs='+',
         default=['cache'],
         choices=['cache', 'datasets', 'sources', 'partitions', 'all'],
-        help="Which kinds of local data storage to purge"
+        help='Which kinds of local data storage to purge'
     )
     parser.add_argument(
         '--force',

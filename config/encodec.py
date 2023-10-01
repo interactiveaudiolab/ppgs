@@ -6,7 +6,7 @@ MODULE = 'ppgs'
 CONFIG = 'encodec'
 
 # Dimensionality of input representation
-INPUT_CHANNELS = 80
+INPUT_CHANNELS = 128
 
 # Input representation
 REPRESENTATION = 'encodec'
