@@ -236,7 +236,8 @@ python -m ppgs.partition --datasets <datasets>
 
 ### Train
 
-Trains a model. Checkpoints and logs are stored in `runs/`.
+Trains a model. Checkpoints and logs are stored in `runs/`. You may want to run
+`accelerate config` first to configure which devices are used for training.
 
 ```
 CUDA_VISIBLE_DEVICES=<gpus> accelerate launch -m ppgs.train \
