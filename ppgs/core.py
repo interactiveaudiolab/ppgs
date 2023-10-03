@@ -341,6 +341,69 @@ def from_dataloader(
 
 
 ###############################################################################
+# PPG distance
+###############################################################################
+
+
+def distance(
+    ppgX: torch.Tensor,
+    ppgY: torch.Tensor,
+    log_target: bool = False,
+    reduction: Optional[str] = 'mean') -> torch.Tensor:
+    """Compute the pronunciation distance between two aligned PPGs
+
+    Arguments
+        ppgX
+            Input PPG X
+        ppgY
+            Input PPG Y to compare with PPG X
+        log_target
+            If true, expects PPGs to be logits
+        reduction
+            Reduction to apply to the output. One of ['mean', 'none', 'sum'].
+
+    Returns
+        Normalized Jenson-shannon divergence between PPGs
+    """
+    # TODO - normalize
+
+    # Average in parameter space
+    average = (ppgX + ppgY) / 2
+
+    # Compute KL divergences in both directions
+    kl_X = torch.nn.functional.kl_div(
+        average,
+        ppgX,
+        log_target=log_target,
+        reduction='none')
+    kl_Y = torch.nn.functional.kl_div(
+        average,
+        ppgY,
+        log_target=log_target,
+        reduction='none')
+    kl_X = torch.nan_to_num(kl_X)
+    kl_Y = torch.nan_to_num(kl_Y)
+
+    # Sum reduction
+    kl_X = kl_X.sum(dim=-1)
+    kl_Y = kl_Y.sum(dim=-1)
+
+    # Average KL
+    average_kl = (kl_X + kl_Y) / 2
+    average_kl[average_kl < 0] = 0
+    jsd = torch.sqrt(average_kl)
+
+    # Maybe reduce
+    if reduction == 'mean':
+        return jsd.mean(dim=0)
+    elif reduction == 'none' or reduction is None:
+        return jsd
+    elif reduction == 'sum':
+        return jsd.sum(dim=0)
+    raise ValueError(f'Reduction method {reduction} not defined')
+
+
+###############################################################################
 # Utilities
 ###############################################################################
 

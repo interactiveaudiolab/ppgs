@@ -289,10 +289,17 @@ def evaluate(
 ###############################################################################
 
 
-def loss(input, target):
+def loss(input, target, reduction='mean'):
     """Loss function"""
     if ppgs.CLASS_BALANCED:
-        if not hasattr(balanced, 'weights'):
-            balanced.weights = torch.load(ppgs.CLASS_WEIGHT_FILE).to(input.device)
-        return torch.nn.functional.cross_entropy(input, target, balanced.weights)
-    return torch.nn.functional.cross_entropy(input, target)
+        if not hasattr(loss, 'weights'):
+            loss.weights = torch.load(ppgs.CLASS_WEIGHT_FILE).to(input.device)
+        return torch.nn.functional.cross_entropy(
+            input,
+            target,
+            loss.weights,
+            reduction=reduction)
+    return torch.nn.functional.cross_entropy(
+        input,
+        target,
+        reduction=reduction)

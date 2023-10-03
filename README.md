@@ -20,6 +20,7 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
         * [`ppgs.from_file_to_file`](#ppgsfrom_file_to_file)
         * [`ppgs.from_files_to_files`](#ppgsfrom_files_to_files)
     * [Command-line interface (CLI)](#command-line-interface-cli)
+- [Distance](#distance)
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -190,6 +191,35 @@ optional arguments:
         Number of CPU threads for multiprocessing
     --gpu GPU
         The index of the GPU to use for inference. Defaults to CPU.
+```
+
+
+## Distance
+
+To compute the proposed normalized Jenson-Shannon pronunciation divergence
+between two PPGs, use `ppgs.distance()`.
+
+```
+def distance(
+    ppgX: torch.Tensor,
+    ppgY: torch.Tensor,
+    log_target: bool = False,
+    reduction: Optional[str] = 'mean') -> torch.Tensor:
+    """Compute the pronunciation distance between two aligned PPGs
+
+    Arguments
+        ppgX
+            Input PPG X
+        ppgY
+            Input PPG Y to compare with PPG X
+        log_target
+            If true, expects PPGs to be logits
+        reduction
+            Reduction to apply to the output. One of ['mean', 'none', 'sum'].
+
+    Returns
+        Normalized Jenson-shannon divergence between PPGs
+    """
 ```
 
 
