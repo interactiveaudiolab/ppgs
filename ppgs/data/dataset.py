@@ -1,6 +1,5 @@
 import contextlib
 import json
-import os
 from pathlib import Path
 
 import accelerate
@@ -20,7 +19,7 @@ import ppgs
 
 class Dataset(torch.utils.data.Dataset):
 
-    def __init__(self, name_or_files, partition=None, features=['wav']):
+    def __init__(self, name_or_files, partition=None, features=['audio']):
         self.features = features
         self.metadata = Metadata(name_or_files, partition=partition)
         self.cache = self.metadata.cache
@@ -37,7 +36,7 @@ class Dataset(torch.utils.data.Dataset):
         for feature in self.features:
 
             # Load audio
-            if feature == 'wav':
+            if feature == 'audio':
                 audio = ppgs.load.audio(self.audio_files[index])
                 feature_values.append(audio)
 
@@ -46,6 +45,17 @@ class Dataset(torch.utils.data.Dataset):
 
                 # Load alignment
                 alignment = pypar.Alignment(self.cache / f'{stem}.TextGrid')
+
+                # Lowercase and replace silence tokens
+                for i in range(len(alignment)):
+                    if str(alignment[i]) == '[SIL]':
+                        alignment[i].word = pypar.SILENCE
+                    for j in range(len(alignment[i])):
+                        if str(alignment[i][j]) == '[SIL]':
+                            alignment[i][j].phoneme = pypar.SILENCE
+                        else:
+                            alignment[i][j].phoneme = \
+                                str(alignment[i][j]).lower()
 
                 # Convert to indices
                 hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
@@ -140,8 +150,8 @@ class Metadata:
                     self.cache / (stem + '.wav') for stem in self.stems]
 
                 # Maybe remove previous cached lengths
-                if overwrite_cache and lengths_file.exists():
-                    os.remove(lengths_file)
+                if overwrite_cache:
+                     lengths_file.unlink(missing_ok=True)
 
                 # Load cached lengths
                 if lengths_file.exists():

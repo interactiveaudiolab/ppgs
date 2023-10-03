@@ -8,7 +8,7 @@ import torch
 
 class Collate():
 
-    def __init__(self, features=['wav']):
+    def __init__(self, features=['audio']):
         self.features = features
 
     def __call__(self, batch):
@@ -17,7 +17,7 @@ class Collate():
         for feature, values in zip(self.features, zip(*batch)):
 
             # Pack audio
-            if feature == 'wav':
+            if feature == 'audio':
                 max_length = max([audio.shape[-1] for audio in values])
                 padded_audio = torch.zeros(
                 (batch_size, 1, max_length),

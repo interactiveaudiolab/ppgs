@@ -9,7 +9,7 @@ import ppgs
 
 
 # Features loaded for training
-TRAINING_FEATURES = [ppgs.REPRESENTATION, 'phonemes', 'length', 'stem']
+TRAINING_FEATURES = [ppgs.REPRESENTATION, 'phonemes', 'length']
 
 
 ###############################################################################

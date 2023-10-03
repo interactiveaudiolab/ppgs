@@ -272,68 +272,72 @@ def from_dataloader(
     else:
         pool = mp.get_context('spawn').Pool(save_workers)
 
-    # Iterate over dataset
-    message = (
-        f'Processing {ppgs.REPRESENTATION} for '
-        f'dataset {dataloader.dataset.metadata.name}')
-    for audios, lengths, audio_files in iterator(
-        dataloader,
-        message,
-        total=len(dataloader)
-    ):
-        frame_lengths = lengths // ppgs.HOPSIZE
+    try:
 
-        # Preprocess
-        if ppgs.REPRESENTATION == 'wav':
-            features = audios
-            attention_mask_lengths = lengths
-        else:
-            features = getattr(
-                ppgs.preprocess,
-                ppgs.REPRESENTATION
-            ).from_audios(
-                audios,
-                lengths,
-                gpu=gpu)
-            attention_mask_lengths = frame_lengths
+        # Iterate over dataset
+        message = (
+            f'Processing {ppgs.REPRESENTATION} for '
+            f'dataset {dataloader.dataset.metadata.name}')
+        for audios, lengths, audio_files in iterator(
+            dataloader,
+            message,
+            total=len(dataloader)
+        ):
+            frame_lengths = lengths // ppgs.HOPSIZE
 
-        # Infer
-        result = from_features(
-            features,
-            attention_mask_lengths,
-            checkpoint,
-            gpu)
+            # Preprocess
+            if ppgs.REPRESENTATION == 'wav':
+                features = audios
+                attention_mask_lengths = lengths
+            else:
+                features = getattr(
+                    ppgs.preprocess,
+                    ppgs.REPRESENTATION
+                ).from_audios(
+                    audios,
+                    lengths,
+                    gpu=gpu)
+                attention_mask_lengths = frame_lengths
 
-        # Get output filenames
-        filenames = [output_files[file] for file in audio_files]
+            # Infer
+            result = from_features(
+                features,
+                attention_mask_lengths,
+                checkpoint,
+                gpu)
 
-        # Save to disk
+            # Get output filenames
+            filenames = [output_files[file] for file in audio_files]
+
+            # Save to disk
+            if save_workers > 0:
+
+                # Asynchronous save
+                pool.starmap_async(
+                    ppgs.preprocess.save_masked,
+                    zip(result.cpu(), filenames, frame_lengths.cpu()))
+                while pool._taskqueue.qsize() > 100:
+                    time.sleep(1)
+
+            else:
+
+                # Synchronous save
+                for ppg_output, filename, new_length in zip(
+                    result.cpu(),
+                    filenames,
+                    frame_lengths.cpu()
+                ):
+                    ppgs.preprocess.save_masked(
+                        ppg_output,
+                        filename,
+                        new_length)
+
+    finally:
+
+        # Maybe shutdown multiprocessing
         if save_workers > 0:
-
-            # Asynchronous save
-            pool.starmap_async(
-                ppgs.preprocess.save_masked,
-                zip(result.cpu(), filenames, frame_lengths.cpu()))
-            while pool._taskqueue.qsize() > 100:
-                time.sleep(1)
-
-        else:
-
-            # Synchronous save
-            for ppg_output, filename, new_length in zip(
-                result.cpu(),
-                filenames,
-                frame_lengths.cpu()
-            ):
-                ppgs.preprocess.save_masked(
-                    ppg_output,
-                    filename,
-                    new_length)
-
-    # Maybe shutdown multiprocessing
-    if save_workers > 0:
-        pool.close()
-        pool.join()
+            pool.close()
+            pool.join()
 
 
 ###############################################################################

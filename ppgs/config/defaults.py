@@ -36,6 +36,9 @@ WINDOW_SIZE = 1024
 ###############################################################################
 
 
+# Input and output
+ALL_FEATURES = ['audio', 'phonemes']
+
 # All supported input representations
 ALL_REPRESENTATIONS = [
     'bottleneck',

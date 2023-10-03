@@ -18,12 +18,8 @@ def datasets(
     """Cleanup data"""
     # Handle defaults
     if features is None or features in ['all', '*']:
-        features = ppgs.preprocess.ALL_FEATURES
-    if kinds is None:
-        kinds = ['cache']
-
-    # Handle wildcard
-    if kinds in ['all', '*']:
+        features = ppgs.ALL_FEATURES + ppgs.ALL_REPRESENTATIONS
+    if kinds is None or kinds in ['all', '*']:
         kinds = ['cache', 'datasets', 'sources', 'partitions']
 
     # List of features
@@ -47,7 +43,7 @@ def datasets(
                         f'**/*-{feature}.pt')
 
                 # Audio
-                elif feature == 'wav':
+                elif feature == 'audio':
                     purger.add_glob(ppgs.CACHE_DIR / dataset, '**/*.wav')
 
                 # Alignments
