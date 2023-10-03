@@ -100,8 +100,6 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     # Get total number of steps
     steps = ppgs.NUM_STEPS
 
-    loss_fn = ppgs.train.Loss()
-
     # Setup progress bar
     progress = tqdm.tqdm(
         initial=step,
@@ -119,29 +117,28 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
             for batch in train_loader:
 
                 # Unpack batch
-                input_ppgs = batch[0]
-                lengths = batch[1]
-                indices = batch[2]
+                input_representation, indices, lengths = batch
 
                 if frontend is not None:
                     with torch.no_grad():
-                        input_ppgs = frontend(input_ppgs).to(torch.float16)
+                        input_representation = frontend(
+                            input_representation).to(torch.float16)
 
                 # Zero gradients
                 optimizer.zero_grad()
 
                 # Forward pass
-                predicted_ppgs = model(input_ppgs, lengths)
+                predicted_ppgs = model(input_representation, lengths)
 
                 # Compute loss
-                loss = loss_fn(predicted_ppgs, indices)
+                train_loss = loss(predicted_ppgs, indices)
 
                 ##################
                 # Optimize model #
                 ##################
 
                 # Backward pass
-                accelerator.backward(loss)
+                accelerator.backward(train_loss)
 
                 # Update weights
                 optimizer.step()
@@ -153,7 +150,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                 if step % ppgs.EVALUATION_INTERVAL == 0:
 
                     # Clear cache to make space for evaluation tensors
-                    del loss
+                    del train_loss
                     del predicted_ppgs
                     torch.cuda.empty_cache()
 
@@ -239,14 +236,15 @@ def evaluate(
     for i, batch in enumerate(loader):
 
         # Unpack batch
-        input_ppgs, lengths, indices, _ = batch
+        input_representation, indices, lengths = batch
 
         # Maybe encode
         if frontend is not None:
-            input_ppgs = frontend(input_ppgs).to(torch.float16)
+            input_representation = frontend(
+                input_representation).to(torch.float16)
 
         # Forward pass
-        predicted_ppgs = model(input_ppgs, lengths)
+        predicted_ppgs = model(input_representation, lengths)
 
         # Gather indices
         indices = accelerator.pad_across_processes(
@@ -291,15 +289,10 @@ def evaluate(
 ###############################################################################
 
 
-def balanced(input, target):
-    """Class-balanced cross-entropy loss"""
-    if not hasattr(balanced, 'weights'):
-        balanced.weights = torch.load(ppgs.CLASS_WEIGHT_FILE).to(input.device)
-    return torch.nn.functional.cross_entropy(input, target, balanced.weights)
-
-
-def loss():
+def loss(input, target):
     """Loss function"""
     if ppgs.CLASS_BALANCED:
-        return balanced
-    return torch.nn.functional.cross_entropy
+        if not hasattr(balanced, 'weights'):
+            balanced.weights = torch.load(ppgs.CLASS_WEIGHT_FILE).to(input.device)
+        return torch.nn.functional.cross_entropy(input, target, balanced.weights)
+    return torch.nn.functional.cross_entropy(input, target)

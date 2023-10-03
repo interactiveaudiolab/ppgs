@@ -203,12 +203,10 @@ class JensenShannon:
 class Loss:
 
     def __init__(self):
-        self.loss_fn = ppgs.train.Loss()
         self.reset()
 
     def __call__(self):
-        loss = float((self.total / self.count).item())
-        return {f'Loss/{ppgs.LOSS_FUNCTION}': loss}
+        return {f'loss': (self.total / self.count).item()}
 
     def reset(self):
         self.total = 0.
@@ -216,11 +214,7 @@ class Loss:
 
     def update(self, predicted_logits, target_indices):
         """Update the total cross entropy loss"""
-        self.total += self.loss_fn(
-            predicted_logits,
-            target_indices)
-
-        # Update count
+        self.total += ppgs.train.loss(predicted_logits, target_indices)
         self.count += (target_indices != -100).sum()
 
 
@@ -328,7 +322,7 @@ class DistanceMatrix:
         self.reset()
 
     def _normalized(self):
-        return self.matrix / self.matrix.sum(dim=1)[:, None].cpu()
+        return (self.matrix / self.matrix.sum(dim=1)[:, None]).cpu()
 
     def _render(self):
         figure = plt.figure(dpi=400, figsize=(6, 6))
@@ -379,10 +373,7 @@ class DistanceMatrix:
         return figure
 
     def __call__(self):
-        return {
-            f'DistanceMatrix': self._render(),
-            f'DistanceMatrix/data': self._normalized()
-        }
+        return {f'DistanceMatrix': self._render()}
 
     def reset(self):
         self.matrix = None

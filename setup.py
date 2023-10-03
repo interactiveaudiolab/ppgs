@@ -29,6 +29,7 @@ setup(
     },
     install_requires=[
         'accelerate',
+        'deepspeed',
         'moviepy',
         'numpy',
         'pyfoal',

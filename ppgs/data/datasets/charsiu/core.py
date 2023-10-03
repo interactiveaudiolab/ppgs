@@ -116,18 +116,36 @@ def mp3_textgrid(
         sample_rate=ppgs.SAMPLE_RATE)
     duration = audio.shape[-1] / ppgs.SAMPLE_RATE
 
-    # Format and save alignment
+    # Load alignment file contents
     textgrid_file = (
         source_directory /
         'alignments' /
         (mp3_file.stem + '.TextGrid'))
     with open(textgrid_file, 'r', encoding='utf-8') as infile:
         lines = infile.readlines()
+
+    # Replace header
     lines[0] = 'File type = "ooTextFile short"\n'
     lines[1] = '"TextGrid"\n'
+
+    # Save alignment file
     output_textgrid = alignment_directory / textgrid_file.name
     with open(output_textgrid, 'w', encoding='utf-8') as outfile:
         outfile.writelines(lines)
+
+    # Load alignment
     alignment = pypar.Alignment(output_textgrid)
+
+    # Replace silence tokens
+    for i in range(len(alignment)):
+        if str(alignment[i]) == '[SIL]':
+            alignment[i].word = pypar.SILENCE
+        for j in range(len(alignment[i])):
+            if str(alignment[i][j]) == '[SIL]':
+                alignment[i][j].phoneme = pypar.SILENCE
+
+    # Align end time of final phoneme with audio duration
     alignment[-1][-1]._end = duration
+
+    # Save alignment
     alignment.save(output_textgrid)

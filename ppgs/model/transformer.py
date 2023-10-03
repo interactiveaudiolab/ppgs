@@ -33,7 +33,7 @@ class Transformer(torch.nn.Module):
             padding='same')
 
     def forward(self, x, lengths):
-        mask = mask_from_lengths(lengths)
+        mask = mask_from_lengths(lengths).unsqueeze(1)
         x = self.input_layer(x) * mask
         x = self.model(
             self.position(x.permute(2, 0, 1)),

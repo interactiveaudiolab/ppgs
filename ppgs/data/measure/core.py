@@ -11,7 +11,7 @@ import ppgs
 def datasets(datasets, features=None):
     """Get dataset sizes in gigabytes"""
     if features is None:
-        features = ppgs.preprocess.ALL_FEATURES
+        features = ppgs.ALL_FEATURES + ppgs.ALL_REPRESENTATIONS
 
     total = 0
     for dataset in datasets:
@@ -27,7 +27,7 @@ def datasets(datasets, features=None):
                 feature_size = measure_glob(
                     cache_directory,
                     f'**/*-{feature}.pt')
-            elif feature == 'wav':
+            elif feature == 'audio':
                 feature_size = measure_glob(cache_directory, '**/*.wav')
             elif feature == 'phonemes':
                 feature_size = measure_glob(cache_directory, '**/*.TextGrid')

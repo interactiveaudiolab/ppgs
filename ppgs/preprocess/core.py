@@ -41,7 +41,7 @@ def datasets(
             dataloader = ppgs.data.loader(
                 dataset,
                 partition,
-                features=['wav', 'length', 'audio_file'],
+                features=['audio', 'length', 'audio_file'],
                 num_workers=num_workers // 2)
 
         except ValueError:
@@ -87,63 +87,68 @@ def from_dataloader(loader, representations, output, num_workers=0, gpu=None):
         pool = contextlib.nullcontext()
     else:
         pool = mp.get_context('spawn').Pool(num_workers)
-    with torch.inference_mode():
 
-        # Batch preprocess
-        for audios, lengths, audio_files in ppgs.iterator(
-            loader,
-            f'Preprocessing {", ".join(representations)} '
-            f'for {loader.dataset.metadata.name}',
-            total=len(loader)
-        ):
-            # Copy to device
-            audios = audios.to(device)
-            lengths = lengths.to(device)
+    try:
 
-            for representation in representations:
+        with torch.inference_mode():
 
-                # Preprocess
-                outputs = getattr(
-                    ppgs.preprocess,
-                    representation
-                ).from_audios(audios, lengths, gpu=gpu).cpu()
+            # Batch preprocess
+            for audios, lengths, audio_files in ppgs.iterator(
+                loader,
+                f'Preprocessing {", ".join(representations)} '
+                f'for {loader.dataset.metadata.name}',
+                total=len(loader)
+            ):
+                # Copy to device
+                audios = audios.to(device)
+                lengths = lengths.to(device)
 
-                # Get length in frames
-                frame_lengths = lengths // ppgs.HOPSIZE
+                for representation in representations:
 
-                # Get output filenames
-                filenames = []
-                for file in audio_files:
-                    output_file = output[file]
-                    if '{}' in output_file:
-                        filenames.append(output_file.format(representation))
+                    # Preprocess
+                    outputs = getattr(
+                        ppgs.preprocess,
+                        representation
+                    ).from_audios(audios, lengths, gpu=gpu).cpu()
+
+                    # Get length in frames
+                    frame_lengths = lengths // ppgs.HOPSIZE
+
+                    # Get output filenames
+                    filenames = []
+                    for file in audio_files:
+                        output_file = output[file]
+                        if '{}' in output_file:
+                            filenames.append(output_file.format(representation))
+                        else:
+                            filenames.append(output_file)
+
+                    if num_workers == 0:
+
+                        # Synchronous save
+                        for latent_output, filename, new_length in zip(
+                            outputs.cpu(),
+                            filenames,
+                            frame_lengths.cpu()
+                        ):
+                            save_masked(latent_output, filename, new_length)
                     else:
-                        filenames.append(output_file)
 
-                if num_workers == 0:
+                        # Asynchronous save
+                        pool.starmap_async(
+                            save_masked,
+                            zip(outputs, filenames, frame_lengths.cpu()))
 
-                    # Synchronous save
-                    for latent_output, filename, new_length in zip(
-                        outputs.cpu(),
-                        filenames,
-                        frame_lengths.cpu()
-                    ):
-                        save_masked(latent_output, filename, new_length)
-                else:
+                        # Wait if the queue is full
+                        while pool._taskqueue.qsize() > 256:
+                            time.sleep(1)
 
-                    # Asynchronous save
-                    pool.starmap_async(
-                        save_masked,
-                        zip(outputs, filenames, frame_lengths.cpu()))
+    finally:
 
-                    # Wait if the queue is full
-                    while pool._taskqueue.qsize() > 256:
-                        time.sleep(1)
-
-    # Shutdown multiprocessing
-    if num_workers > 0:
-        pool.close()
-        pool.join()
+        # Shutdown multiprocessing
+        if num_workers > 0:
+            pool.close()
+            pool.join()
 
 
 def from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
@@ -153,7 +158,7 @@ def from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
 
     # Compute representation
     with torch.autocast('cuda' if gpu is not None else 'cpu'):
-        features = getattr(ppgs.preprocess, ppgs.REPRESENTATION)(
+        features = getattr(ppgs.preprocess, ppgs.REPRESENTATION).from_audio(
             audio,
             sample_rate=sample_rate,
             gpu=gpu)

@@ -7,6 +7,7 @@ import ppgs
 # Purge datasets
 ###############################################################################
 
+
 def parse_args():
     """Parse command-line arguments"""
     parser = argparse.ArgumentParser(description='Purge datasets')
@@ -19,21 +20,19 @@ def parse_args():
     parser.add_argument(
         '--features',
         nargs='+',
-        default=ppgs.ALL_FEATURES,
+        default=ppgs.ALL_FEATURES + [rep + '-ppg' for rep in ppgs.ALL_REPRESENTATIONS],
         choices=ppgs.ALL_FEATURES + [rep + '-ppg' for rep in ppgs.ALL_REPRESENTATIONS],
         help='Which features to purge from the cache directory')
     parser.add_argument(
         '--kinds',
         nargs='+',
-        default=['cache'],
-        choices=['cache', 'datasets', 'sources', 'partitions', 'all'],
-        help='Which kinds of local data storage to purge'
-    )
+        default=['cache', 'datasets', 'sources', 'partitions'],
+        choices=['cache', 'datasets', 'sources', 'partitions'],
+        help='Which kinds of local data storage to purge')
     parser.add_argument(
         '--force',
         action='store_true',
-        help="Do not prompt user for confirmation"
-    )
+        help='Do not prompt user for confirmation')
     return parser.parse_args()
 
 
