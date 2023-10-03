@@ -90,11 +90,6 @@ def save(results, name, directory, save_json=True):
                 pad_inches=0)
             del results[metric]
 
-        # Save and remove tensor
-        elif isinstance(value, torch.Tensor) and value.dim() >= 1:
-            torch.save(value, fig_dir / f'{metric.replace("/", "-")}.pt')
-            del results[metric]
-
     # Save json-serializable results
     if save_json:
         with open(directory / f'{name}.json', 'w') as file:
