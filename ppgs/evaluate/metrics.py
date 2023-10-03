@@ -144,7 +144,7 @@ class JensenShannon:
         return {f'JSD': (self.total / self.count).item()}
 
     def reset(self):
-        self.total = 0.
+        self.total = torch.tensor(0., dtype=torch.float32)
         self.count = 0
 
     def update(self, predicted_logits, target_indices):
@@ -168,35 +168,11 @@ class JensenShannon:
                 num_classes=predicted_logits.shape[-1]),
             eps=1e-5)
 
-        # Average in parameter space
-        p, q = predicted_logits, target_logits
-        m = (p + q) / 2
-
-        # Compute KL divergences in both directions
-        kl_pm = torch.nn.functional.kl_div(
-            m,
-            p,
-            log_target=True,
-            reduction='none')
-        kl_qm = torch.nn.functional.kl_div(
-            m,
-            q,
-            log_target=True,
-            reduction='none')
-        kl_pm = torch.nan_to_num(kl_pm)
-        kl_qm = torch.nan_to_num(kl_qm)
-
-        # Sum reduction
-        kl_pm = kl_pm.sum(dim=-1)
-        kl_qm = kl_qm.sum(dim=-1)
-
-        # Average KL
-        average_kl = (kl_pm + kl_qm) / 2
-        average_kl[average_kl < 0] = 0
-        jsd = torch.sqrt(average_kl).sum(dim=0)
+        # Compute pronunciation distance
+        jsd = ppgs.distance(predicted_logits, target_logits, reduction='sum')
 
         # Update total and count
-        self.total += jsd
+        self.total += jsd.item()
         self.count += (target_indices != -100).sum()
 
 
@@ -209,12 +185,15 @@ class Loss:
         return {f'loss': (self.total / self.count).item()}
 
     def reset(self):
-        self.total = 0.
+        self.total = torch.tensor(0., dtype=torch.float32)
         self.count = 0
 
     def update(self, predicted_logits, target_indices):
         """Update the total cross entropy loss"""
-        self.total += ppgs.train.loss(predicted_logits, target_indices)
+        self.total += ppgs.train.loss(
+            predicted_logits,
+            target_indices,
+            reduction='sum').item()
         self.count += (target_indices != -100).sum()
 
 
@@ -225,7 +204,7 @@ class TopKAccuracy:
         self.reset()
 
     def __call__(self):
-        accuracy = self.correct_in_top_k / float(self.count)
+        accuracy = (self.correct_in_top_k / self.count).item()
         return {f'Top-{self.k} Accuracy/': accuracy}
 
     def reset(self):

@@ -35,10 +35,10 @@ def datasets(datasets, checkpoint=ppgs.DEFAULT_CHECKPOINT, gpu=None):
         dataloader = ppgs.data.loader(dataset, 'test')
 
         # Iterate over test set
-        for input_ppgs, indices, lengths, _ in ppgs.iterator(
+        for input_ppgs, indices, lengths in ppgs.iterator(
             dataloader,
             f'Evaluating {ppgs.CONFIG} on {dataset}',
-            len(dataloader)
+            total=len(dataloader)
         ):
             # Infer PPGs
             logits = ppgs.from_features(
@@ -88,6 +88,11 @@ def save(results, name, directory, save_json=True):
                 fig_dir / f'{metric.replace("/", "-")}.pdf',
                 bbox_inches='tight',
                 pad_inches=0)
+            del results[metric]
+
+        # Save and remove tensor
+        elif isinstance(value, torch.Tensor) and value.dim() >= 1:
+            torch.save(value, fig_dir / f'{metric.replace("/", "-")}.pt')
             del results[metric]
 
     # Save json-serializable results
