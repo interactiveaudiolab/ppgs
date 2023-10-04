@@ -125,7 +125,13 @@ def from_ppg_to_video_file(ppg, audio_filename, video_filename, textgrid_filenam
 
     num_frames = len(audio) // ppgs.HOPSIZE
 
-    pixels = from_ppg_to_pixels(ppg, num_frames)
+    ppg_pixels = from_ppg_to_pixels(ppg)
+    textgrid_pixels = from_textgrid_to_pixels(
+        textgrid_filename,
+        num_frames,
+    )
+
+    pixels = combine_pixels(ppg_pixels, textgrid_pixels)
 
     #visual 'convolution' to create frames from ppg windows
     frames = []
