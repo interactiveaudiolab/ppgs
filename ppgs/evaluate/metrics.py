@@ -169,11 +169,17 @@ class JensenShannon:
             eps=1e-5)
 
         # Compute pronunciation distance
-        jsd = ppgs.distance(predicted_logits, target_logits, reduction='sum')
+        jsd = ppgs.distance(
+            predicted_logits,
+            target_logits,
+            log_target=True,
+            reduction='sum')
 
         # Update total and count
         self.total += jsd.item()
         self.count += (target_indices != -100).sum()
+        import pdb; pdb.set_trace()
+        pass
 
 
 class Loss:
@@ -195,6 +201,8 @@ class Loss:
             target_indices,
             reduction='sum').item()
         self.count += (target_indices != -100).sum()
+        import pdb; pdb.set_trace()
+        pass
 
 
 class TopKAccuracy:
