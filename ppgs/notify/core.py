@@ -1,46 +1,71 @@
 import bdb
 import time
 
-import apprise
+import ppgs
 
-from ppgs import NOTIFICATION_SERVICES
 
-messenger = apprise.Apprise()
-for service in NOTIFICATION_SERVICES:
-    messenger.add(service)
+###############################################################################
+# Send job notifications
+###############################################################################
 
-def push(message: str):
-    """send a push notification to all of the configured services"""
-    messenger.notify(message)
 
-def notify_on_finish(description: str, track_time: bool = True, notify_on_fail: bool = True):
+def notify_on_finish(
+    description: str,
+    track_time: bool = True,
+    notify_on_fail: bool = True):
+    """Context manager for sending job notifications"""
     def wrapper(func: callable):
         def _wrapper(*args, **kwargs):
+            # Start time
             if track_time:
                 start_time = time.time()
-            print('starting notified task:', description)
+
+            # Run callable
             try:
                 func(*args, **kwargs)
             except Exception as exception:
+
+                # Ignore pdb exceptions
                 if isinstance(exception, bdb.BdbQuit):
                     return
+
+                # Report failure
                 if notify_on_fail:
-                    message = f'task "{description}" failed with exception: {exception.__class__}'
+                    message = (
+                        f'task "{description}" failed with '
+                        'exception: {exception.__class__}')
                     push(message)
+
                 raise exception
+
+            # End time
             if track_time:
                 end_time = time.time()
-            print('task finished, sending notifications')
+
+            # Report success
             if track_time:
-                message = f'Task "{description}" finished in {round(end_time-start_time)} seconds'
+                message = (
+                    f'Task "{description}" finished in '
+                    f'{round(end_time - start_time)} seconds')
             else:
                 message = f'Task "{description}" finished'
             push(message)
+
         return _wrapper
     return wrapper
 
-if __name__ == '__main__':
-    @notify_on_finish('testing', True)
-    def __test_task(seconds: int):
-        time.sleep(seconds)
-    __test_task(10)
+
+###############################################################################
+# Utilities
+###############################################################################
+
+
+def push(message: str):
+    """send a push notification to all of the configured services"""
+    if ppgs.NOTIFICATION_SERVICES:
+        if not hasattr(push, 'messenger'):
+            import apprise
+            push.messenger = apprise.Apprise()
+            for service in ppgs.NOTIFICATION_SERVICES:
+                push.messenger.add(service)
+        push.messenger.notify(message)

@@ -1,6 +1,3 @@
-"""__main__.py - entry point for ppgs.preprocess"""
-
-
 import yapecs
 
 import ppgs
@@ -16,12 +13,15 @@ def parse_args():
     parser.add_argument(
         '--datasets',
         nargs='+',
-        default=['arctic'],
+        default=ppgs.DATASETS,
+        choices=ppgs.DATASETS,
         help='The name of the datasets to use')
     parser.add_argument(
-        '--features',
+        '--representations',
         nargs='+',
-        help='The features to preprocess')
+        default=[ppgs.REPRESENTATION],
+        choices=ppgs.ALL_REPRESENTATIONS,
+        help='The representations to preprocess')
     parser.add_argument(
         '--gpu',
         type=int,
@@ -29,14 +29,11 @@ def parse_args():
     parser.add_argument(
         '--num-workers',
         type=int,
-        default=0,
-        help='The number of worker threads to use for loading data'
-    )
+        default=ppgs.NUM_WORKERS,
+        help='The number of worker threads to use for loading data')
     parser.add_argument(
         '--partition',
-        default=None,
-        help='The dataset partition to preprocess'
-    )
+        help='The partition to preprocess. Uses all partitions by default.')
     return parser.parse_args()
 
 

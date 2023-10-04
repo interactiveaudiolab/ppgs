@@ -1,62 +1,46 @@
 import multiprocessing as mp
 import os
 
-import librosa
 import torch
 
 import ppgs
 
-from . import spectrogram
 
 ###############################################################################
 # Spectrogram computation
 ###############################################################################
 
-def from_features(
-    features: torch.Tensor,
-    new_lengths: torch.Tensor,
-    checkpoint=None,
-    gpu=0
-):
+
+def from_features(features, new_lengths, checkpoint=None, gpu=None):
     if not hasattr(from_features, 'model'):
-        from_features.model = ppgs.Model()()
+        from_features.model = ppgs.Model()
         if checkpoint is not None:
-            from_features.model.load_state_dict(torch.load(checkpoint)['model'])
+            from_features.model.load_state_dict(
+                torch.load(checkpoint)['model'])
         else:
-            from_features.model.load_state_dict(torch.load(ppgs.CHECKPOINT_DIR / 'mel.pt')['model'])
+            from_features.model.load_state_dict(
+                torch.load(ppgs.CHECKPOINT_DIR / 'mel.pt')['model'])
         from_features.model.to(features.device)
     return from_features.model(features, new_lengths)
 
-def from_audios(
-    audio,
-    lengths,
-    sample_rate = ppgs.SAMPLE_RATE,
-    gpu=None,
-):
+
+def from_audios(audio, lengths, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
     device = f'cuda:{gpu}' if gpu is not None else 'cpu'
     audio = audio.to(device)
-    spec = spectrogram.from_audios(audio, lengths)
+    spec = ppgs.preprocess.spectrogram.from_audios(audio, lengths)
     melspec = linear_to_mel(spec)
     return melspec.to(torch.float16)
 
-def from_audio(
-    audio,
-    sample_rate=ppgs.SAMPLE_RATE,
-    gpu=None
-):
+
+def from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
     with torch.autocast('cuda' if gpu is not None else 'cpu'):
         if audio.dim() == 2:
             audio = audio.unsqueeze(dim=0)
-        return from_audios(audio, lengths=audio.shape[-1], sample_rate=sample_rate, gpu=gpu)
-
-# def from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
-#     """Compute spectrogram from audio"""
-#     audio = ppgs.resample(audio, sample_rate, ppgs.SAMPLE_RATE)
-
-#     spec = spectrogram.from_audio(audio)
-#     melspec = linear_to_mel(spec)
-#     raise ValueError(melspec.shape)
-#     return melspec.squeeze(0).to(torch.float16)
+        return from_audios(
+            audio,
+            lengths=audio.shape[-1],
+            sample_rate=sample_rate,
+            gpu=gpu)
 
 
 def from_file(audio_file):
@@ -83,6 +67,8 @@ def from_files_to_files(audio_files, output_files):
 
 
 def linear_to_mel(spectrogram):
+    import librosa
+
     # Create mel basis
     if not hasattr(linear_to_mel, 'mel_basis'):
         basis = librosa.filters.mel(
@@ -95,7 +81,9 @@ def linear_to_mel(spectrogram):
 
     # Convert to mels
     original_dtype = spectrogram.dtype
-    melspectrogram = torch.matmul(linear_to_mel.basis, spectrogram.to(torch.float))
+    melspectrogram = torch.matmul(
+        linear_to_mel.basis,
+        spectrogram.to(torch.float))
 
     # Apply dynamic range compression
     return torch.log(torch.clamp(melspectrogram, min=1e-5)).to(original_dtype)

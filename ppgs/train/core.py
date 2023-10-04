@@ -1,33 +1,11 @@
-import contextlib
-import os
+import functools
+import shutil
 
+import accelerate
 import torch
-from accelerate import Accelerator
 import tqdm
 
 import ppgs
-
-###############################################################################
-# Training interface
-###############################################################################
-
-
-def run(
-    dataset,
-    checkpoint_directory,
-    output_directory,
-    log_directory,
-    eval_only=False):
-    """Run model training"""
-    train(
-        dataset=dataset,
-        checkpoint_directory=checkpoint_directory,
-        output_directory=output_directory,
-        log_directory=log_directory,
-        eval_only=eval_only)
-
-    # Return path to model checkpoint
-    return ppgs.checkpoint.latest_path(output_directory)
 
 
 ###############################################################################
@@ -35,64 +13,66 @@ def run(
 ###############################################################################
 
 
-def train(
-    dataset,
-    checkpoint_directory,
-    output_directory,
-    log_directory,
-    eval_only=False):
-    """Train a model"""
+def run(config, dataset):
+    """Train from configuration"""
+    # Create output directory
+    directory = ppgs.RUNS_DIR / config.stem
+    directory.mkdir(parents=True, exist_ok=True)
 
-    # Initialize accelerator and get device
-    accelerator = Accelerator(
+    # Save configuration
+    shutil.copyfile(config, directory / config.name)
+
+    # Train
+    train(dataset, directory)
+
+
+###############################################################################
+# Training
+###############################################################################
+
+
+@ppgs.notify.notify_on_finish('training')
+def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
+    """Train a model"""
+    # Create output directory
+    directory.mkdir(parents=True, exist_ok=True)
+
+    # Initialize distributed training
+    accelerator = accelerate.Accelerator(
         mixed_precision='fp16',
-        even_batches=False,
-        # log_with='tensorboard'
-    )
-    device = accelerator.device
+        even_batches=False)
 
     #################
     # Create models #
     #################
 
-    #TODO config?
-    model = ppgs.Model()().to(device)
+    if ppgs.FRONTEND is not None and callable(ppgs.FRONTEND):
+        frontend = ppgs.FRONTEND(accelerator.device)
+    else:
+        frontend = None
+
+    model = ppgs.Model()
 
     ####################
     # Create optimizer #
     ####################
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=ppgs.LEARNING_RATE,
-        betas=[.80, .99],
-        eps=1e-9,
-        weight_decay=ppgs.WEIGHT_DECAY)
+    optimizer = torch.optim.Adam(model.parameters(), lr=ppgs.LEARNING_RATE)
 
     ##############################
     # Maybe load from checkpoint #
     ##############################
 
-    path = ppgs.checkpoint.latest_path(
-        checkpoint_directory,
-        '*.pt'),
-
-    # For some reason, returning None from latest_path returns (None,)
-    path = None if path == (None,) else path
+    # Find latest checkpoint
+    path = ppgs.checkpoint.latest_path(directory)
 
     if path is not None:
 
         # Load model
-        (
-            model,
-            optimizer,
-            step,
-            epoch
-        ) = ppgs.checkpoint.load(
+        model, optimizer, step, epoch = ppgs.checkpoint.load(
             path[0],
             model,
-            optimizer
-        )
+            optimizer)
 
     else:
 
@@ -105,132 +85,86 @@ def train(
     #######################
 
     torch.manual_seed(ppgs.RANDOM_SEED)
-    train_loader, valid_loader = ppgs.data.loaders(dataset)
-    train_batch_sampler = train_loader.batch_sampler
-    train_batch_sampler.epoch = epoch
-    model, optimizer, train_loader, valid_loader = accelerator.prepare(model, optimizer, train_loader, valid_loader)
-
-    # Prepare FRONTEND
-    if ppgs.FRONTEND is not None and callable(ppgs.FRONTEND):
-        frontend = ppgs.FRONTEND(device)
-    else:
-        frontend = None
-
-    if eval_only:
-        evaluate(
-            log_directory,
-            step,
-            model,
-            frontend,
-            valid_loader,
-            train_loader,
-            accelerator)
-        return
+    train_loader = ppgs.data.loader(dataset, 'train')
+    valid_loader = ppgs.data.loader(dataset, 'valid')
+    model, optimizer, train_loader, valid_loader = accelerator.prepare(
+        model,
+        optimizer,
+        train_loader,
+        valid_loader)
 
     #########
     # Train #
     #########
 
-
     # Get total number of steps
     steps = ppgs.NUM_STEPS
 
-    loss_fn = ppgs.train.Loss()
-
+    # Setup progress bar
     progress = tqdm.tqdm(
         initial=step,
         total=steps,
         dynamic_ncols=True,
         desc=f'Training {ppgs.CONFIG}')
-        
+
     try:
         model.train()
         while step < steps:
 
-            train_batch_sampler.epoch = epoch
+            # Update epoch-based random seed
+            train_loader.batch_sampler.set_epoch(epoch)
 
-            if not model.training:
-                model.train()
-                raise ValueError('this should never happen') #TODO remove
             for batch in train_loader:
 
                 # Unpack batch
-                # input_ppgs, indices = (item.to(device) for item in batch)
-                input_ppgs = batch[0].to(device)
-                lengths = batch[1].to(device)
-                indices = batch[2].to(device)
-                stems = batch[3]
+                input_representation, indices, lengths = batch
 
                 if frontend is not None:
                     with torch.no_grad():
-                        input_ppgs = frontend(input_ppgs).to(torch.float16)
+                        input_representation = frontend(
+                            input_representation).to(torch.float16)
 
+                # Zero gradients
                 optimizer.zero_grad()
 
                 # Forward pass
-                if ppgs.MODEL == 'convolution':
-                    predicted_ppgs = model(input_ppgs)
-                else:
-                    predicted_ppgs = model(input_ppgs, lengths)
+                predicted_ppgs = model(input_representation, lengths)
 
-                loss = loss_fn(predicted_ppgs, indices)
+                # Compute loss
+                train_loss = loss(predicted_ppgs, indices)
 
-                ######################
+                ##################
                 # Optimize model #
-                ######################
+                ##################
 
                 # Backward pass
-                accelerator.backward(loss)
+                accelerator.backward(train_loss)
 
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_INF_CLIP, norm_type='inf')
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=ppgs.GRAD_2_CLIP, norm_type=2)
-                # for p in model.parameters():
-                    # if p.grad is not None and p.grad.norm() >= 1.25:
-                    #     print(p.grad.norm(), '2', p.shape, step)#, stems)
-                    # if p.grad is not None and p.grad.norm(4) >= 1:
-                    #     print(p.grad.norm(4), '4', p.shape, step, stems)
-                    # if p.grad is not None and p.grad.abs().max() >= 0.5:
-                    #     print(p.grad.abs().max(), 'inf', p.shape, step)#, stems)
                 # Update weights
-
                 optimizer.step()
-
-                ###########
-                # Logging #
-                ###########
-
-
-                if step % ppgs.LOG_INTERVAL == 0:
-
-                    # Log loss
-                    scalars = {
-                        'train/loss': loss,
-                        'learning_rate': optimizer.param_groups[0]['lr']}
-                    ppgs.write.scalars(log_directory, step, scalars)
-
-                    # Log visualizations
-                    # visualization_batch = batch[:ppgs.VISUALIZATION_SAMPLES]
-                    # audio_filenames = [f + '.wav' for f in visualization_batch]
 
                 ############
                 # Evaluate #
                 ############
+
                 if step % ppgs.EVALUATION_INTERVAL == 0:
 
-                    print(torch.cuda.max_memory_allocated(device) / (1024 ** 3), torch.cuda.max_memory_reserved(device) / (1024 ** 3))
-
-                    del loss
+                    # Clear cache to make space for evaluation tensors
+                    del train_loss
                     del predicted_ppgs
                     torch.cuda.empty_cache()
 
-                    evaluate(
-                        log_directory,
+                    # Evaluate
+                    evaluate_fn = functools.partial(
+                        evaluate,
+                        directory,
                         step,
                         model,
                         frontend,
-                        valid_loader,
-                        train_loader,
-                        accelerator)
+                        accelerator=accelerator)
+                    with ppgs.inference_context(model):
+                        evaluate_fn(train_loader, 'train')
+                        evaluate_fn(valid_loader, 'valid')
 
                 ###################
                 # Save checkpoint #
@@ -242,7 +176,7 @@ def train(
                         optimizer,
                         step,
                         epoch,
-                        output_directory / f'{step:08d}.pt',
+                        directory / f'{step:08d}.pt',
                         accelerator)
 
                 # Update training step count
@@ -253,29 +187,32 @@ def train(
                 # Update progress bar
                 progress.update()
 
-                # torch.cuda.empty_cache()
-                # print(torch.cuda.memory_allocated() / (1024 ** 3), torch.cuda.memory_reserved() / (1024 ** 3))
-
             # update epoch
             epoch += 1
+
     except KeyboardInterrupt:
+
+        # Save checkpoint on interrupt
         ppgs.checkpoint.save(
             model,
             optimizer,
             step,
             epoch,
-            output_directory / f'{step:08d}.pt',
+            directory / f'{step:08d}.pt',
             accelerator)
+
     finally:
+
         # Close progress bar
         progress.close()
 
+    # Save checkpoint
     ppgs.checkpoint.save(
         model,
         optimizer,
         step,
         epoch,
-        output_directory / f'{step:08d}.pt',
+        directory / f'{step:08d}.pt',
         accelerator)
 
 
@@ -283,125 +220,86 @@ def train(
 # Evaluation
 ###############################################################################
 
-def evaluate(directory, step, model, frontend, valid_loader, train_loader, accelerator: Accelerator = None):
+
+def evaluate(
+    directory,
+    step,
+    model,
+    frontend,
+    loader,
+    partition,
+    accelerator=None):
     """Perform model evaluation"""
+    # Setup evaluation metrics
+    metrics = ppgs.evaluate.Metrics(partition)
 
-    # Prepare model for evaluation
-    model.eval()
+    for i, batch in enumerate(loader):
 
-    print(f'Evaluating model at step {step}')
+        # Unpack batch
+        input_representation, indices, lengths = batch
 
-    # Turn off gradient computation
-    with torch.no_grad(), torch.autocast(accelerator.device.type):
+        # Maybe encode
+        if frontend is not None:
+            input_representation = frontend(
+                input_representation).to(torch.float16)
 
-        # Setup evaluation metrics
-        training_metrics = ppgs.evaluate.Metrics('training')
-        validation_metrics = ppgs.evaluate.Metrics('validation')
+        # Forward pass
+        predicted_ppgs = model(input_representation, lengths)
 
-        for i, batch in enumerate(valid_loader):
+        # Gather indices
+        indices = accelerator.pad_across_processes(
+            indices,
+            dim=1,
+            pad_index=-100)
+        indices = accelerator.pad_across_processes(
+            indices,
+            dim=0,
+            pad_index=-100)
+        indices = accelerator.gather_for_metrics(indices)
+        non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
+        indices = indices[non_pad_batches]
 
-            # Unpack batch
-            input_ppgs, lengths, indices, stems = batch
+        # Gather PPGs
+        predicted_ppgs = accelerator.pad_across_processes(
+            predicted_ppgs,
+            dim=2,
+            pad_index=0)
+        predicted_ppgs = accelerator.pad_across_processes(
+            predicted_ppgs,
+            dim=0,
+            pad_index=torch.nan)
+        predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
+        predicted_ppgs = predicted_ppgs[non_pad_batches]
 
-            if frontend is not None:
-                input_ppgs = frontend(input_ppgs).to(torch.float16)
+        # Update metrics
+        if accelerator.is_main_process:
+            metrics.update(predicted_ppgs, indices)
 
-            # Forward pass
-            if ppgs.MODEL == 'convolution':
-                predicted_ppgs = model(input_ppgs)
-            else:
-                predicted_ppgs = model(input_ppgs, lengths)
-
-            # Accelerate gather across gpus
-            indices = accelerator.pad_across_processes(indices, dim=1, pad_index=-100)
-            indices = accelerator.pad_across_processes(indices, dim=0, pad_index=-100)
-            indices = accelerator.gather_for_metrics(indices)
-            non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
-            indices = indices[non_pad_batches]
-            predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=2, pad_index=0)
-            predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=0, pad_index=torch.nan)
-            predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
-            predicted_ppgs = predicted_ppgs[non_pad_batches]
-
-            # Update metrics
-            if accelerator.is_main_process:
-                validation_metrics.update(predicted_ppgs, indices)
-
-            # Finish when we have completed all or enough batches
-            if i == ppgs.EVALUATION_BATCHES:
-                break
-        for i, batch in enumerate(train_loader):
-
-            # Unpack batch
-            input_ppgs, lengths, indices, stems = batch
-
-            if frontend is not None:
-                with torch.no_grad():
-                    input_ppgs = frontend(input_ppgs).to(torch.float16)
-
-            # Forward pass
-            if ppgs.MODEL == 'convolution':
-                predicted_ppgs = model(input_ppgs)
-            else:
-                predicted_ppgs = model(input_ppgs, lengths)
-
-            # Accelerate gather across gpus
-            indices = accelerator.pad_across_processes(indices, dim=1, pad_index=-100)
-            indices = accelerator.pad_across_processes(indices, dim=0, pad_index=-100)
-            indices = accelerator.gather_for_metrics(indices)
-            non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
-            indices = indices[non_pad_batches]
-            predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=2, pad_index=0)
-            predicted_ppgs = accelerator.pad_across_processes(predicted_ppgs, dim=0, pad_index=torch.nan)
-            predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
-            predicted_ppgs = predicted_ppgs[non_pad_batches]
-
-            # Update metrics
-            if accelerator.process_index == 0:
-                training_metrics.update(predicted_ppgs, indices)
-
-            # Finish when we have completed all or enough batches
-            if i == ppgs.EVALUATION_BATCHES:
-                break
+        # Finish when we have completed all or enough batches
+        if i == ppgs.EVALUATION_BATCHES:
+            break
 
     # Write to tensorboard
     if accelerator.is_main_process:
-        ppgs.write.metrics(directory, step, validation_metrics())
-        ppgs.write.metrics(directory, step, training_metrics())
-
-    # Prepare model for training
-    model.train()
+        ppgs.write.metrics(directory, step, metrics())
 
 
 ###############################################################################
-# Distributed data parallelism
+# Loss
 ###############################################################################
 
-#TODO look in updated template
-def train_ddp(rank, dataset, checkpoint_directory, output_directory, log_directory, gpus):
-    """Train with distributed data parallelism"""
-    with ddp_context(rank, len(gpus)):
-        train(dataset, checkpoint_directory, output_directory, log_directory, gpus[rank])
 
-
-@contextlib.contextmanager
-def ddp_context(rank, world_size):
-    """Context manager for distributed data parallelism"""
-    # Setup ddp
-    os.environ['MASTER_ADDR']='localhost'
-    os.environ['MASTER_PORT']='12355'
-    torch.distributed.init_process_group(
-        'nccl',
-        init_method='env://',
-        world_size=world_size,
-        rank=rank)
-
-    try:
-
-        # Execute user code
-        yield
-
-    finally:
-
-        # Close ddp
-        torch.distributed.destroy_process_group()
+def loss(input, target, reduction='mean'):
+    """Loss function"""
+    if ppgs.CLASS_BALANCED:
+        if not hasattr(loss, 'weights'):
+            loss.weights = torch.load(ppgs.CLASS_WEIGHT_FILE).to(input.device)
+        return torch.nn.functional.cross_entropy(
+            input,
+            target,
+            loss.weights,
+            reduction=reduction)
+    return torch.nn.functional.cross_entropy(
+        input,
+        target,
+        reduction=reduction)

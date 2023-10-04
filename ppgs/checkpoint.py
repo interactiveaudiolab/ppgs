@@ -1,5 +1,4 @@
 import torch
-from accelerate import Accelerator
 
 
 ###############################################################################
@@ -41,17 +40,15 @@ def load(checkpoint_path, model, optimizer=None):
     return model, optimizer, step, epoch
 
 
-def save(model, optimizer, step, epoch, checkpoint_path, accelerator: Accelerator = None):
+def save(model, optimizer, step, epoch, checkpoint_path, accelerator = None):
     """Save training checkpoint to disk"""
     if accelerator is None:
         save_fn = torch.save
     else:
         save_fn = accelerator.save
-    print(f'Saving model and optimizer at step {step} to {checkpoint_path}')
     checkpoint = {
         'step': step,
         'epoch': epoch,
         'model': model.state_dict(),
         'optimizer': optimizer.state_dict()}
     save_fn(checkpoint, checkpoint_path)
-

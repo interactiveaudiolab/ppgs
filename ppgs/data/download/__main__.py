@@ -14,19 +14,17 @@ def parse_args():
     parser.add_argument(
         '--datasets',
         nargs='+',
-        default=['timit', 'arctic', 'charsiu'],
-        help='The datasets to download'
-    )
+        default=ppgs.DATASETS,
+        choices=ppgs.DATASETS,
+        help='The datasets to download')
     parser.add_argument(
         '--format-only',
         action='store_true',
-        help='Skip download step and format only'
-    )
+        help='Skip download step and format only')
     parser.add_argument(
         '--purge-sources',
         action='store_true',
-        help='automatically remove original download of dataset upon completion of formatting (free up space)'
-    )
+        help='Autoremove non-essential tarballs, zipfiles, etc. upon completion')
     return parser.parse_args()
 
 

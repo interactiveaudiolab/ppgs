@@ -1,4 +1,4 @@
-<h1 align="center">Phonetic Posteriorgrams (PPGS)</h1>
+<h1 align="center">Phonetic Posteriorgrams (PPGs)</h1>
 <div align="center">
 
 [![PyPI](https://img.shields.io/pypi/v/promonet.svg)](https://pypi.python.org/pypi/promonet)
@@ -7,7 +7,7 @@
 
 </div>
 
-Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in PyTorch. Includes the original code for the paper _Disentangling Speech with Phonetic Posteriorgrams_. [[Paper]](TODO) [[Website]](TODO)
+Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in PyTorch. Includes the original code for the paper _High-Fidelity Neural Phonetic Posteriorgrams_. [[Paper]](https://www.maxrmorrison.com/pdfs/churchwell2024high.pdf) [[Website]](https://www.maxrmorrison.com/sites/ppgs/)
 
 
 ## Table of contents
@@ -20,6 +20,7 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
         * [`ppgs.from_file_to_file`](#ppgsfrom_file_to_file)
         * [`ppgs.from_files_to_files`](#ppgsfrom_files_to_files)
     * [Command-line interface (CLI)](#command-line-interface-cli)
+- [Distance](#distance)
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -32,7 +33,34 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
 
 ## Installation
 
+An inference-only installation with our best model is pip-installable
+
 `pip install ppgs`
+
+To perform training, install training dependencies and FFMPEG.
+
+```
+pip install ppgs[train]
+conda install -c conda-forge 'ffmpeg<5'
+``````
+
+If you wish to use the Charsiu representation, download the code,
+install both inference and training dependencies, and install
+Charsiu as a Git submodule.
+
+```bash
+# Clone
+git clone git@github.com/interactiveaudiolab/ppgs
+cd ppgs/
+
+# Install dependencies
+pip install -e .[train]
+conda install -c conda-forge 'ffmpeg<5'
+
+# Download Charsiu
+git submodule init
+git submodule update
+```
 
 
 ## Inference
@@ -62,12 +90,10 @@ Arguments
         The batched audio to process in the shape BATCH x 1 x TIME
     lengths
         The lengths of the features
-    representation
-        The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
     checkpoint
-        Path to the checkpoint to use
+        The checkpoint file
     gpu
-        The gpu to use for preprocessing
+        The index of the GPU to use for inference
 
 Returns
     ppgs
@@ -83,13 +109,13 @@ Returns
 
 Arguments
     file
-        Path to audio file
+        The audio file
     representation
         The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
     checkpoint
-        Path to the checkpoint to use
+        The checkpoint file
     gpu
-        The gpu to use for preprocessing
+        The index of the GPU to use for inference
 
 Returns
     ppgs
@@ -105,17 +131,13 @@ Returns
 
 Arguments
     audio_file
-        Path to audio file
+        The audio file
     output_file
-        Path to output file (ideally '.pt')
-    representation
-        The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
-    preprocess_only
-        Shortcut to just doing preprocessing for the given representation
+        The .pt file to save PPGs
     checkpoint
-        Path to the checkpoint to use
+        The checkpoint file
     gpu
-        The gpu to use for preprocessing 
+        The index of the GPU to use for inference
 """
 ```
 
@@ -127,32 +149,79 @@ Arguments
 
 Arguments
     audio_files
-        Path to audio files
-    output
-        A list of output files or a path to an output directory
-        If not provided, ppgs will be stored in same locations as audio files
-    representation
-        The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
+        The audio files
+    output_files
+        The .pt files to save PPGs
     checkpoint
-        Path to the checkpoint to use
-    save_intermediate_features
-        Saves the intermediate features (e.g. Wav2Vec 2.0 latents) in addition to ppgs
+        The checkpoint file
+    num_workers
+        Number of CPU threads for multiprocessing
     gpu
-        The gpu to use for preprocessing
+        The index of the GPU to use for inference
 """
 ```
+
 
 #### Command-line interface (CLI)
 
 ```
-Compute phonetic posteriorgram (PPG) features
+usage: python -m ppgs
+    [-h]
+    [--input_paths INPUT_PATHS [INPUT_PATHS ...]]
+    [--output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]]
+    [--extensions EXTENSIONS [EXTENSIONS ...]]
+    [--checkpoint CHECKPOINT]
+    [--num-workers NUM_WORKERS]
+    [--gpu GPU]
 
-python -m ppgs
-    --sources <list of files and/or directories> \
-    --sinks <corresponding list of output files and/or directories> \
-    --num-workers <number of CPU workers> \
-    --gpu <gpu number>
+arguments:
+    --input_paths INPUT_PATHS [INPUT_PATHS ...]
+        Paths to audio files and/or directories
+    --output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]
+        The one-to-one corresponding output paths
+
+optional arguments:
+    -h, --help
+        Show this help message and exit
+    --extensions EXTENSIONS [EXTENSIONS ...]
+        Extensions to glob for in directories
+    --checkpoint CHECKPOINT
+        The checkpoint file
+    --num-workers NUM_WORKERS
+        Number of CPU threads for multiprocessing
+    --gpu GPU
+        The index of the GPU to use for inference. Defaults to CPU.
 ```
+
+
+## Distance
+
+To compute the proposed normalized Jenson-Shannon pronunciation divergence
+between two PPGs, use `ppgs.distance()`.
+
+```
+def distance(
+    ppgX: torch.Tensor,
+    ppgY: torch.Tensor,
+    log_target: bool = False,
+    reduction: Optional[str] = 'mean') -> torch.Tensor:
+    """Compute the pronunciation distance between two aligned PPGs
+
+    Arguments
+        ppgX
+            Input PPG X
+        ppgY
+            Input PPG Y to compare with PPG X
+        log_target
+            If true, expects PPGs to be logits
+        reduction
+            Reduction to apply to the output. One of ['mean', 'none', 'sum'].
+
+    Returns
+        Normalized Jenson-shannon divergence between PPGs
+    """
+```
+
 
 ## Training
 
@@ -161,6 +230,10 @@ python -m ppgs
 Downloads, unzips, and formats datasets. Stores datasets in `data/datasets/`.
 Stores formatted datasets in `data/cache/`.
 
+**N.B.** Charsiu and TIMIT cannot be automatically downloaded. You must
+manually download the tarballs and place them in `data/sources/charsiu`
+or `data/sources/timit`, respectively, prior to running the following.
+
 ```
 python -m ppgs.data.download --datasets <datasets>
 ```
@@ -168,16 +241,15 @@ python -m ppgs.data.download --datasets <datasets>
 
 ### Preprocess
 
-Prepares features for training. Features are stored in `data/cache/`.
-wav and phoneme (ground truth alignment) features must be preprocessed first
-
+Prepares representations for training. Representations are stored
+in `data/cache/`.
 
 ```
 python -m ppgs.data.preprocess \
    --datasets <datasets> \
+   --representatations <representations> \
    --gpu <gpu> \
-   --num-workers <workers> \
-   --features <latent features>
+   --num-workers <workers>
 ```
 
 
@@ -194,22 +266,19 @@ python -m ppgs.partition --datasets <datasets>
 
 ### Train
 
-Trains a model. Checkpoints and logs are stored in `runs/`.
+Trains a model. Checkpoints and logs are stored in `runs/`. You may want to run
+`accelerate config` first to configure which devices are used for training.
 
 ```
-python -m ppgs.train \
+CUDA_VISIBLE_DEVICES=<gpus> accelerate launch -m ppgs.train \
     --config <config> \
-    --dataset <dataset> \
-    --gpus <gpus>
+    --dataset <dataset>
 ```
 
 If the config file has been previously run, the most recent checkpoint will
 automatically be loaded and training will resume from that checkpoint.
 
-
-### Monitor
-
-You can monitor training via `tensorboard` as follows.
+You can monitor training via `tensorboard`.
 
 ```
 tensorboard --logdir runs/ --port <port>
@@ -218,8 +287,8 @@ tensorboard --logdir runs/ --port <port>
 
 ### Evaluate
 
-Performs objective evaluation.
-Also performs benchmarking of speed. Results are stored in `eval/`.
+Performs objective evaluation of phoneme accuracy. Results are stored
+in `eval/`.
 
 ```
 python -m ppgs.evaluate \
@@ -229,21 +298,22 @@ python -m ppgs.evaluate \
     --gpus <gpus>
 ```
 
+
 ## Citation
 
 ### IEEE
-C. Churchwell, M. Morrison, and B. Pardo, "Disentangling Speech with Phonetic Posteriorgrams," Submitted
-to ICASSP 2024, January 2024.
+C. Churchwell, M. Morrison, and B. Pardo, "High-Fidelity Neural Phonetic Posteriorgrams," Submitted
+to ICASSP 2024, April 2024.
 
 
 ### BibTex
 
 ```
-@inproceedings{churchwell2024disentangling,
-    title={Disentangling Speech with Phonetic Posteriorgrams},
+@inproceedings{churchwell2024high,
+    title={High-Fidelity Neural Phonetic Posteriorgrams},
     author={Churchwell, Cameron and Morrison, Max and Pardo, Bryan},
     booktitle={Submitted to ICASSP 2024},
-    month={January},
+    month={April},
     year={2024}
 }
 ```
