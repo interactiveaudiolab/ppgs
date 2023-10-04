@@ -9,16 +9,8 @@ def parse_args():
     parser.add_argument(
         '--datasets',
         nargs='+',
+        default=ppgs.DATASETS,
         help='The datasets to partition')
-    parser.add_argument(
-        '--overwrite',
-        action='store_true',
-        help='Whether to overwrite existing partitions')
-    parser.add_argument(
-        '--for-testing',
-        action='store_true',
-        help='partition datasets entirely for testing (no train or validation sets)'
-    )
     return parser.parse_known_args()[0]
 
 

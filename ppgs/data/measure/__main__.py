@@ -7,29 +7,22 @@ import ppgs
 # Purge datasets
 ###############################################################################
 
+
 def parse_args():
     """Parse command-line arguments"""
     parser = yapecs.ArgumentParser(description='Measure dataset disk usage')
     parser.add_argument(
         '--datasets',
         nargs='+',
-        default=['timit', 'arctic', 'charsiu'],
-        choices=['timit', 'arctic', 'charsiu'],
-        help="The datasets to measure"
-    )
+        default=ppgs.DATASETS,
+        choices=ppgs.DATASETS,
+        help='The datasets to measure')
     parser.add_argument(
         '--features',
         nargs='+',
         default=ppgs.preprocess.ALL_FEATURES,
         choices=ppgs.preprocess.ALL_FEATURES,
-        help="Which cached features to measure"
-    )
-    parser.add_argument(
-        '--unit',
-        default='GB',
-        choices=['B', 'KB', 'MB', 'GB', 'TB'],
-        help='Unit to print filesizes with'
-    )
+        help='Which cached features to measure')
     return parser.parse_args()
 
 

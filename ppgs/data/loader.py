@@ -3,27 +3,36 @@ import torch
 import ppgs
 
 
-def loaders(dataset, features=[ppgs.REPRESENTATION, 'length', 'phonemes', 'stem']):
-    """Retrieve data loaders for training and evaluation"""
-    return loader(dataset, 'train', features), loader(dataset, 'valid', features)
+###############################################################################
+# Constants
+###############################################################################
 
 
-def loader(dataset, partition, features=[ppgs.REPRESENTATION, 'phonemes', 'length', 'stem']):
+# Features loaded for training
+TRAINING_FEATURES = [ppgs.REPRESENTATION, 'phonemes', 'length']
+
+
+###############################################################################
+# Dataloader
+###############################################################################
+
+
+def loader(
+    dataset_or_files,
+    partition=None,
+    features=TRAINING_FEATURES,
+    num_workers=ppgs.NUM_WORKERS):
     """Retrieve a data loader"""
-    dataset_object = ppgs.data.Dataset(dataset, partition, features)
-    collator_object = ppgs.data.Collator(features)
-    if partition == 'test':
-        return torch.utils.data.DataLoader(
-            dataset=dataset_object,
-            num_workers=ppgs.NUM_WORKERS,
-            pin_memory=True,
-            collate_fn=collator_object,
-            batch_size=ppgs.BATCH_SIZE
-        )
-    else:
-        return torch.utils.data.DataLoader(
-            dataset=dataset_object,
-            batch_sampler=ppgs.data.sampler(dataset_object, partition),
-            num_workers=ppgs.NUM_WORKERS,
-            pin_memory=True,
-            collate_fn=collator_object)
+    # Initialize dataset
+    dataset = ppgs.data.Dataset(dataset_or_files, partition, features)
+
+    # Initialize sampler
+    sampler = ppgs.data.Sampler(dataset)
+
+    # Initialize dataloader
+    return torch.utils.data.DataLoader(
+        dataset,
+        batch_sampler=sampler,
+        num_workers=num_workers,
+        pin_memory=True,
+        collate_fn=ppgs.data.Collate(features))

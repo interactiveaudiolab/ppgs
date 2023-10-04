@@ -1,98 +1,27 @@
-"""dataset.py - data loading"""
-
 import contextlib
 import json
-import os
 from pathlib import Path
 
+import accelerate
 import numpy as np
 import pyfoal
 import pypar
 import torch
 import torchaudio
-from accelerate.state import PartialState
 
 import ppgs
 
-###############################################################################
-# Metadata
-###############################################################################
-
-class Metadata:
-
-    def __init__(self, sources, partition=None, overwrite_cache=False):
-        """Create a metadata object for the given dataset or sources"""
-        state = PartialState()
-        with state.main_process_first():
-            if isinstance(sources, str):
-                self.name = sources
-                self.cache = ppgs.CACHE_DIR / self.name
-                partition_dict = ppgs.load.partition(self.name)
-                if partition is not None:
-                    self.stems = partition_dict[partition]
-                else:
-                    self.stems = sum(partition_dict.values(), start=[])
-                self.audio_files = [self.cache / (stem + '.wav') for stem in self.stems]
-                metadata_file = self.cache / f'{partition}-metadata.json'
-                if overwrite_cache and metadata_file.exists():
-                    os.remove(metadata_file)
-                if metadata_file.exists():
-                    print('using cached metadata')
-                    with open(metadata_file, 'r') as f:
-                        metadata = json.load(f)
-                else:
-                    print('generating metadata from scratch')
-                    metadata = {}
-            else:
-                self.name = '<list of files>'
-                self.audio_files = sources
-                self.stems = [Path(file).stem for file in self.audio_files]
-                self.cache = None
-                metadata = {}
-            print('preparing dataset metadata (operation may be slow)')
-            self.lengths = []
-            for stem, audio_file in zip(self.stems, self.audio_files):
-                try:
-                    self.lengths.append(metadata[stem])
-                except KeyError:
-                    length = torchaudio.info(audio_file).num_frames // ppgs.HOPSIZE
-                    metadata[stem] = length
-                    self.lengths.append(length)
-            if self.cache is not None:
-                with open(metadata_file, 'w+') as f:
-                    json.dump(metadata, f)
-
-    def __len__(self):
-        return len(self.stems)
 
 ###############################################################################
 # Dataset
 ###############################################################################
 
-@contextlib.contextmanager
-def ppgs_phoneme_list():
-    try:
-        setattr(pyfoal.convert.phoneme_to_index, 'map', ppgs.PHONEME_TO_INDEX_MAPPING)
-        yield
-    finally:
-        delattr(pyfoal.convert.phoneme_to_index, 'map')
 
 class Dataset(torch.utils.data.Dataset):
-    """PyTorch dataset
 
-    Arguments
-        name - string
-            The name of the dataset
-        partition - string
-            The name of the data partition
-        features - list
-            The features to load through __getitem__
-    """
-
-    def __init__(self, name, partition=None, features=['wav']):
-        assert len(features) > 0, "need to pass at least one feature"
+    def __init__(self, name_or_files, partition=None, features=['audio']):
         self.features = features
-        self.metadata = Metadata(name, partition=partition)
+        self.metadata = Metadata(name_or_files, partition=partition)
         self.cache = self.metadata.cache
         self.stems = self.metadata.stems
         self.audio_files = self.metadata.audio_files
@@ -105,60 +34,81 @@ class Dataset(torch.utils.data.Dataset):
         if isinstance(self.features, str):
             self.features = [self.features]
         for feature in self.features:
-            if feature == 'wav':
-                audio = ppgs.load.audio(self.metadata.audio_files[index])
-                feature_values.append(audio)
-            elif feature == 'phonemes':
-                try:
-                    #prep phoneme mapping in pyfoal
-                    # Load alignment
-                    alignment = pypar.Alignment(self.cache / f'{stem}.textgrid')
 
-                    hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
-                    num_frames = self.metadata.lengths[index]
-                    times = np.linspace(hopsize/2, (num_frames-1)*hopsize+hopsize/2, num_frames)
-                    times[-1] = alignment.duration()
-                    with ppgs_phoneme_list():
-                        indices = pyfoal.convert.alignment_to_indices(
-                            alignment,
-                            hopsize=hopsize,
-                            return_word_breaks=False,
-                            times=times)
-                except ValueError as e:
-                    raise ValueError(f'error processing alignment for stem {stem} with error: {e}')
+            # Load audio
+            if feature == 'audio':
+                audio = ppgs.load.audio(self.audio_files[index])
+                feature_values.append(audio)
+
+            # Load phoneme alignment
+            elif feature == 'phonemes':
+
+                # Load alignment
+                alignment = pypar.Alignment(self.cache / f'{stem}.TextGrid')
+
+                # Lowercase and replace silence tokens
+                for i in range(len(alignment)):
+                    if str(alignment[i]) == '[SIL]':
+                        alignment[i].word = pypar.SILENCE
+                    for j in range(len(alignment[i])):
+                        if str(alignment[i][j]) == '[SIL]':
+                            alignment[i][j].phoneme = pypar.SILENCE
+                        else:
+                            alignment[i][j].phoneme = \
+                                str(alignment[i][j]).lower()
+
+                # Convert to indices
+                hopsize = ppgs.HOPSIZE / ppgs.SAMPLE_RATE
+                num_frames = self.metadata.lengths[index]
+                times = np.linspace(
+                    hopsize / 2,
+                    (num_frames - 1) * hopsize + hopsize / 2,
+                    num_frames)
+                times[-1] = alignment.duration()
+                with ppgs_phoneme_list():
+                    indices = pyfoal.convert.alignment_to_indices(
+                        alignment,
+                        hopsize=hopsize,
+                        return_word_breaks=False,
+                        times=times)
                 indices = torch.tensor(indices, dtype=torch.long)
                 feature_values.append(indices)
+
+            # Add stem
             elif feature == 'stem':
                 feature_values.append(stem)
+
+            # Add filename
             elif feature == 'audio_file':
                 feature_values.append(self.audio_files[index])
-            elif feature == 'length': #must immediately follow a feature
+
+            # Add length
+            elif feature == 'length':
                 try:
                     feature_values.append(feature_values[-1].shape[-1])
                 except AttributeError:
                     feature_values.append(len(feature_values[-1]))
+
+            # Add input representation
             else:
-                try:
-                    feature_values.append(torch.load(self.cache / f"{stem}-{feature}.pt"))
-                except FileNotFoundError:
-                    raise FileNotFoundError(f"Failed to find stem {stem} for feature {feature}")
+                feature_values.append(
+                    torch.load(self.cache / f'{stem}-{feature}.pt'))
+
         return feature_values
 
+    def __len__(self):
+        """Length of the dataset"""
+        return len(self.stems)
+
     def buckets(self):
-        """Partition indices into buckets based on length for sampling"""
-        if len(self) < ppgs.BUCKETS:
-            num_buckets = len(self)
-        else:
-            num_buckets = ppgs.BUCKETS
+        """Partition data into buckets based on length to minimize padding"""
+        # Prevent errors when using small datasets
+        num_buckets = max(1, min(ppgs.BUCKETS, len(self)))
 
         # Get the size of a bucket
         size = len(self) // num_buckets
 
         # Get indices in order of length
-        lengths = []
-        # for i in range(len(self)):
-        #     index, dataset = self.get_dataset(i)
-        #     lengths.append(dataset.lengths[index])
         lengths = self.metadata.lengths
         indices = np.argsort(lengths)
 
@@ -166,10 +116,95 @@ class Dataset(torch.utils.data.Dataset):
         buckets = [indices[i:i + size] for i in range(0, len(self), size)]
 
         # Add max length of each bucket
-        buckets = [(lengths[bucket[-1]], bucket) for bucket in buckets]
+        return [(lengths[bucket[-1]], bucket) for bucket in buckets]
 
-        return buckets
+
+###############################################################################
+# Utilities
+###############################################################################
+
+
+class Metadata:
+
+    def __init__(self, name_or_files, partition=None, overwrite_cache=False):
+        """Create a metadata object for the given dataset or sources"""
+        with accelerate.state.PartialState().main_process_first():
+            lengths = {}
+
+            # Create dataset from string identifier
+            if isinstance(name_or_files, str):
+                self.name = name_or_files
+                self.cache = ppgs.CACHE_DIR / self.name
+
+                # Get stems corresponding to partition
+                partition_dict = ppgs.load.partition(self.name)
+                if partition is not None:
+                    self.stems = partition_dict[partition]
+                    lengths_file = self.cache / f'{partition}-lengths.json'
+                else:
+                    self.stems = sum(partition_dict.values(), start=[])
+                    lengths_file = self.cache / f'lengths.json'
+
+                # Get audio filenames
+                self.audio_files = [
+                    self.cache / (stem + '.wav') for stem in self.stems]
+
+                # Maybe remove previous cached lengths
+                if overwrite_cache:
+                     lengths_file.unlink(missing_ok=True)
+
+                # Load cached lengths
+                if lengths_file.exists():
+                    with open(lengths_file, 'r') as f:
+                        lengths = json.load(f)
+
+            # Create dataset from a list of audio filenames
+            else:
+                self.name = '<list of files>'
+                self.audio_files = name_or_files
+                self.stems = [Path(file).stem for file in self.audio_files]
+                self.cache = None
+
+            if not lengths:
+
+                # Compute length in frames
+                for stem, audio_file in zip(self.stems, self.audio_files):
+                    lengths[stem] = \
+                        torchaudio.info(audio_file).num_frames // ppgs.HOPSIZE
+
+                # Maybe cache lengths
+                if self.cache is not None:
+                    with open(lengths_file, 'w+') as file:
+                        json.dump(lengths, file)
+
+            # Match ordering
+            self.lengths = [lengths[stem] for stem in self.stems]
 
     def __len__(self):
-        """Length of the dataset"""
         return len(self.stems)
+
+
+@contextlib.contextmanager
+def ppgs_phoneme_list():
+    """Context manager for changing the default phoneme mapping of pyfoal"""
+    # Get current state
+    previous = getattr(pyfoal.convert.phoneme_to_index, 'map', None)
+
+    try:
+
+        # Change state
+        setattr(
+            pyfoal.convert.phoneme_to_index,
+            'map',
+            ppgs.PHONEME_TO_INDEX_MAPPING)
+
+        # Execute user code
+        yield
+
+    finally:
+
+        # Restore state
+        if previous is not None:
+            setattr(pyfoal.convert.phoneme_to_index, 'map', previous)
+        else:
+            delattr(pyfoal.convert.phoneme_to_index, 'map')

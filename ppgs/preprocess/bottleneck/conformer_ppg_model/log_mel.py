@@ -1,4 +1,3 @@
-import librosa
 import numpy as np
 import torch
 from typing import Tuple
@@ -46,6 +45,7 @@ class LogMel(torch.nn.Module):
         self.mel_options = _mel_options
 
         # Note(kamo): The mel matrix of librosa is different from kaldi.
+        import librosa
         melmat = librosa.filters.mel(**_mel_options)
         # melmat: (D2, D1) -> (D1, D2)
         self.register_buffer("melmat", torch.from_numpy(melmat.T).float())

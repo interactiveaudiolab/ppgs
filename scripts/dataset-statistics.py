@@ -1,7 +1,5 @@
-import torch
 import torchaudio
-from ppgs import CACHE_DIR, DATA_DIR
-# from promonet import CACHE_DIR, DATA_DIR
+from ppgs import CACHE_DIR
 from tqdm import tqdm
 import sys
 
