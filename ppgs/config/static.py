@@ -14,4 +14,4 @@ PARTITION_DIR = ppgs.ASSETS_DIR / 'partitions'
 DEFAULT_CHECKPOINT = ppgs.ASSETS_DIR / 'checkpoints' / 'default.pt'
 
 # weighting file for class balancing
-CLASS_WEIGHT_FILE = ppgs.ASSETS_DIR / 'class_weights.pt'
+CLASS_WEIGHT_FILE = ppgs.ASSETS_DIR / 'phoneme_weights.pt'

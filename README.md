@@ -196,8 +196,8 @@ optional arguments:
 
 ## Distance
 
-To compute the proposed normalized Jenson-Shannon pronunciation divergence
-between two PPGs, use `ppgs.distance()`.
+To compute the proposed normalized Jenson-Shannon divergence pronunciation
+distance between two PPGs, use `ppgs.distance()`.
 
 ```
 def distance(

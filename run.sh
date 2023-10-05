@@ -1,4 +1,4 @@
-# Runs all experiments in the paper
+# Trains and evaluates all PPG models in the paper
 # "High-Fidelity Neural Phonetic Posteriorgrams"
 
 # Usage

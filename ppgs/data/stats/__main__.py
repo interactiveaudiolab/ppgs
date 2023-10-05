@@ -5,15 +5,15 @@ import ppgs
 
 def parse_args():
     """Parse command-line arguments"""
-    parser = argparse.ArgumentParser(description='Partition datasets')
+    parser = argparse.ArgumentParser(description='Dataset statistics')
     parser.add_argument(
         '--datasets',
         nargs='+',
         default=ppgs.DATASETS,
         choices=ppgs.DATASETS,
-        help='The datasets to partition')
+        help='The datasets to get statistics for')
     return parser.parse_known_args()[0]
 
 
 if __name__ == '__main__':
-    ppgs.partition.datasets(**vars(parse_args()))
+    ppgs.data.stats.process(**vars(parse_args()))

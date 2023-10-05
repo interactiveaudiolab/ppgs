@@ -293,7 +293,7 @@ def loss(input, target, reduction='mean'):
     """Loss function"""
     if ppgs.CLASS_BALANCED:
         if not hasattr(loss, 'weights'):
-            loss.weights = torch.load(ppgs.CLASS_WEIGHT_FILE).to(input.device)
+            loss.weights = ppgs.load.phoneme_weights(input.device)
         return torch.nn.functional.cross_entropy(
             input,
             target,

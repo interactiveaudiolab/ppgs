@@ -169,7 +169,11 @@ class JensenShannon:
             eps=1e-5)
 
         # Compute pronunciation distance
-        jsd = ppgs.distance(predicted_logits, target_logits, reduction='sum')
+        jsd = ppgs.distance(
+            predicted_logits,
+            target_logits,
+            log_target=True,
+            reduction='sum')
 
         # Update total and count
         self.total += jsd.item()
@@ -295,7 +299,7 @@ class DistanceMatrix:
 
     def __init__(self, weighted=True):
         if weighted:
-            self.weights = torch.load(ppgs.CLASS_WEIGHT_FILE)
+            self.weights = ppgs.load.phoneme_weights()
         else:
             self.weights = torch.ones(ppgs.OUTPUT_CHANNELS)
         self.reset()
