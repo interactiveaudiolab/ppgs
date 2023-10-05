@@ -367,6 +367,11 @@ def distance(
     """
     # TODO - normalize
 
+    # Maybe normalize
+    if not log_target:
+        ppgX = torch.log(ppgX)
+        ppgY = torch.log(ppgY)
+
     # Average in parameter space
     average = (ppgX + ppgY) / 2
 
@@ -374,13 +379,15 @@ def distance(
     kl_X = torch.nn.functional.kl_div(
         average,
         ppgX,
-        log_target=log_target,
+        log_target=True,
         reduction='none')
     kl_Y = torch.nn.functional.kl_div(
         average,
         ppgY,
-        log_target=log_target,
+        log_target=True,
         reduction='none')
+
+    # TODO (Cameron) - we have inf occurring in at least kl_X (but no nans)
     kl_X = torch.nan_to_num(kl_X)
     kl_Y = torch.nan_to_num(kl_Y)
 
