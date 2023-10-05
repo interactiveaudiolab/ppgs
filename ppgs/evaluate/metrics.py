@@ -178,8 +178,6 @@ class JensenShannon:
         # Update total and count
         self.total += jsd.item()
         self.count += (target_indices != -100).sum()
-        import pdb; pdb.set_trace()
-        pass
 
 
 class Loss:
@@ -201,8 +199,6 @@ class Loss:
             target_indices,
             reduction='sum').item()
         self.count += (target_indices != -100).sum()
-        import pdb; pdb.set_trace()
-        pass
 
 
 class TopKAccuracy:
@@ -303,7 +299,7 @@ class DistanceMatrix:
 
     def __init__(self, weighted=True):
         if weighted:
-            self.weights = torch.load(ppgs.CLASS_WEIGHT_FILE)
+            self.weights = ppgs.load.phoneme_weights()
         else:
             self.weights = torch.ones(ppgs.OUTPUT_CHANNELS)
         self.reset()

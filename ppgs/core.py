@@ -366,7 +366,6 @@ def distance(
         Normalized Jenson-shannon divergence between PPGs
     """
     # TODO - normalize
-    import pdb; pdb.set_trace()
 
     # Maybe normalize
     if not log_target:
