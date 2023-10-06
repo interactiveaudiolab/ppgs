@@ -151,6 +151,8 @@ class JensenShannon:
         """Update the total JSD"""
         # Unroll time dimension
         # batch x classes x time -> batch * time x classes
+        if predicted_logits.isnan().any():
+            import pdb; pdb.set_trace()
         predicted_logits = torch.transpose(
             predicted_logits, 1, 2).flatten(0, 1)
          # batch x time -> batch * time
@@ -161,18 +163,17 @@ class JensenShannon:
         target_indices = target_indices[keep_indices]
         predicted_logits = predicted_logits[keep_indices]
 
-        # Compute logits for targets
-        target_logits = torch.special.logit(
-            torch.nn.functional.one_hot(
-                target_indices,
-                num_classes=predicted_logits.shape[-1]),
-            eps=1e-5)
+
+        # Convert to probabilities
+        predicted_probs = torch.nn.functional.softmax(predicted_logits, dim=-1).to(torch.float)
+        target_probs = torch.nn.functional.one_hot(
+            target_indices,
+            num_classes=predicted_logits.shape[-1]).to(torch.float)
 
         # Compute pronunciation distance
         jsd = ppgs.distance(
-            predicted_logits,
-            target_logits,
-            log_target=True,
+            predicted_probs,
+            target_probs,
             reduction='sum')
 
         # Update total and count
@@ -189,15 +190,17 @@ class Loss:
         return {f'loss': (self.total / self.count).item()}
 
     def reset(self):
-        self.total = torch.tensor(0., dtype=torch.float32)
+        self.total = torch.tensor(0., dtype=torch.float64)
         self.count = 0
 
     def update(self, predicted_logits, target_indices):
         """Update the total cross entropy loss"""
         self.total += ppgs.train.loss(
-            predicted_logits,
+            predicted_logits.to(torch.float64),
             target_indices,
             reduction='sum').item()
+        if self.total.isinf():
+            import pdb; pdb.set_trace()
         self.count += (target_indices != -100).sum()
 
 
