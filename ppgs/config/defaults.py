@@ -84,6 +84,9 @@ RUNS_DIR = Path(__file__).parent.parent.parent / 'runs'
 # Location of checkpoints
 CHECKPOINT_DIR = ASSETS_DIR / 'checkpoints'
 
+# Location of similarity matrix
+SIMILARITY_MATRIX_PATH = ASSETS_DIR / 'balanced_similarity.pt'
+
 
 ###############################################################################
 # Logging parameters
@@ -98,9 +101,6 @@ EVALUATION_BATCHES = 16
 
 # Number of steps between evaluation
 EVALUATION_INTERVAL = 1000  # steps
-
-# Apprise services to send job notifications
-NOTIFICATION_SERVICES = []
 
 
 ###############################################################################
