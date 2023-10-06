@@ -286,7 +286,7 @@ tensorboard --logdir runs/ --port <port>
 
 You can also receive notifications when a task (e.g. training, evaluation, etc.) finishes via `Apprise`.
 
-Simply set the `PPGS_NOTIFICATION_URL` environment variable to a webhook as is explained in the Apprise documentation ![here](https://pypi.org/project/apprise/)
+Simply set the `PPGS_NOTIFICATION_URL` environment variable to a supported webhook as is explained in the Apprise documentation ![here](https://pypi.org/project/apprise/)
 
 ### Evaluate
 
