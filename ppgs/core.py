@@ -348,8 +348,8 @@ def from_dataloader(
 def distance(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
-    log_target: bool = False,
-    reduction: Optional[str] = 'mean') -> torch.Tensor:
+    reduction: Optional[str] = 'mean',
+    normalize: Optional[bool] = True) -> torch.Tensor:
     """Compute the pronunciation distance between two aligned PPGs
 
     Arguments
@@ -357,39 +357,49 @@ def distance(
             Input PPG X
         ppgY
             Input PPG Y to compare with PPG X
-        log_target
-            If true, expects PPGs to be logits
         reduction
             Reduction to apply to the output. One of ['mean', 'none', 'sum'].
+        normalize
+            Apply similarity based normalization
 
     Returns
         Normalized Jenson-shannon divergence between PPGs
     """
-    # TODO - normalize
 
-    # Maybe normalize
-    if not log_target:
-        ppgX = torch.log(ppgX)
-        ppgY = torch.log(ppgY)
+    ppgX = torch.clamp(ppgX, 1e-9)
+    ppgY = torch.clamp(ppgY, 1e-9)
+
+    assert ppgX.device == ppgY.device, 'ppgs in distance computation must be on the same device'
+
+    if normalize:
+        if not hasattr(distance, 'similarity_matrix'):
+            distance.similarity_matrix = torch.load(ppgs.SIMILARITY_MATRIX_PATH).to(ppgX.device)
+            distance.device = ppgX.device
+        if ppgX.device != distance.device:
+            distance.similarity_matrix = distance.similarity_matrix.to(ppgX.device)
+        ppgX = torch.mm(distance.similarity_matrix.T ** 1, ppgX.T).T
+        ppgY = torch.mm(distance.similarity_matrix.T ** 1, ppgY.T).T
 
     # Average in parameter space
-    average = (ppgX + ppgY) / 2
+    log_average = torch.log((ppgX + ppgY) / 2)
+
+    if log_average.isnan().any() or log_average.isinf().any():
+        import pdb; pdb.set_trace()
 
     # Compute KL divergences in both directions
     kl_X = torch.nn.functional.kl_div(
-        average,
+        log_average,
         ppgX,
-        log_target=True,
         reduction='none')
     kl_Y = torch.nn.functional.kl_div(
-        average,
+        log_average,
         ppgY,
-        log_target=True,
         reduction='none')
 
-    # TODO (Cameron) - we have inf occurring in at least kl_X (but no nans)
-    kl_X = torch.nan_to_num(kl_X)
-    kl_Y = torch.nan_to_num(kl_Y)
+    if kl_X.isnan().any() or kl_Y.isinf().any():
+        import pdb; pdb.set_trace()
+    if kl_Y.isnan().any() or kl_X.isinf().any():
+        import pdb; pdb.set_trace()
 
     # Sum reduction
     kl_X = kl_X.sum(dim=-1)
@@ -397,6 +407,10 @@ def distance(
 
     # Average KL
     average_kl = (kl_X + kl_Y) / 2
+
+    if average_kl.isnan().any():
+        import pdb; pdb.set_trace()
+
     average_kl[average_kl < 0] = 0
     jsd = torch.sqrt(average_kl)
 
