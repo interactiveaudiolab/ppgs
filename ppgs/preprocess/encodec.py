@@ -8,22 +8,6 @@ import ppgs
 # Preprocess EnCodec input representation
 ###############################################################################
 
-
-def from_features(features, new_lengths, checkpoint=None, gpu=0):
-    if not hasattr(from_features, 'model'):
-        from_features.model = ppgs.Model()
-        if checkpoint is not None:
-            from_features.model.load_state_dict(
-                torch.load(checkpoint)['model'])
-        else:
-            from_features.model.load_state_dict(
-                torch.load(ppgs.CHECKPOINT_DIR / 'encodec.pt')['model'])
-        from_features.frontend = ppgs.FRONTEND(features.device)
-        from_features.model.to(features.device)
-
-    return from_features.model(from_features.frontend(features), new_lengths)
-
-
 def from_audios(audio, lengths, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
     device = torch.device(f'cuda:{gpu}' if gpu is not None else 'cpu')
     expected_length = audio.shape[-1] // ppgs.HOPSIZE

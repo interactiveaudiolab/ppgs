@@ -12,7 +12,7 @@ import ppgs
 
 
 @ppgs.notify.notify_on_finish('evaluate')
-def datasets(datasets, checkpoint=ppgs.DEFAULT_CHECKPOINT, gpu=None):
+def datasets(datasets, checkpoint=None, gpu=None):
     """Perform evaluation"""
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
