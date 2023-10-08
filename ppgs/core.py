@@ -21,7 +21,7 @@ import ppgs
 def from_features(
     features: torch.Tensor,
     lengths: torch.Tensor,
-    checkpoint: Union[str, bytes, os.PathLike] = ppgs.DEFAULT_CHECKPOINT,
+    checkpoint: Union[str, bytes, os.PathLike] = None,
     gpu: Optional[int] = None,
     softmax: bool = True) -> torch.Tensor:
     """Infer ppgs from input features (e.g. w2v2fb, mel, etc.)
@@ -65,7 +65,7 @@ def from_features(
 def from_audio(
     audio: torch.Tensor,
     sample_rate: Union[int, float],
-    checkpoint: Union[str, bytes, os.PathLike] = ppgs.DEFAULT_CHECKPOINT,
+    checkpoint: Union[str, bytes, os.PathLike] = None,
     gpu: int = None) -> torch.Tensor:
     """Infer ppgs from audio
 
@@ -95,7 +95,7 @@ def from_audio(
 
 def from_file(
     file: Union[str, bytes, os.PathLike],
-    checkpoint: Union[str, bytes, os.PathLike] = ppgs.DEFAULT_CHECKPOINT,
+    checkpoint: Union[str, bytes, os.PathLike] = None,
     gpu: Optional[int] = None) -> torch.Tensor:
     """Infer ppgs from an audio file
 
@@ -123,7 +123,7 @@ def from_file(
 def from_file_to_file(
     audio_file: Union[str, bytes, os.PathLike],
     output_file: Union[str, bytes, os.PathLike],
-    checkpoint: Union[str, bytes, os.PathLike] = ppgs.DEFAULT_CHECKPOINT,
+    checkpoint: Union[str, bytes, os.PathLike] = None,
     gpu: Optional[int] = None) -> None:
     """Infer ppg from an audio file and save to a torch tensor file
 
@@ -147,7 +147,7 @@ def from_file_to_file(
 def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
-    checkpoint: Union[str, bytes, os.PathLike] = ppgs.DEFAULT_CHECKPOINT,
+    checkpoint: Union[str, bytes, os.PathLike] = None,
     num_workers: int = 8,
     gpu: Optional[int] = None) -> None:
     """Infer ppgs from audio files and save to torch tensor files
@@ -200,7 +200,7 @@ def from_paths_to_paths(
     input_paths: List[Union[str, bytes, os.PathLike]],
     output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
     extensions: Optional[List[str]] = None,
-    checkpoint: Union[str, bytes, os.PathLike] = ppgs.DEFAULT_CHECKPOINT,
+    checkpoint: Union[str, bytes, os.PathLike] = None,
     num_workers: int = 8,
     gpu: Optional[int] = None) -> None:
     """Infer ppgs from audio files and save to torch tensor files
@@ -248,7 +248,7 @@ def from_dataloader(
     output_files: Dict[
         Union[str, bytes, os.PathLike],
         Union[str, bytes, os.PathLike]],
-    checkpoint: Union[str, bytes, os.PathLike] = ppgs.DEFAULT_CHECKPOINT,
+    checkpoint: Union[str, bytes, os.PathLike] = None,
     save_workers: int = 1,
     gpu: Optional[int] = None) -> None:
     """Infer ppgs from a dataloader yielding audio files
@@ -500,7 +500,7 @@ def aggregate(
         return source_files, sink_files
 
 
-def infer(features, lengths, checkpoint=ppgs.DEFAULT_CHECKPOINT, softmax=True):
+def infer(features, lengths, checkpoint=None, softmax=True):
     """Perform model inference"""
     # Maybe cache model
     if (

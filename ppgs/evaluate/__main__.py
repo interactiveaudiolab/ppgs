@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument(
         '--checkpoint',
         type=Path,
-        default=ppgs.DEFAULT_CHECKPOINT,
+        default=None,
         help='The checkpoint file to evaluate')
     parser.add_argument(
         '--gpu',
