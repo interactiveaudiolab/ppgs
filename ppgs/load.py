@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from huggingface_hub import hf_hub_download
 
 import torch
 import torchaudio
@@ -24,13 +25,16 @@ def audio(file):
     return ppgs.resample(audio, sample_rate)
 
 
-def model(checkpoint=ppgs.DEFAULT_CHECKPOINT):
+def model(checkpoint=None):
     """Load a model"""
     model = ppgs.Model()
 
     # Pretrained model
     if ppgs.MODEL in ['W2V2FC', 'W2V2FS']:
         return model
+    
+    if checkpoint is None:
+        checkpoint = hf_hub_download('CameronChurchwell/ppgs-w2v2fb', 'ppgs-w2v2fb.pt')
 
     # Load from checkpoint
     model.load_state_dict(torch.load(checkpoint, map_location='cpu')['model'])
