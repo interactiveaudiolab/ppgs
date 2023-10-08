@@ -34,7 +34,7 @@ def from_audio_file_to_file(
     audio_filename,
     output_filename,
     textgrid_filename=None,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
+    checkpoint=None,
     font_filename=None,
     prepocess_only=False,
     gpu=None,
@@ -68,7 +68,7 @@ def from_audio_files_to_files(
     audio_filenames,
     output_dir,
     textgrid_filename=None,
-    checkpoint=ppgs.DEFAULT_CHECKPOINT,
+    checkpoint=None,
     font_filename=None,
     preprocess_only=False,
     gpu=None,
@@ -179,8 +179,13 @@ def from_ppg_to_video_file(
 
     num_frames = len(audio) // ppgs.HOPSIZE
 
-    # Visualize PPG
-    pixels = from_ppg_to_pixels(ppg, num_frames)
+    ppg_pixels = from_ppg_to_pixels(ppg)
+    textgrid_pixels = from_textgrid_to_pixels(
+        textgrid_filename,
+        num_frames,
+    )
+
+    pixels = combine_pixels(ppg_pixels, textgrid_pixels)
 
     # Chunk PPG into video frames
     frames = []

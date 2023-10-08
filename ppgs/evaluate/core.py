@@ -12,7 +12,7 @@ import ppgs
 
 
 @ppgs.notify.notify_on_finish('evaluate')
-def datasets(datasets, checkpoint=ppgs.DEFAULT_CHECKPOINT, gpu=None):
+def datasets(datasets, checkpoint=None, gpu=None):
     """Perform evaluation"""
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
@@ -35,18 +35,21 @@ def datasets(datasets, checkpoint=ppgs.DEFAULT_CHECKPOINT, gpu=None):
         dataloader = ppgs.data.loader(dataset, 'test')
 
         # Iterate over test set
-        for input_ppgs, indices, lengths in ppgs.iterator(
+        for input_features, indices, lengths in ppgs.iterator(
             dataloader,
             f'Evaluating {ppgs.CONFIG} on {dataset}',
             total=len(dataloader)
         ):
             # Infer PPGs
             logits = ppgs.from_features(
-                input_ppgs,
+                input_features,
                 lengths,
                 checkpoint=checkpoint,
                 gpu=gpu,
                 softmax=False)
+            
+            if logits.isnan().any():
+                import pdb; pdb.set_trace()
 
             # Update metrics
             indices = indices.to(device)

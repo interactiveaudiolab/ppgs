@@ -1,4 +1,5 @@
 import bdb
+import os
 import time
 
 import ppgs
@@ -62,10 +63,10 @@ def notify_on_finish(
 
 def push(message: str):
     """send a push notification to all of the configured services"""
-    if ppgs.NOTIFICATION_SERVICES:
+    service = os.getenv('PPGS_NOTIFICATION_URL', default=None)
+    if service is not None:
         if not hasattr(push, 'messenger'):
             import apprise
             push.messenger = apprise.Apprise()
-            for service in ppgs.NOTIFICATION_SERVICES:
-                push.messenger.add(service)
+            push.messenger.add(service)
         push.messenger.notify(message)

@@ -28,26 +28,6 @@ HOP_SIZE = 320
 ###############################################################################
 
 
-def from_features(
-    features: torch.Tensor,
-    lengths: torch.Tensor,
-    checkpoint=None,
-    gpu=0
-):
-    if not hasattr(from_features, 'model'):
-        from_features.model = ppgs.Model()
-        if checkpoint is not None:
-            from_features.model.load_state_dict(
-                torch.load(checkpoint)['model'])
-        else:
-            #TODO huggingface
-            from_features.model.load_state_dict(
-                torch.load(ppgs.CHECKPOINT_DIR / 'w2v2fb.pt')['model'])
-        from_features.model = from_features.model.to(features.device)
-    with torch.autocast('cuda' if gpu is not None else 'cpu'):
-        return from_features.model(features, lengths)
-
-
 def from_audios(
     audio,
     lengths,

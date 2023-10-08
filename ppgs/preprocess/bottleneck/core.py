@@ -1,5 +1,8 @@
 import torch
 import tqdm
+from huggingface_hub import hf_hub_download
+from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
+from pathlib import Path
 
 import ppgs
 
@@ -8,10 +11,6 @@ import ppgs
 # Constants
 ###############################################################################
 
-
-# Checkpoint file
-# TODO - move to huggingface
-CHECKPOINT_FILE = ppgs.ASSETS_DIR / 'checkpoints' / 'ppg.pt'
 
 # Configuration
 CONFIG_FILE = ppgs.ASSETS_DIR / 'configs' / 'bottleneck.yaml'
@@ -28,39 +27,21 @@ WINDOW_SIZE = 1024
 ###############################################################################
 
 
-def from_features(
-    features: torch.Tensor,
-    new_lengths: torch.Tensor,
-    checkpoint=None,
-    gpu=0
-):
-    if not hasattr(from_features, 'model'):
-        from_features.model = ppgs.Model()
-        if checkpoint is not None:
-            from_features.model.load_state_dict(
-                torch.load(checkpoint)['model'])
-        else:
-            from_features.model.load_state_dict(
-                torch.load(ppgs.CHECKPOINT_DIR / 'bottleneck.pt')['model'])
-        from_features.model.to(features.device)
-    return from_features.model(features, new_lengths)
-
-
 def from_audios(
     audio,
     lengths,
     sample_rate=ppgs.SAMPLE_RATE,
     config=CONFIG_FILE,
-    checkpoint_file=CHECKPOINT_FILE,
     gpu=None):
     """Compute Bottleneck PPGs from audio"""
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Cache model
     if not hasattr(from_audios, 'model'):
+        conformer_checkpoint_file = hf_hub_download(repo_id='CameronChurchwell/ppg_conformer_model', filename='24epoch.pth')
         from_audios.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
             config,
-            checkpoint_file,
+            conformer_checkpoint_file,
             device)
 
     # Maybe resample
@@ -82,16 +63,16 @@ def from_audio(
     audio,
     sample_rate=ppgs.SAMPLE_RATE,
     config=CONFIG_FILE,
-    checkpoint_file=CHECKPOINT_FILE,
     gpu=None):
     """Compute Bottleneck PPGs from audio"""
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Cache model
     if not hasattr(from_audio, 'model'):
+        conformer_checkpoint_file = hf_hub_download(repo_id='CameronChurchwell/ppg_conformer_model', filename='24epoch.pth')
         from_audio.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
             config,
-            checkpoint_file,
+            conformer_checkpoint_file,
             device)
 
     # Maybe resample

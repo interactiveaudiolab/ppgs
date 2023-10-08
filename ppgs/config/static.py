@@ -10,9 +10,6 @@ import ppgs
 # Location to save dataset partitions
 PARTITION_DIR = ppgs.ASSETS_DIR / 'partitions'
 
-# Default checkpoint for generation
-DEFAULT_CHECKPOINT = ppgs.ASSETS_DIR / 'checkpoints' / 'default.pt'
-
 # Weighting file for class balancing
 CLASS_WEIGHT_FILE = ppgs.ASSETS_DIR / 'phoneme_weights.pt'
 
