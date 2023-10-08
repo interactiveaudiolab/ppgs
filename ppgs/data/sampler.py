@@ -10,7 +10,8 @@ import ppgs
 
 class Sampler(torch.utils.data.sampler.BatchSampler):
 
-    def __init__(self, dataset):
+    def __init__(self, dataset, max_frames=ppgs.MAX_FRAMES):
+        self.max_frames = max_frames
         self.epoch = 0
         self.buckets = dataset.buckets()
 
@@ -35,7 +36,7 @@ class Sampler(torch.utils.data.sampler.BatchSampler):
                 torch.randperm(len(bucket), generator=generator).tolist()]
 
             # Get current batch size
-            size = ppgs.MAX_FRAMES // max_length
+            size = self.max_frames // max_length
 
             # Make batches
             batches.extend(
