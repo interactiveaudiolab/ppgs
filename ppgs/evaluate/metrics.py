@@ -99,7 +99,7 @@ class CategoricalAccuracy:
         # batch x classes x time -> batch * time x classes
         predicted_logits = torch.transpose(
             predicted_logits, 1, 2).flatten(0, 1)
-         # batch x time -> batch * time
+        # batch x time -> batch * time
         target_indices = target_indices.flatten()
 
         # Remove padding
@@ -153,7 +153,7 @@ class JensenShannon:
         # batch x classes x time -> batch * time x classes
         predicted_logits = torch.transpose(
             predicted_logits, 1, 2).flatten(0, 1)
-         # batch x time -> batch * time
+        # batch x time -> batch * time
         target_indices = target_indices.flatten()
 
         # Remove padding
@@ -220,7 +220,7 @@ class TopKAccuracy:
         # batch x classes x time -> batch * time x classes
         predicted_logits = torch.transpose(
             predicted_logits, 1, 2).flatten(0, 1)
-         # batch x time -> batch * time
+        # batch x time -> batch * time
         target_indices = target_indices.flatten()
 
         # Remove padding
@@ -274,7 +274,7 @@ class ConfusionMatrix:
         # batch x classes x time -> batch * time x classes
         predicted_logits = torch.transpose(
             predicted_logits, 1, 2).flatten(0, 1)
-         # batch x time -> batch * time
+        # batch x time -> batch * time
         target_indices = target_indices.flatten()
 
         # Normalize
@@ -369,7 +369,7 @@ class DistanceMatrix:
         # batch x classes x time -> batch * time x classes
         predicted_logits = torch.transpose(
             predicted_logits, 1, 2).flatten(0, 1)
-         # batch x time -> batch * time
+        # batch x time -> batch * time
         target_indices = target_indices.flatten()
 
         # Normalize

@@ -149,7 +149,8 @@ def from_files_to_files(
     output_files: List[Union[str, bytes, os.PathLike]],
     checkpoint: Union[str, bytes, os.PathLike] = ppgs.DEFAULT_CHECKPOINT,
     num_workers: int = 8,
-    gpu: Optional[int] = None) -> None:
+    gpu: Optional[int] = None,
+    max_frames: int = ppgs.MAX_INFERENCE_FRAMES) -> None:
     """Infer ppgs from audio files and save to torch tensor files
 
     Arguments
@@ -163,6 +164,8 @@ def from_files_to_files(
             Number of CPU threads for multiprocessing
         gpu
             The index of the GPU to use for inference
+        max_frames
+            The maximum number of frames on the GPU at once
     """
     # Single-threaded
     if num_workers == 0:
@@ -179,8 +182,9 @@ def from_files_to_files(
         # Initialize multi-threaded dataloader
         dataloader = ppgs.data.loader(
             audio_files,
-            features=['wav', 'length', 'audio_file'],
-            num_workers=num_workers // 2)
+            features=['audio', 'length', 'audio_file'],
+            num_workers=num_workers // 2,
+            max_frames=max_frames)
 
         # Maintain file correspondence
         output_files = {
@@ -202,7 +206,8 @@ def from_paths_to_paths(
     extensions: Optional[List[str]] = None,
     checkpoint: Union[str, bytes, os.PathLike] = ppgs.DEFAULT_CHECKPOINT,
     num_workers: int = 8,
-    gpu: Optional[int] = None) -> None:
+    gpu: Optional[int] = None,
+    max_frames: int = ppgs.MAX_INFERENCE_FRAMES) -> None:
     """Infer ppgs from audio files and save to torch tensor files
 
     Arguments
@@ -218,6 +223,8 @@ def from_paths_to_paths(
             Number of CPU threads for multiprocessing
         gpu
             The index of the GPU to use for inference
+        max_frames
+            The maximum number of frames on the GPU at once
     """
     if output_paths is not None:
         input_files, output_files = ppgs.data.aggregate(
@@ -234,8 +241,9 @@ def from_paths_to_paths(
         input_files,
         output_files,
         checkpoint,
-        gpu=gpu,
-        num_workers=num_workers)
+        gpu,
+        num_workers,
+        max_frames)
 
 
 ###############################################################################
