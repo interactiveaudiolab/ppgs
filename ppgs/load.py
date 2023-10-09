@@ -34,7 +34,7 @@ def model(checkpoint=None):
         return model
     
     if checkpoint is None:
-        checkpoint = hf_hub_download('CameronChurchwell/ppgs-w2v2fb', 'ppgs-w2v2fb.pt')
+        checkpoint = hf_hub_download('CameronChurchwell/ppgs-w2v2fb', 'ppg.pt')
 
     # Load from checkpoint
     model.load_state_dict(torch.load(checkpoint, map_location='cpu')['model'])
