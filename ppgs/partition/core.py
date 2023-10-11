@@ -9,8 +9,8 @@ import ppgs
 ###############################################################################
 
 
-# Charsiu samples to reject due to data errors
-CHARSIU_REJECT = ['common_voice_en_26168033']
+# Common Voice samples to reject due to data errors
+COMMON_VOICE_REJECT = ['common_voice_en_26168033']
 
 
 ###############################################################################
@@ -29,8 +29,8 @@ def datasets(datasets):
             partition = arctic()
         elif dataset == 'timit':
             partition = timit()
-        elif dataset == 'charsiu':
-            partition = charsiu()
+        elif dataset == 'commonvoice':
+            partition = commonvoice()
         else:
             raise NotImplementedError
 
@@ -66,12 +66,13 @@ def timit():
     return {'train': [], 'valid': [], 'test': stems}
 
 
-def charsiu():
+def commonvoice():
     """Partition dataset"""
     # Get stems
     stems = [
-        file.stem for file in (ppgs.CACHE_DIR / 'charsiu').rglob('*.TextGrid')
-        if file.stem not in CHARSIU_REJECT]
+        file.stem for file in
+        (ppgs.CACHE_DIR / 'commonvoice').rglob('*.TextGrid')
+        if file.stem not in COMMON_VOICE_REJECT]
     random.shuffle(stems)
 
     # Get split points
