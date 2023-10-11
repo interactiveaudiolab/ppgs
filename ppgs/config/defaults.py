@@ -49,13 +49,13 @@ ALL_REPRESENTATIONS = [
     'encodec']
 
 # All datasets used by this codebase
-DATASETS = ['arctic', 'charsiu', 'timit']
+DATASETS = ['arctic', 'commonvoice', 'timit']
 
 # Input representation
 REPRESENTATION = 'w2v2fb'
 
 # Datasets used for training
-TRAINING_DATASET = 'charsiu'
+TRAINING_DATASET = 'commonvoice'
 
 
 ###############################################################################
