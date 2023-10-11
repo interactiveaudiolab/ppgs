@@ -151,8 +151,6 @@ class JensenShannon:
         """Update the total JSD"""
         # Unroll time dimension
         # batch x classes x time -> batch * time x classes
-        if predicted_logits.isnan().any():
-            import pdb; pdb.set_trace()
         predicted_logits = torch.transpose(
             predicted_logits, 1, 2).flatten(0, 1)
         # batch x time -> batch * time
@@ -195,12 +193,10 @@ class Loss:
 
     def update(self, predicted_logits, target_indices):
         """Update the total cross entropy loss"""
-        self.total += ppgs.train.loss(
+        self.total += ppgs.loss(
             predicted_logits.to(torch.float64),
             target_indices,
             reduction='sum').item()
-        if self.total.isinf():
-            import pdb; pdb.set_trace()
         self.count += (target_indices != -100).sum()
 
 
