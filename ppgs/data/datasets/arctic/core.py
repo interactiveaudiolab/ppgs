@@ -3,6 +3,7 @@ import re
 import shutil
 
 import pypar
+import torchutil
 
 import ppgs
 
@@ -34,10 +35,10 @@ def download(speakers=['bdl', 'slt', 'awb', 'jmk', 'ksp', 'clb', 'rms']):
         url = (
             'http://festvox.org/cmu_arctic/cmu_arctic/'
             f'packed/cmu_us_{speaker}_arctic-0.95-release.tar.bz2')
-        ppgs.data.download.download_tar_bz2(url, source_directory)
+        torchutil.download.tarbz2(url, source_directory)
 
     # Download metadata
-    ppgs.data.download.download_file(
+    torchutil.download.file(
         'http://festvox.org/cmu_arctic/cmuarctic.data',
         source_directory / 'sentences.txt')
 

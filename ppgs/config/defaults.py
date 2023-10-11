@@ -158,7 +158,8 @@ MAX_FRAMES = 100000
 MAX_PREPROCESS_FRAMES = 10000
 
 # Number of training steps
-NUM_STEPS = 200000
+# TEMPORARY
+NUM_STEPS = 500000
 
 # Number of data loading worker threads
 NUM_WORKERS = 6

@@ -278,15 +278,20 @@ CUDA_VISIBLE_DEVICES=<gpus> accelerate launch -m ppgs.train \
 If the config file has been previously run, the most recent checkpoint will
 automatically be loaded and training will resume from that checkpoint.
 
+
+### Monitor
+
 You can monitor training via `tensorboard`.
 
 ```
 tensorboard --logdir runs/ --port <port>
 ```
 
-You can also receive notifications when a task (e.g. training, evaluation, etc.) finishes via `Apprise`.
+To use the `torchutil` notification system to receive notifications for long
+jobs (download, preprocess, train, and evaluate), set the
+`PYTORCH_NOTIFICATION_URL` environment variable to a supported webhook as
+explained in [the Apprise documentation](https://pypi.org/project/apprise/).
 
-Simply set the `PPGS_NOTIFICATION_URL` environment variable to a supported webhook as is explained in the Apprise documentation ![here](https://pypi.org/project/apprise/)
 
 ### Evaluate
 

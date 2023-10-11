@@ -1,4 +1,5 @@
 import argparse
+import shutil
 from pathlib import Path
 
 import ppgs
@@ -7,6 +8,19 @@ import ppgs
 ###############################################################################
 # Training CLI
 ###############################################################################
+
+
+def main(config, dataset):
+    """Train from configuration"""
+    # Create output directory
+    directory = ppgs.RUNS_DIR / config.stem
+    directory.mkdir(parents=True, exist_ok=True)
+
+    # Save configuration
+    shutil.copyfile(config, directory / config.name)
+
+    # Train
+    ppgs.train(dataset, directory)
 
 
 def parse_args():
@@ -24,4 +38,4 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    ppgs.train.run(**vars(parse_args()))
+    main(**vars(parse_args()))

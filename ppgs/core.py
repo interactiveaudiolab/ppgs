@@ -18,50 +18,6 @@ import ppgs
 ###############################################################################
 
 
-def from_features(
-    features: torch.Tensor,
-    lengths: torch.Tensor,
-    checkpoint: Union[str, bytes, os.PathLike] = None,
-    gpu: Optional[int] = None,
-    softmax: bool = True) -> torch.Tensor:
-    """Infer ppgs from input features (e.g. w2v2fb, mel, etc.)
-
-    Arguments
-        features
-            The input features to process in the shape BATCH x DIMS x TIME
-        lengths
-            The lengths of the features
-        representation
-            The type of features to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
-        checkpoint
-            The checkpoint file
-        gpu
-            The index of the GPU to use for inference
-        softmax
-            Whether to apply softmax normalization to the inferred logits
-
-    Returns
-        ppgs
-            A tensor encoding ppgs with shape BATCH x DIMS x TIME
-    """
-    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
-
-    # Maybe load and cache codebook
-    if not hasattr(from_features, 'frontend') and ppgs.FRONTEND is not None:
-        from_features.frontend = ppgs.FRONTEND(device)
-
-    # Codebook lookup
-    if hasattr(from_features, 'frontend'):
-        preprocess_context = (
-            torch.inference_mode if ppgs.MODEL == 'W2V2FC'
-            else inference_context)
-        with preprocess_context():
-            features = from_features.frontend(features)
-
-    # Infer
-    return infer(features.to(device), lengths.to(device), checkpoint, softmax)
-
-
 def from_audio(
     audio: torch.Tensor,
     sample_rate: Union[int, float],
@@ -93,6 +49,48 @@ def from_audio(
     return from_features(features, length, checkpoint, gpu)
 
 
+def from_features(
+    features: torch.Tensor,
+    lengths: torch.Tensor,
+    checkpoint: Union[str, bytes, os.PathLike] = None,
+    gpu: Optional[int] = None,
+    softmax: bool = True) -> torch.Tensor:
+    """Infer ppgs from input features (e.g. w2v2fb, mel, etc.)
+
+    Arguments
+        features
+            The input features to process in the shape BATCH x DIMS x TIME
+        lengths
+            The lengths of the features
+        checkpoint
+            The checkpoint file
+        gpu
+            The index of the GPU to use for inference
+        softmax
+            Whether to apply softmax normalization to the inferred logits
+
+    Returns
+        ppgs
+            A tensor encoding ppgs with shape BATCH x DIMS x TIME
+    """
+    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+
+    # Maybe load and cache codebook
+    if not hasattr(from_features, 'frontend') and ppgs.FRONTEND is not None:
+        from_features.frontend = ppgs.FRONTEND(device)
+
+    # Codebook lookup
+    if hasattr(from_features, 'frontend'):
+        preprocess_context = (
+            torch.inference_mode if ppgs.MODEL == 'W2V2FC'
+            else inference_context)
+        with preprocess_context():
+            features = from_features.frontend(features)
+
+    # Infer
+    return infer(features.to(device), lengths.to(device), checkpoint, softmax)
+
+
 def from_file(
     file: Union[str, bytes, os.PathLike],
     checkpoint: Union[str, bytes, os.PathLike] = None,
@@ -102,8 +100,6 @@ def from_file(
     Arguments
         file
             The audio file
-        representation
-            The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
         checkpoint
             The checkpoint file
         gpu
@@ -282,13 +278,16 @@ def from_dataloader(
 
     try:
 
+        # Setup progress bar
+        progress = tqdm.tqdm(
+            total=len(dataloader.dataset),
+            dynamic_ncols=True,
+            desc=f'Inferring PPGs')
+
         # Iterate over dataset
-        message = (
-            f'Processing {ppgs.REPRESENTATION} for '
-            f'dataset {dataloader.dataset.metadata.name}')
         for audios, lengths, audio_files in iterator(
             dataloader,
-            message,
+            'Inferring PPGs',
             total=len(dataloader)
         ):
             frame_lengths = lengths // ppgs.HOPSIZE
@@ -340,6 +339,9 @@ def from_dataloader(
                         filename,
                         new_length)
 
+            # Increment by batch size
+            progress.update(len(audios))
+
     finally:
 
         # Maybe shutdown multiprocessing
@@ -373,7 +375,7 @@ def distance(
     Returns
         Normalized Jenson-shannon divergence between PPGs
     """
-
+    # Handle numerical instability at zero
     ppgX = torch.clamp(ppgX, 1e-9)
     ppgY = torch.clamp(ppgY, 1e-9)
 
@@ -391,9 +393,6 @@ def distance(
     # Average in parameter space
     log_average = torch.log((ppgX + ppgY) / 2)
 
-    if log_average.isnan().any() or log_average.isinf().any():
-        import pdb; pdb.set_trace()
-
     # Compute KL divergences in both directions
     kl_X = torch.nn.functional.kl_div(
         log_average,
@@ -404,21 +403,12 @@ def distance(
         ppgY,
         reduction='none')
 
-    if kl_X.isnan().any() or kl_Y.isinf().any():
-        import pdb; pdb.set_trace()
-    if kl_Y.isnan().any() or kl_X.isinf().any():
-        import pdb; pdb.set_trace()
-
     # Sum reduction
     kl_X = kl_X.sum(dim=-1)
     kl_Y = kl_Y.sum(dim=-1)
 
     # Average KL
     average_kl = (kl_X + kl_Y) / 2
-
-    if average_kl.isnan().any():
-        import pdb; pdb.set_trace()
-
     average_kl[average_kl < 0] = 0
     jsd = torch.sqrt(average_kl)
 
@@ -467,7 +457,8 @@ def aggregate(
                 source_files.append(source)
 
         # Sink files are source files with sink extension
-        sink_files = [file.with_suffix(sink_extension) for file in source_files]
+        sink_files = [
+            file.with_suffix(sink_extension) for file in source_files]
 
     else:
 
@@ -494,7 +485,9 @@ def aggregate(
                         'stem with different extensions')
 
                 # Get corresponding output files
-                sink_files += [sink / (file.stem + sink_extension) for file in source_files]
+                sink_files += [
+                    sink / (file.stem + sink_extension)
+                    for file in source_files]
 
             # Handle input file
             else:

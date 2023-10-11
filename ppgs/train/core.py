@@ -1,9 +1,9 @@
 import functools
-import shutil
 
 import accelerate
+import matplotlib
 import torch
-import tqdm
+import torchutil
 
 import ppgs
 
@@ -13,34 +13,11 @@ import ppgs
 ###############################################################################
 
 
-def run(config, dataset):
-    """Train from configuration"""
-    # Create output directory
-    directory = ppgs.RUNS_DIR / config.stem
-    directory.mkdir(parents=True, exist_ok=True)
-
-    # Save configuration
-    shutil.copyfile(config, directory / config.name)
-
-    # Train
-    train(dataset, directory)
-
-
-###############################################################################
-# Training
-###############################################################################
-
-
-@ppgs.notify.notify_on_finish('training')
+@torchutil.notify.on_return('train')
 def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     """Train a model"""
     # Create output directory
     directory.mkdir(parents=True, exist_ok=True)
-
-    # Initialize distributed training
-    accelerator = accelerate.Accelerator(
-        mixed_precision='fp16',
-        even_batches=False)
 
     #################
     # Create models #
@@ -64,15 +41,16 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     ##############################
 
     # Find latest checkpoint
-    path = ppgs.checkpoint.latest_path(directory)
+    path = torchutil.checkpoint.latest_path(directory)
 
     if path is not None:
 
         # Load model
-        model, optimizer, step, epoch = ppgs.checkpoint.load(
-            path[0],
+        model, optimizer, state = torchutil.checkpoint.load(
+            path,
             model,
             optimizer)
+        step, epoch = state['step'], state['epoch']
 
     else:
 
@@ -87,6 +65,14 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     torch.manual_seed(ppgs.RANDOM_SEED)
     train_loader = ppgs.data.loader(dataset, 'train')
     valid_loader = ppgs.data.loader(dataset, 'valid')
+
+    ####################
+    # Device placement #
+    ####################
+
+    accelerator = accelerate.Accelerator(
+        mixed_precision='fp16',
+        even_batches=False)
     model, optimizer, train_loader, valid_loader = accelerator.prepare(
         model,
         optimizer,
@@ -97,19 +83,16 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     # Train #
     #########
 
-    # Get total number of steps
-    steps = ppgs.NUM_STEPS
-
     # Setup progress bar
-    progress = tqdm.tqdm(
-        initial=step,
-        total=steps,
-        dynamic_ncols=True,
-        desc=f'Training {ppgs.CONFIG}')
+    progress = ppgs.iterator(
+        range(step, ppgs.NUM_STEPS),
+        f'Training {ppgs.CONFIG}',
+        step,
+        ppgs.NUM_STEPS)
 
     try:
-        model.train()
-        while step < steps:
+
+        while step < ppgs.NUM_STEPS:
 
             # Update epoch-based random seed
             train_loader.batch_sampler.set_epoch(epoch)
@@ -171,16 +154,16 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                 ###################
 
                 if step and step % ppgs.CHECKPOINT_INTERVAL == 0:
-                    ppgs.checkpoint.save(
+                    torchutil.checkpoint.save(
+                        directory / f'{step:08d}.pt',
                         model,
                         optimizer,
-                        step,
-                        epoch,
-                        directory / f'{step:08d}.pt',
-                        accelerator)
+                        accelerator=accelerator,
+                        step=step,
+                        epoch=epoch)
 
                 # Update training step count
-                if step >= steps:
+                if step >= ppgs.NUM_STEPS:
                     break
                 step += 1
 
@@ -193,13 +176,13 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     except KeyboardInterrupt:
 
         # Save checkpoint on interrupt
-        ppgs.checkpoint.save(
+        torchutil.checkpoint.save(
+            directory / f'{step:08d}.pt',
             model,
             optimizer,
-            step,
-            epoch,
-            directory / f'{step:08d}.pt',
-            accelerator)
+            accelerator=accelerator,
+            step=step,
+            epoch=epoch)
 
     finally:
 
@@ -207,13 +190,13 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
         progress.close()
 
     # Save checkpoint
-    ppgs.checkpoint.save(
+    torchutil.checkpoint.save(
+        directory / f'{step:08d}.pt',
         model,
         optimizer,
-        step,
-        epoch,
-        directory / f'{step:08d}.pt',
-        accelerator)
+        accelerator=accelerator,
+        step=step,
+        epoch=epoch)
 
 
 ###############################################################################
@@ -280,8 +263,17 @@ def evaluate(
             break
 
     # Write to tensorboard
-    if accelerator.is_main_process:
-        ppgs.write.metrics(directory, step, metrics())
+    scalars, figures = {}, {}
+    for key, val in metrics().items():
+        if isinstance(val, matplotlib.figure.Figure):
+            figures[key] = val
+        else:
+            scalars[key] = val
+    torchutil.tensorboard.update(
+        directory,
+        step,
+        figures=figures,
+        scalars=scalars)
 
 
 ###############################################################################
