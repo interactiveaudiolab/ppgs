@@ -10,5 +10,14 @@ import ppgs
 # Location to save dataset partitions
 PARTITION_DIR = ppgs.ASSETS_DIR / 'partitions'
 
-# weighting file for class balancing
+# Weighting file for class balancing
 CLASS_WEIGHT_FILE = ppgs.ASSETS_DIR / 'phoneme_weights.pt'
+
+
+###############################################################################
+# Data parameters
+###############################################################################
+
+
+# Maximum number of frames on the GPU during inference
+MAX_INFERENCE_FRAMES = min(ppgs.MAX_FRAMES, ppgs.MAX_PREPROCESS_FRAMES)

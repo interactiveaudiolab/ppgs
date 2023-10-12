@@ -154,8 +154,12 @@ LEARNING_RATE = 2e-4
 # Maximum number of frames in a batch
 MAX_FRAMES = 100000
 
+# Maximum number of frames in a batch during preprocessing
+MAX_PREPROCESS_FRAMES = 10000
+
 # Number of training steps
-NUM_STEPS = 200000
+# TEMPORARY
+NUM_STEPS = 500000
 
 # Number of data loading worker threads
 NUM_WORKERS = 6

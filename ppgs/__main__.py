@@ -41,6 +41,11 @@ def parse_args():
         '--gpu',
         type=int,
         help='The index of the GPU to use for inference. Defaults to CPU.')
+    parser.add_argument(
+        '--max-frames',
+        type=int,
+        default=ppgs.MAX_INFERENCE_FRAMES,
+        help='Maximum number of frames in a batch')
     return parser.parse_args()
 
 

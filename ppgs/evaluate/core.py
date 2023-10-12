@@ -2,6 +2,7 @@ import json
 from matplotlib.figure import Figure
 
 import torch
+import torchutil
 
 import ppgs
 
@@ -11,7 +12,7 @@ import ppgs
 ###############################################################################
 
 
-@ppgs.notify.notify_on_finish('evaluate')
+@torchutil.notify.on_return('evaluate')
 def datasets(datasets, checkpoint=None, gpu=None):
     """Perform evaluation"""
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
@@ -47,9 +48,6 @@ def datasets(datasets, checkpoint=None, gpu=None):
                 checkpoint=checkpoint,
                 gpu=gpu,
                 softmax=False)
-            
-            if logits.isnan().any():
-                import pdb; pdb.set_trace()
 
             # Update metrics
             indices = indices.to(device)

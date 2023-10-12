@@ -3,6 +3,7 @@ import multiprocessing as mp
 import time
 
 import torch
+import torchutil
 
 import ppgs
 
@@ -12,10 +13,10 @@ import ppgs
 ###############################################################################
 
 
-@ppgs.notify.notify_on_finish('preprocessing')
+@torchutil.notify.on_return('preprocess')
 def datasets(
     datasets=ppgs.DATASETS,
-    representations=ppgs.ALL_REPRESENTATIONS,
+    representations=None,
     gpu=None,
     num_workers=0,
     partition=None):
@@ -33,6 +34,9 @@ def datasets(
         partition
             The partition to preprocess. Default (None) uses all partitions.
     """
+    if representations is None:
+        representations = [ppgs.REPRESENTATION]
+
     for dataset in datasets:
 
         try:
@@ -58,6 +62,39 @@ def datasets(
             output,
             num_workers=(num_workers + 1) // 2,
             gpu=gpu)
+
+
+def from_files_to_files(
+    audio_files,
+    output_files,
+    representations=ppgs.REPRESENTATION,
+    num_workers=0,
+    gpu=None):
+    """Preprocess from files
+
+    Arguments
+        audio_files
+            A list of audio files to process
+        output_files
+            A list of output files to use to save representations
+        representations
+            The names of the representations to do preprocessing for
+        num_workers
+            The number of worker threads to use
+        gpu
+            The gpu to use for preprocessing
+    """
+    # Setup dataloader
+    dataloader = ppgs.data.loader(
+        audio_files,
+        features=['audio', 'length', 'audio_file'],
+        num_workers=num_workers//2)
+    from_dataloader(
+        dataloader,
+        representations,
+        dict(zip(audio_files, output_files)),
+        num_workers=(num_workers+1)//2,
+        gpu=gpu)
 
 
 ###############################################################################
@@ -119,7 +156,8 @@ def from_dataloader(loader, representations, output, num_workers=0, gpu=None):
                     for file in audio_files:
                         output_file = output[file]
                         if '{}' in output_file:
-                            filenames.append(output_file.format(representation))
+                            filenames.append(
+                                output_file.format(representation))
                         else:
                             filenames.append(output_file)
 

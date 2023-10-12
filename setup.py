@@ -14,7 +14,6 @@ setup(
     url='https://github.com/interactiveaudiolab/ppgs',
     extras_require={
         'train': [
-            'apprise',
             'encodec',
             'espnet',
             'g2pM',
@@ -23,7 +22,6 @@ setup(
             'librosa',
             'nltk',
             'pyyaml',
-            'tensorboard',
             'torch_complex',
         ]
     },
@@ -36,6 +34,7 @@ setup(
         'pypar',
         'torch',
         'torchaudio',
+        'torchutil',
         'tqdm',
         'transformers',
         'opencv-python',
