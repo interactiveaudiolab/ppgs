@@ -33,3 +33,4 @@ from . import partition
 from . import preprocess
 from . import train
 from . import write
+from . import plot
