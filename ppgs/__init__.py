@@ -23,14 +23,11 @@ from .config.static import *
 from .phonemes import *
 from .core import *
 from .model import Model
-from . import notify
-from . import checkpoint
+from .train import loss, train
 from . import data
 from . import evaluate
 from . import load
 from . import model
 from . import partition
 from . import preprocess
-from . import train
-from . import write
 from . import plot

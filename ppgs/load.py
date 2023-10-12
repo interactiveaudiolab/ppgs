@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
-from huggingface_hub import hf_hub_download
 
+import huggingface_hub
 import torch
 import torchaudio
 
@@ -32,9 +32,12 @@ def model(checkpoint=None):
     # Pretrained model
     if ppgs.MODEL in ['W2V2FC', 'W2V2FS']:
         return model
-    
+
+    # Maybe download from HuggingFace
     if checkpoint is None:
-        checkpoint = hf_hub_download('CameronChurchwell/ppgs-w2v2fb', 'ppg.pt')
+        checkpoint = huggingface_hub.hf_hub_download(
+            'CameronChurchwell/ppgs-w2v2fb',
+            'ppg.pt')
 
     # Load from checkpoint
     model.load_state_dict(torch.load(checkpoint, map_location='cpu')['model'])

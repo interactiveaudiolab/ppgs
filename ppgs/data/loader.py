@@ -21,13 +21,14 @@ def loader(
     dataset_or_files,
     partition=None,
     features=TRAINING_FEATURES,
-    num_workers=ppgs.NUM_WORKERS):
+    num_workers=ppgs.NUM_WORKERS,
+    max_frames=ppgs.MAX_FRAMES):
     """Retrieve a data loader"""
     # Initialize dataset
     dataset = ppgs.data.Dataset(dataset_or_files, partition, features)
 
     # Initialize sampler
-    sampler = ppgs.data.Sampler(dataset)
+    sampler = ppgs.data.Sampler(dataset, max_frames)
 
     # Initialize dataloader
     return torch.utils.data.DataLoader(
