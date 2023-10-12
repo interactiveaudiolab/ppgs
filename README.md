@@ -1,9 +1,9 @@
 <h1 align="center">High-Fidelity Neural Phonetic Posteriorgrams</h1>
 <div align="center">
 
-[![PyPI](https://img.shields.io/pypi/v/promonet.svg)](https://pypi.python.org/pypi/promonet)
+[![PyPI](https://img.shields.io/pypi/v/ppgs.svg)](https://pypi.python.org/pypi/ppgs)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://static.pepy.tech/badge/promonet)](https://pepy.tech/project/promonet)
+[![Downloads](https://static.pepy.tech/badge/ppgs)](https://pepy.tech/project/ppgs)
 
 Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in PyTorch
 
@@ -25,7 +25,7 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
-    * [Partition](#partition)
+    * [Partition](#partitiopn)
     * [Train](#train)
     * [Monitor](#monitor)
     * [Evaluate](#evaluate)
@@ -78,6 +78,7 @@ gpu = 0
 # Infer PPGs
 ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 ```
+
 
 #### Application programming interface (API)
 
@@ -231,8 +232,8 @@ def distance(
 Downloads, unzips, and formats datasets. Stores datasets in `data/datasets/`.
 Stores formatted datasets in `data/cache/`.
 
-**N.B.** Charsiu and TIMIT cannot be automatically downloaded. You must
-manually download the tarballs and place them in `data/sources/charsiu`
+**N.B.** Common voice and TIMIT cannot be automatically downloaded. You must
+manually download the tarballs and place them in `data/sources/commonvoice`
 or `data/sources/timit`, respectively, prior to running the following.
 
 ```
