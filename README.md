@@ -25,7 +25,7 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
-    * [Partition](#partitiopn)
+    * [Partition](#partition)
     * [Train](#train)
     * [Monitor](#monitor)
     * [Evaluate](#evaluate)
@@ -40,7 +40,7 @@ An inference-only installation with our best model is pip-installable
 
 To perform training, install training dependencies and FFMPEG.
 
-```
+```bash
 pip install ppgs[train]
 conda install -c conda-forge 'ffmpeg<5'
 ``````
@@ -66,7 +66,7 @@ git submodule update
 
 ## Inference
 
-```
+```python
 import ppgs
 
 # Load speech audio at correct sample rate
@@ -84,7 +84,7 @@ ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 
 #### `ppgs.from_audio`
 
-```
+```python
 """Infer ppgs from audio
 
 Arguments
@@ -106,7 +106,7 @@ Returns
 
 #### `ppgs.from_file`
 
-```
+```python
 """Infer ppgs from an audio file
 
 Arguments
@@ -128,7 +128,7 @@ Returns
 
 #### `ppgs.from_file_to_file`
 
-```
+```python
 """Infer ppg from an audio file and save to a torch tensor file
 
 Arguments
@@ -146,7 +146,7 @@ Arguments
 
 #### `ppgs.from_files_to_files`
 
-```
+```python
 """Infer ppgs from audio files and save to torch tensor files
 
 Arguments
@@ -201,7 +201,7 @@ optional arguments:
 To compute the proposed normalized Jenson-Shannon divergence pronunciation
 distance between two PPGs, use `ppgs.distance()`.
 
-```
+```python
 def distance(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
@@ -236,7 +236,7 @@ Stores formatted datasets in `data/cache/`.
 manually download the tarballs and place them in `data/sources/commonvoice`
 or `data/sources/timit`, respectively, prior to running the following.
 
-```
+```bash
 python -m ppgs.data.download --datasets <datasets>
 ```
 
