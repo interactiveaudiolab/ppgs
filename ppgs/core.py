@@ -279,17 +279,13 @@ def from_dataloader(
     try:
 
         # Setup progress bar
-        progress = tqdm.tqdm(
-            total=len(dataloader.dataset),
-            dynamic_ncols=True,
-            desc=f'Inferring PPGs')
+        progress = iterator(
+            range(0, len(dataloader.dataset)),
+            f'Inferring PPGs',
+            total=len(dataloader.dataset))
 
         # Iterate over dataset
-        for audios, lengths, audio_files in iterator(
-            dataloader,
-            'Inferring PPGs',
-            total=len(dataloader)
-        ):
+        for audios, lengths, audio_files in dataloader:
             frame_lengths = lengths // ppgs.HOPSIZE
 
             # Preprocess
@@ -359,7 +355,8 @@ def distance(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
     reduction: Optional[str] = 'mean',
-    normalize: Optional[bool] = True) -> torch.Tensor:
+    normalize: Optional[bool] = True
+) -> torch.Tensor:
     """Compute the pronunciation distance between two aligned PPGs
 
     Arguments
@@ -420,6 +417,36 @@ def distance(
     elif reduction == 'sum':
         return jsd.sum(dim=0)
     raise ValueError(f'Reduction method {reduction} not defined')
+
+
+###############################################################################
+# PPG interpolation
+###############################################################################
+
+
+def interpolate(
+    ppgX: torch.Tensor,
+    ppgY: torch.Tensor,
+    interp: torch.Tensor
+) -> torch.Tensor:
+    """Spherical linear interpolation
+
+    Arguments
+        ppgX
+            Input PPG X
+        ppgY
+            Input PPG Y
+        interp
+            Interpolation values
+
+    Returns
+        Interpolated PPGs
+    """
+    omega = torch.acos((ppgX * ppgY).sum(1))
+    sin_omega = torch.sin(omega)
+    return (
+        (torch.sin((1. - interp) * omega) / sin_omega).unsqueeze(1) * ppgX +
+        (torch.sin(interp * omega) / sin_omega).unsqueeze(1) * ppgY)
 
 
 ###############################################################################

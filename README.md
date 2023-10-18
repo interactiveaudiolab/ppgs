@@ -22,6 +22,11 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
         * [`ppgs.from_files_to_files`](#ppgsfrom_files_to_files)
     * [Command-line interface (CLI)](#command-line-interface-cli)
 - [Distance](#distance)
+- [Interpolate](#interpolate)
+- [Edit](#edit)
+    * [`ppgs.edit.grid.constant`](#ppgseditgridconstant)
+    * [`ppgs.edit.grid.from_alignments`](#ppgseditgridfrom_alignments)
+    * [`ppgs.edit.grid.sample`](#ppgseditgridsample)
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -84,83 +89,104 @@ ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 
 #### `ppgs.from_audio`
 
-```
-"""Infer ppgs from audio
+```python
+def from_audio(
+    audio: torch.Tensor,
+    sample_rate: Union[int, float],
+    checkpoint: Union[str, bytes, os.PathLike] = None,
+    gpu: int = None) -> torch.Tensor:
+    """Infer ppgs from audio
 
-Arguments
-    audio
-        The batched audio to process in the shape BATCH x 1 x TIME
-    lengths
-        The lengths of the features
-    checkpoint
-        The checkpoint file
-    gpu
-        The index of the GPU to use for inference
+    Arguments
+        audio
+            The batched audio to process in the shape BATCH x 1 x TIME
+        lengths
+            The lengths of the features
+        checkpoint
+            The checkpoint file
+        gpu
+            The index of the GPU to use for inference
 
-Returns
-    ppgs
-        A tensor encoding ppgs with shape BATCH x DIMS x TIME
-"""
+    Returns
+        ppgs
+            A tensor encoding ppgs with shape BATCH x DIMS x TIME
+    """
 ```
 
 
 #### `ppgs.from_file`
 
-```
-"""Infer ppgs from an audio file
+```python
+def from_file(
+    file: Union[str, bytes, os.PathLike],
+    checkpoint: Union[str, bytes, os.PathLike] = None,
+    gpu: Optional[int] = None) -> torch.Tensor:
+    """Infer ppgs from an audio file
 
-Arguments
-    file
-        The audio file
-    representation
-        The type of latents to use (e.g. Wav2Vec 2.0 Facebook = 'w2v2fb')
-    checkpoint
-        The checkpoint file
-    gpu
-        The index of the GPU to use for inference
+    Arguments
+        file
+            The audio file
+        checkpoint
+            The checkpoint file
+        gpu
+            The index of the GPU to use for inference
 
-Returns
-    ppgs
-        A tensor encoding ppgs with shape 1 x DIMS x TIME
-"""
+    Returns
+        ppgs
+            A tensor encoding ppgs with shape 1 x DIMS x TIME
+    """
 ```
 
 
 #### `ppgs.from_file_to_file`
 
-```
-"""Infer ppg from an audio file and save to a torch tensor file
+```python
+def from_file_to_file(
+    audio_file: Union[str, bytes, os.PathLike],
+    output_file: Union[str, bytes, os.PathLike],
+    checkpoint: Union[str, bytes, os.PathLike] = None,
+    gpu: Optional[int] = None) -> None:
+    """Infer ppg from an audio file and save to a torch tensor file
 
-Arguments
-    audio_file
-        The audio file
-    output_file
-        The .pt file to save PPGs
-    checkpoint
-        The checkpoint file
-    gpu
-        The index of the GPU to use for inference
-"""
+    Arguments
+        audio_file
+            The audio file
+        output_file
+            The .pt file to save PPGs
+        checkpoint
+            The checkpoint file
+        gpu
+            The index of the GPU to use for inference
+    """
 ```
 
 
 #### `ppgs.from_files_to_files`
 
-```
-"""Infer ppgs from audio files and save to torch tensor files
+```python
+def from_files_to_files(
+    audio_files: List[Union[str, bytes, os.PathLike]],
+    output_files: List[Union[str, bytes, os.PathLike]],
+    checkpoint: Union[str, bytes, os.PathLike] = None,
+    num_workers: int = 8,
+    gpu: Optional[int] = None,
+    max_frames: int = ppgs.MAX_INFERENCE_FRAMES) -> None:
+    """Infer ppgs from audio files and save to torch tensor files
 
-Arguments
-    audio_files
-        The audio files
-    output_files
-        The .pt files to save PPGs
-    checkpoint
-        The checkpoint file
-    num_workers
-        Number of CPU threads for multiprocessing
-    gpu
-        The index of the GPU to use for inference
-"""
+    Arguments
+        audio_files
+            The audio files
+        output_files
+            The .pt files to save PPGs
+        checkpoint
+            The checkpoint file
+        num_workers
+            Number of CPU threads for multiprocessing
+        gpu
+            The index of the GPU to use for inference
+        max_frames
+            The maximum number of frames on the GPU at once
+    """
 ```
 
 
@@ -201,7 +227,7 @@ optional arguments:
 To compute the proposed normalized Jenson-Shannon divergence pronunciation
 distance between two PPGs, use `ppgs.distance()`.
 
-```
+```python
 def distance(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
@@ -221,6 +247,107 @@ def distance(
 
     Returns
         Normalized Jenson-shannon divergence between PPGs
+    """
+```
+
+
+## Interpolate
+
+```python
+def interpolate(
+    ppgX: torch.Tensor,
+    ppgY: torch.Tensor,
+    interp: torch.Tensor
+) -> torch.Tensor:
+    """Spherical linear interpolation
+
+    Arguments
+        ppgX
+            Input PPG X
+        ppgY
+            Input PPG Y
+        interp
+            Interpolation values
+
+    Returns
+        Interpolated PPGs
+    """
+```
+
+
+## Edit
+
+```python
+import ppgs
+
+# Get PPGs to edit
+ppg = ppgs.from_file(audio_file, gpu=gpu)
+
+# Constant-ratio time-stretching (slowing down) using SLERP
+grid = ppgs.edit.grid.constant(ppg, ratio=0.8)
+slow = ppgs.edit.grid.sample(ppg, grid)
+```
+
+
+### `ppgs.edit.grid.constant`
+
+```python
+def constant(ppg: torch.Tensor, ratio: float) -> torch.Tensor:
+    """Create a grid for constant-ratio time-stretching
+
+    Arguments
+        ppg
+            Input PPG
+        ratio
+            Time-stretching ratio; lower is slower
+
+    Returns
+        Constant-ratio grid for time-stretching ppg
+    """
+```
+
+
+### `ppgs.edit.grid.from_alignments`
+
+```python
+def from_alignments(
+    source: pypar.Alignment,
+    target: pypar.Alignment,
+    sample_rate: int = ppgs.SAMPLE_RATE,
+    hopsize: int = ppgs.HOPSIZE
+) -> torch.Tensor:
+    """Create time-stretch grid to convert source alignment to target
+
+    Arguments
+        source
+            Forced alignment of PPG to stretch
+        target
+            Forced alignment of target PPG
+        sample_rate
+            Audio sampling rate
+        hopsize
+            Hopsize in samples
+
+    Returns
+        Grid for time-stretching source PPG
+    """
+```
+
+
+### `ppgs.edit.grid.sample`
+
+```python
+def grid_sample(ppg: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
+    """Grid-based PPG interpolation
+
+    Arguments
+        ppg
+            Input PPG
+        grid
+            Grid of desired length; each item is a float-valued index into ppg
+
+    Returns
+        Interpolated PPG
     """
 ```
 
