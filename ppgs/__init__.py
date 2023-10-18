@@ -31,3 +31,4 @@ from . import load
 from . import model
 from . import partition
 from . import preprocess
+from . import plot

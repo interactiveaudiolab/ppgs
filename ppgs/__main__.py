@@ -23,7 +23,6 @@ def parse_args():
         '--output_paths',
         type=Path,
         nargs='+',
-        required=True,
         help='The one-to-one corresponding output paths')
     parser.add_argument(
         '--extensions',
@@ -31,7 +30,7 @@ def parse_args():
         help='Extensions to glob for in directories')
     parser.add_argument(
         '--checkpoint',
-        default=ppgs.DEFAULT_CHECKPOINT,
+        default=None,
         help='The checkpoint file')
     parser.add_argument(
         '--num-workers',
