@@ -113,7 +113,11 @@ class Dataset(torch.utils.data.Dataset):
         indices = np.argsort(lengths)
 
         # Split into buckets based on length
-        buckets = [indices[i:i + size] for i in range(0, len(self), size)]
+        try:
+            buckets = [indices[i:i + size] for i in range(0, len(self), size)]
+        except ValueError as error:
+            import pdb; pdb.set_trace()
+            pass
 
         # Add max length of each bucket
         return [(lengths[bucket[-1]], bucket) for bucket in buckets]
