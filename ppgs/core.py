@@ -22,15 +22,17 @@ import ppgs
 def from_audio(
     audio: torch.Tensor,
     sample_rate: Union[int, float],
-    checkpoint: Union[str, bytes, os.PathLike] = None,
-    gpu: int = None) -> torch.Tensor:
+    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
+    gpu: int = None
+) -> torch.Tensor:
     """Infer ppgs from audio
 
     Arguments
         audio
-            The batched audio to process in the shape BATCH x 1 x TIME
-        lengths
-            The lengths of the features
+            Batched audio to process
+            shape=(batch, 1, samples)
+        sample_rate
+            Audio sampling rate
         checkpoint
             The checkpoint file
         gpu
@@ -38,7 +40,8 @@ def from_audio(
 
     Returns
         ppgs
-            A tensor encoding ppgs with shape BATCH x DIMS x TIME
+            Phonetic posteriorgrams
+            shape=(batch, len(ppgs.PHONEMES), frames)
     """
     # Preprocess
     features = ppgs.preprocess.from_audio(audio, sample_rate, gpu)
@@ -53,16 +56,19 @@ def from_audio(
 def from_features(
     features: torch.Tensor,
     lengths: torch.Tensor,
-    checkpoint: Union[str, bytes, os.PathLike] = None,
+    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None,
-    softmax: bool = True) -> torch.Tensor:
+    softmax: bool = True
+) -> torch.Tensor:
     """Infer ppgs from input features (e.g. w2v2fb, mel, etc.)
 
     Arguments
         features
-            The input features to process in the shape BATCH x DIMS x TIME
+            Input representation
+            shape=(batch, len(ppgs.PHONEMES), frames)
         lengths
             The lengths of the features
+            shape=(batch,)
         checkpoint
             The checkpoint file
         gpu
@@ -72,7 +78,8 @@ def from_features(
 
     Returns
         ppgs
-            A tensor encoding ppgs with shape BATCH x DIMS x TIME
+            Phonetic posteriorgrams
+            shape=(batch, len(ppgs.PHONEMES), frames)
     """
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
@@ -94,8 +101,9 @@ def from_features(
 
 def from_file(
     file: Union[str, bytes, os.PathLike],
-    checkpoint: Union[str, bytes, os.PathLike] = None,
-    gpu: Optional[int] = None) -> torch.Tensor:
+    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
+    gpu: Optional[int] = None
+) -> torch.Tensor:
     """Infer ppgs from an audio file
 
     Arguments
@@ -108,20 +116,22 @@ def from_file(
 
     Returns
         ppgs
-            A tensor encoding ppgs with shape 1 x DIMS x TIME
+            Phonetic posteriorgram
+            shape=(len(ppgs.PHONEMES), frames)
     """
     # Load audio
     audio = ppgs.load.audio(file)
 
     # Compute PPGs
-    return from_audio(audio, ppgs.SAMPLE_RATE, checkpoint, gpu)
+    return from_audio(audio, ppgs.SAMPLE_RATE, checkpoint, gpu).squeeze(0)
 
 
 def from_file_to_file(
     audio_file: Union[str, bytes, os.PathLike],
     output_file: Union[str, bytes, os.PathLike],
-    checkpoint: Union[str, bytes, os.PathLike] = None,
-    gpu: Optional[int] = None) -> None:
+    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
+    gpu: Optional[int] = None
+) -> None:
     """Infer ppg from an audio file and save to a torch tensor file
 
     Arguments
@@ -144,10 +154,11 @@ def from_file_to_file(
 def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
-    checkpoint: Union[str, bytes, os.PathLike] = None,
+    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     num_workers: int = 8,
     gpu: Optional[int] = None,
-    max_frames: int = ppgs.MAX_INFERENCE_FRAMES) -> None:
+    max_frames: int = ppgs.MAX_INFERENCE_FRAMES
+) -> None:
     """Infer ppgs from audio files and save to torch tensor files
 
     Arguments
@@ -201,10 +212,11 @@ def from_paths_to_paths(
     input_paths: List[Union[str, bytes, os.PathLike]],
     output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
     extensions: Optional[List[str]] = None,
-    checkpoint: Union[str, bytes, os.PathLike] = None,
+    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     num_workers: int = 8,
     gpu: Optional[int] = None,
-    max_frames: int = ppgs.MAX_INFERENCE_FRAMES) -> None:
+    max_frames: int = ppgs.MAX_INFERENCE_FRAMES
+) -> None:
     """Infer ppgs from audio files and save to torch tensor files
 
     Arguments
@@ -254,7 +266,8 @@ def from_dataloader(
         Union[str, bytes, os.PathLike]],
     checkpoint: Union[str, bytes, os.PathLike] = None,
     save_workers: int = 1,
-    gpu: Optional[int] = None) -> None:
+    gpu: Optional[int] = None
+) -> None:
     """Infer ppgs from a dataloader yielding audio files
 
     Arguments
@@ -362,8 +375,10 @@ def distance(
     Arguments
         ppgX
             Input PPG X
+            shape=(len(ppgs.PHONEMES), frames)
         ppgY
             Input PPG Y to compare with PPG X
+            shape=(len(ppgs.PHONEMES), frames)
         reduction
             Reduction to apply to the output. One of ['mean', 'none', 'sum'].
         normalize
@@ -376,19 +391,18 @@ def distance(
     ppgX = torch.clamp(ppgX, 1e-9)
     ppgY = torch.clamp(ppgY, 1e-9)
 
-    assert ppgX.device == ppgY.device, 'ppgs in distance computation must be on the same device'
-
     if normalize:
         if not hasattr(distance, 'similarity_matrix'):
-            distance.similarity_matrix = torch.load(ppgs.SIMILARITY_MATRIX_PATH).to(ppgX.device)
+            distance.similarity_matrix = torch.load(
+                ppgs.SIMILARITY_MATRIX_PATH
+            ).to(ppgX.device)
             distance.device = ppgX.device
-        if ppgX.device != distance.device:
-            distance.similarity_matrix = distance.similarity_matrix.to(ppgX.device)
-        ppgX = torch.mm(distance.similarity_matrix.T ** 1, ppgX.T).T
-        ppgY = torch.mm(distance.similarity_matrix.T ** 1, ppgY.T).T
+        distance.similarity_matrix = distance.similarity_matrix.to(ppgX.device)
+        ppgX = torch.mm(distance.similarity_matrix.T ** 1, ppgX).T
+        ppgY = torch.mm(distance.similarity_matrix.T ** 1, ppgY).T
 
     # Average in parameter space
-    log_average = torch.log((ppgX + ppgY) / 2)
+    log_average = torch.log((ppgX.T + ppgY.T) / 2)
 
     # Compute KL divergences in both directions
     kl_X = torch.nn.functional.kl_div(
@@ -427,26 +441,31 @@ def distance(
 def interpolate(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
-    interp: torch.Tensor
+    interp: Union[float, torch.Tensor]
 ) -> torch.Tensor:
     """Spherical linear interpolation
 
     Arguments
         ppgX
             Input PPG X
+            shape=(len(ppgs.PHONEMES), frames)
         ppgY
             Input PPG Y
+            shape=(len(ppgs.PHONEMES), frames)
         interp
             Interpolation values
+            scalar float OR shape=(frames,)
 
     Returns
         Interpolated PPGs
+        shape=(len(ppgs.PHONEMES), frames)
     """
-    omega = torch.acos((ppgX * ppgY).sum(1))
-    sin_omega = torch.sin(omega)
+    ppgX, ppgY = ppgX.squeeze(0), ppgY.squeeze(0)
+    omega = torch.acos((ppgX * ppgY).sum(0, keepdim=True))
+    sin_omega = torch.clip(torch.sin(omega), 1e-6)
     return (
-        (torch.sin((1. - interp) * omega) / sin_omega).unsqueeze(1) * ppgX +
-        (torch.sin(interp * omega) / sin_omega).unsqueeze(1) * ppgY)
+        torch.sin((1. - interp) * omega) / sin_omega * ppgX +
+        torch.sin(interp * omega) / sin_omega * ppgY)
 
 
 ###############################################################################

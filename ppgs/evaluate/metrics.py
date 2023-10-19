@@ -161,17 +161,20 @@ class JensenShannon:
         target_indices = target_indices[keep_indices]
         predicted_logits = predicted_logits[keep_indices]
 
-
         # Convert to probabilities
-        predicted_probs = torch.nn.functional.softmax(predicted_logits, dim=-1).to(torch.float)
+        predicted_probs = torch.nn.functional.softmax(
+            predicted_logits,
+            dim=-1
+        ).to(torch.float)
         target_probs = torch.nn.functional.one_hot(
             target_indices,
-            num_classes=predicted_logits.shape[-1]).to(torch.float)
+            num_classes=predicted_logits.shape[-1]
+        ).to(torch.float)
 
         # Compute pronunciation distance
         jsd = ppgs.distance(
-            predicted_probs,
-            target_probs,
+            predicted_probs.T,
+            target_probs.T,
             reduction='sum')
 
         # Update total and count
