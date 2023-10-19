@@ -407,16 +407,16 @@ def distance(
     # Compute KL divergences in both directions
     kl_X = torch.nn.functional.kl_div(
         log_average,
-        ppgX,
+        ppgX.T,
         reduction='none')
     kl_Y = torch.nn.functional.kl_div(
         log_average,
-        ppgY,
+        ppgY.T,
         reduction='none')
 
     # Sum reduction
-    kl_X = kl_X.sum(dim=-1)
-    kl_Y = kl_Y.sum(dim=-1)
+    kl_X = kl_X.sum(dim=0)
+    kl_Y = kl_Y.sum(dim=0)
 
     # Average KL
     average_kl = (kl_X + kl_Y) / 2

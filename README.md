@@ -332,9 +332,13 @@ import ppgs
 # Get PPGs to edit
 ppg = ppgs.from_file(audio_file, gpu=gpu)
 
-# Constant-ratio time-stretching (slowing down) using SLERP
+# Constant-ratio time-stretching (slowing down)
 grid = ppgs.edit.grid.constant(ppg, ratio=0.8)
 slow = ppgs.edit.grid.sample(ppg, grid)
+
+# Stretch to a desired length (e.g., 100 frames)
+grid = ppgs.edit.grid.of_length(ppg, 100)
+fixed = ppgs.edit.grid.sample(ppg, grid)
 ```
 
 
