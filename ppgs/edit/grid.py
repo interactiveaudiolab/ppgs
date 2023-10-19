@@ -22,21 +22,16 @@ def sample(ppg: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
     Returns
         Interpolated PPG
     """
-    xp = torch.arange(ppg.shape[-1], device=ppg.device)
-    i = torch.clip(torch.searchsorted(xp, grid, right=True), 1, len(xp) - 1)
+    # Get interpolation residuals
+    interp = grid - torch.floor(grid)
 
-    # Linear interpolation
-    # return (
-    #     (ppg[..., i - 1] * (xp[i] - grid) + ppg[..., i] * (grid - xp[i - 1])) /
-    #     (xp[i] - xp[i - 1]))
+    # Get PPG indices
+    xp = torch.arange(ppg.shape[-1], device=ppg.device)
+    i = torch.searchsorted(xp, grid, right=True)
 
     # Spherical linear interpolation
-    # TODO - is this correct?
-    # TODO - should we center this (e.g., using i - 1, i, and i + 1)?
-    return ppgs.interpolate(
-        xp[i] - xp[i - 1],
-        ppg[..., i - 1] * (xp[i] - grid),
-        ppg[..., i] * (grid - xp[i - 1]))
+    ppg = torch.nn.functional.pad(ppg, (0, 1), mode='replicate')
+    return ppgs.interpolate(interp, ppg[..., i - 1], ppg[..., i])
 
 
 ###############################################################################
@@ -56,12 +51,7 @@ def constant(ppg: torch.Tensor, ratio: float) -> torch.Tensor:
     Returns
         Constant-ratio grid for time-stretching ppg
     """
-    return torch.linspace(
-        0.,
-        ppg.shape[-1] - 1,
-        round((ppg.shape[-1]) / ratio + 1e-4),
-        dtype=torch.float,
-        device=ppg.device)
+    return of_length(ppg, round(ppg.shape[-1] / ratio + 1e-4))
 
 
 def from_alignments(
@@ -86,8 +76,8 @@ def from_alignments(
         Grid for time-stretching source PPG
     """
     # Get number of source and target frames
-    source_frames = (source.duration() * sample_rate) // hopsize
-    target_frames = (target.duration() * sample_rate) // hopsize
+    source_frames = int((source.duration() * sample_rate) / hopsize)
+    target_frames = int((target.duration() * sample_rate) / hopsize)
 
     # Get relative rate at each frame
     rates = pypar.compare.per_frame_rate(
@@ -103,3 +93,23 @@ def from_alignments(
     indices *= (source_frames - 1) / indices[-1]
 
     return indices
+
+
+def of_length(ppg: torch.Tensor, length: int) -> torch.Tensor:
+    """Create time-stretch grid to resample PPG to a specified length
+
+    Arguments
+        ppg
+            Input PPG
+        length
+            Target length
+
+    Returns
+        Grid of specified length for time-stretching ppg
+    """
+    return torch.linspace(
+        0.,
+        ppg.shape[-1] - 1.,
+        length,
+        dtype=torch.float,
+        device=ppg.device)

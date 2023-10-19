@@ -485,12 +485,12 @@ def aggregate(
     sink_extension = (
         '.' + sink_extension if '.' not in sink_extension
         else sink_extension)
-    
+
 
     lengths = set()
     for source_list in sources:
         lengths.add(len(source_list))
-    
+
     assert len(lengths) == 1, 'all source lists must have the same lengths'
 
     if sinks is not None:
