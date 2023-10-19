@@ -1,3 +1,3 @@
 from . import arctic
-from . import charsiu
+from . import commonvoice
 from . import timit
