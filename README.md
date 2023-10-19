@@ -175,7 +175,7 @@ def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = 8,
+    num_workers: int = ppgs.NUM_WORKERS,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
 ) -> None:
@@ -206,7 +206,7 @@ def from_paths_to_paths(
     output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
     extensions: Optional[List[str]] = None,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = 8,
+    num_workers: int = ppgs.NUM_WORKERS,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
 ) -> None:
@@ -242,16 +242,17 @@ usage: python -m ppgs
     [--checkpoint CHECKPOINT]
     [--num-workers NUM_WORKERS]
     [--gpu GPU]
+    [--max-frames MAX_FRAMES]
 
 arguments:
     --input_paths INPUT_PATHS [INPUT_PATHS ...]
         Paths to audio files and/or directories
-    --output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]
-        The one-to-one corresponding output paths
 
 optional arguments:
     -h, --help
         Show this help message and exit
+    --output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]
+        The one-to-one corresponding output paths
     --extensions EXTENSIONS [EXTENSIONS ...]
         Extensions to glob for in directories
     --checkpoint CHECKPOINT
