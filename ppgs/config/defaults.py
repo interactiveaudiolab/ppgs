@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 
@@ -7,7 +8,7 @@ from pathlib import Path
 
 
 # Configuration name
-CONFIG = 'base'
+CONFIG = 'ppgs'
 
 
 ###############################################################################
@@ -158,11 +159,10 @@ MAX_FRAMES = 100000
 MAX_PREPROCESS_FRAMES = 10000
 
 # Number of training steps
-# TEMPORARY
-NUM_STEPS = 500000
+NUM_STEPS = 200000
 
 # Number of data loading worker threads
-NUM_WORKERS = 6
+NUM_WORKERS = os.cpu_count() // 3
 
 # Seed for all random number generators
 RANDOM_SEED = 1234

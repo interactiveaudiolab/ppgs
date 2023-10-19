@@ -294,7 +294,7 @@ def from_dataloader(
         # Setup progress bar
         progress = iterator(
             range(0, len(dataloader.dataset)),
-            f'Inferring PPGs',
+            ppgs.CONFIG,
             total=len(dataloader.dataset))
 
         # Iterate over dataset
@@ -505,7 +505,6 @@ def aggregate(
         '.' + sink_extension if '.' not in sink_extension
         else sink_extension)
 
-
     lengths = set()
     for source_list in sources:
         lengths.add(len(source_list))
@@ -518,7 +517,6 @@ def aggregate(
     if sinks is None:
 
         # Get sources as a list of files
-
         source_files = [[] for _ in sources]
         for source_tuple in zip(*sources):
             source_paths = [Path(source) for source in source_tuple]
