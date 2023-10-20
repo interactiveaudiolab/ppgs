@@ -25,6 +25,7 @@ from .core import *
 from .model import Model
 from .train import loss, train
 from . import data
+from . import edit
 from . import evaluate
 from . import load
 from . import model
