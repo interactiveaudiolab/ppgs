@@ -27,15 +27,16 @@ def parse_args():
     parser.add_argument(
         '--extensions',
         nargs='+',
+        type=str,
         help='Extensions to glob for in directories')
     parser.add_argument(
         '--checkpoint',
-        default=None,
+        type=Path,
         help='The checkpoint file')
     parser.add_argument(
         '--num-workers',
         type=int,
-        default=8,
+        default=ppgs.NUM_WORKERS,
         help='Number of CPU threads for multiprocessing')
     parser.add_argument(
         '--gpu',
