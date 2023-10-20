@@ -103,6 +103,8 @@ class Dataset(torch.utils.data.Dataset):
     def buckets(self):
         """Partition data into buckets based on length to minimize padding"""
         # Prevent errors when using small datasets
+        if len(self) == 0:
+            raise ValueError('Dataset has 0 items, cannot bucket')
         num_buckets = max(1, min(ppgs.BUCKETS, len(self)))
 
         # Get the size of a bucket
