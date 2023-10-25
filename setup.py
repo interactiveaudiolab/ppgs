@@ -39,6 +39,7 @@ setup(
         'transformers',
         'opencv-python',
         'yapecs>=0.0.7',
+        'gdown>=4.6.2'
     ],
     packages=['ppgs'],
     package_data={'ppgs': ['assets/*', 'assets/*/*']},
