@@ -398,11 +398,11 @@ def distance(
             ).to(ppgX.device)
             distance.device = ppgX.device
         distance.similarity_matrix = distance.similarity_matrix.to(ppgX.device)
-        ppgX = torch.mm(distance.similarity_matrix.T ** 1, ppgX).T
-        ppgY = torch.mm(distance.similarity_matrix.T ** 1, ppgY).T
+        ppgX = torch.mm(distance.similarity_matrix.T ** ppgs.SIMILARITY_EXPONENT, ppgX).T
+        ppgY = torch.mm(distance.similarity_matrix.T ** ppgs.SIMILARITY_EXPONENT, ppgY).T
 
     # Average in parameter space
-    log_average = torch.log((ppgX.T + ppgY.T) / 2)
+    log_average = torch.log((ppgX + ppgY) / 2)
 
     # Compute KL divergences in both directions
     kl_X = torch.nn.functional.kl_div(
