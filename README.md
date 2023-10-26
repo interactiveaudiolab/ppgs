@@ -231,7 +231,7 @@ def from_paths_to_paths(
 ```
 
 
-#### Command-line interface (CLI)
+### Command-line interface (CLI)
 
 ```
 usage: python -m ppgs
