@@ -6,10 +6,8 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-import pyfoal
 import pypar
 import torch
-import torchaudio
 from moviepy import editor as mpy
 from PIL import Image, ImageDraw, ImageFont
 from itertools import repeat
@@ -577,22 +575,18 @@ def from_textgrid_to_pixels(
         num_frames)
     times[-1] = alignment.duration()
 
-    # Change pyfoal phoneme mapping
-    with ppgs.data.dataset.ppgs_phoneme_list():
+    # Upsample phonemes to frame resolution
+    phonemes = torch.tensor(
+        alignment.framewise_phoneme_indices(
+            ppgs.PHONEME_TO_INDEX_MAPPING,
+            hopsize,
+            times),
+        dtype=torch.long)
 
-        # Upsample phonemes to frame resolution
-        phonemes = torch.tensor(
-            pyfoal.convert.alignment_to_indices(
-                alignment,
-                hopsize=hopsize,
-                return_word_breaks=False,
-                times=times),
-            dtype=torch.long)
-
-        # Convert to one-hot
-        phonemes = torch.nn.functional.one_hot(
-            phonemes,
-            num_classes=num_phonemes)
+    # Convert to one-hot
+    phonemes = torch.nn.functional.one_hot(
+        phonemes,
+        num_classes=num_phonemes)
 
     # Convert one-hot to image data
     pixels = phonemes * 255 # scale to [0, 255]

@@ -31,7 +31,6 @@ setup(
         'deepspeed',
         'moviepy',
         'numpy',
-        'pyfoal',
         'pypar',
         'torch',
         'torchaudio',
