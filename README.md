@@ -87,7 +87,7 @@ ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 ```
 
 
-#### Application programming interface (API)
+### Application programming interface (API)
 
 #### `ppgs.from_audio`
 
