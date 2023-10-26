@@ -139,7 +139,7 @@ def from_files_to_files(
     """
     assert output_files is not None
     assert audio_files is not None or ppg_files is not None
-    
+
     if textgrid_files is None:
         textgrid_files = repeat(None)
 
@@ -180,8 +180,7 @@ def from_files_to_files(
                 font_filename=font_filename,
                 mode=mode
             )
-    
-    
+
 
 ###############################################################################
 # Constants
