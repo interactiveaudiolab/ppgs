@@ -484,7 +484,7 @@ automatically be loaded and training will resume from that checkpoint.
 You can monitor training via `tensorboard`.
 
 ```
-tensorboard --logdir runs/ --port <port>
+tensorboard --logdir runs/ --port <port> --load_fast true
 ```
 
 To use the `torchutil` notification system to receive notifications for long
