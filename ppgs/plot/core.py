@@ -222,7 +222,6 @@ def from_audio_file_to_file(
     elif mode == 'image':
         from_ppg_to_image_file(
             ppg,
-            audio_filename,
             output_filename,
             textgrid_filename=textgrid_filename,
             font_filename=font_filename)
@@ -280,10 +279,6 @@ def from_ppg_to_image_file(
     scalefactor=(32, 32),
     padding=None):
     """Visualize PPG"""
-    # Load audio
-    # if audio_filename is not None:
-    #     audio = torchaudio.load(audio_filename)[0][0]
-
     # Visualize PPG
     if padding is None:
         padding = 5 * scalefactor[1] // scalefactor[0]
@@ -295,7 +290,6 @@ def from_ppg_to_image_file(
     else:
         alignment_pixels = from_textgrid_to_pixels(
             textgrid_filename,
-            # len(audio) // ppgs.HOPSIZE,
             ppg.T.shape[-1],
             padding=padding)
 
@@ -349,8 +343,7 @@ def from_ppg_to_video_file(
     ppg_pixels = from_ppg_to_pixels(ppg)
     textgrid_pixels = from_textgrid_to_pixels(
         textgrid_filename,
-        num_frames,
-    )
+        num_frames)
 
     pixels = combine_pixels(ppg_pixels, textgrid_pixels)
 
@@ -499,8 +492,7 @@ def from_ppg_file_to_file(
             ppg=ppg,
             audio_filename=audio_filename,
             video_filename=output_filename,
-            textgrid_filename=textgrid_filename,
-        )
+            textgrid_filename=textgrid_filename)
 
 
 def from_ppg_to_video(ppg, audio_filename, labels=ppgs.PHONEMES):

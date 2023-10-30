@@ -91,9 +91,9 @@ def from_features(
     if hasattr(from_features, 'frontend'):
         preprocess_context = (
             torch.inference_mode if ppgs.MODEL == 'W2V2FC'
-            else inference_context)
+            else functools.partial(inference_context, from_features.frontend))
         with preprocess_context():
-            features = from_features.frontend(features)
+            features = from_features.frontend(features.to(device))
 
     # Infer
     return infer(features.to(device), lengths.to(device), checkpoint, softmax)
@@ -625,13 +625,12 @@ def inference_context(model):
 
 def iterator(iterable, message, initial=0, total=None):
     """Create a tqdm iterator"""
-    total = len(iterable) if total is None else total
     return tqdm.tqdm(
         iterable,
         desc=message,
         dynamic_ncols=True,
         initial=initial,
-        total=total)
+        total=len(iterable) if total is None else total)
 
 
 def resample(
