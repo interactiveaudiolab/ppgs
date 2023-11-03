@@ -22,7 +22,7 @@ setup(
             'librosa',
             'nltk',
             'pyyaml',
-            'torch_complex',
+            'torch-complex',
         ]
     },
     install_requires=[
