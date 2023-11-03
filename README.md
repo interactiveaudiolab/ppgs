@@ -87,7 +87,7 @@ ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 ```
 
 
-#### Application programming interface (API)
+### Application programming interface (API)
 
 #### `ppgs.from_audio`
 
@@ -175,7 +175,7 @@ def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = 8,
+    num_workers: int = ppgs.NUM_WORKERS,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
 ) -> None:
@@ -206,7 +206,7 @@ def from_paths_to_paths(
     output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
     extensions: Optional[List[str]] = None,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = 8,
+    num_workers: int = ppgs.NUM_WORKERS,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
 ) -> None:
@@ -231,7 +231,7 @@ def from_paths_to_paths(
 ```
 
 
-#### Command-line interface (CLI)
+### Command-line interface (CLI)
 
 ```
 usage: python -m ppgs
@@ -242,16 +242,17 @@ usage: python -m ppgs
     [--checkpoint CHECKPOINT]
     [--num-workers NUM_WORKERS]
     [--gpu GPU]
+    [--max-frames MAX_FRAMES]
 
 arguments:
     --input_paths INPUT_PATHS [INPUT_PATHS ...]
         Paths to audio files and/or directories
-    --output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]
-        The one-to-one corresponding output paths
 
 optional arguments:
     -h, --help
         Show this help message and exit
+    --output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]
+        The one-to-one corresponding output paths
     --extensions EXTENSIONS [EXTENSIONS ...]
         Extensions to glob for in directories
     --checkpoint CHECKPOINT
@@ -331,9 +332,13 @@ import ppgs
 # Get PPGs to edit
 ppg = ppgs.from_file(audio_file, gpu=gpu)
 
-# Constant-ratio time-stretching (slowing down) using SLERP
+# Constant-ratio time-stretching (slowing down)
 grid = ppgs.edit.grid.constant(ppg, ratio=0.8)
 slow = ppgs.edit.grid.sample(ppg, grid)
+
+# Stretch to a desired length (e.g., 100 frames)
+grid = ppgs.edit.grid.of_length(ppg, 100)
+fixed = ppgs.edit.grid.sample(ppg, grid)
 ```
 
 
@@ -479,7 +484,7 @@ automatically be loaded and training will resume from that checkpoint.
 You can monitor training via `tensorboard`.
 
 ```
-tensorboard --logdir runs/ --port <port>
+tensorboard --logdir runs/ --port <port> --load_fast true
 ```
 
 To use the `torchutil` notification system to receive notifications for long

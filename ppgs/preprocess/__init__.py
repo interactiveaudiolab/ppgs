@@ -32,4 +32,5 @@ from . import w2v2fb
 from . import spectrogram
 from . import mel
 from . import encodec
+from . import dac
 from .core import *

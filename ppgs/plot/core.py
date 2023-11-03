@@ -6,10 +6,8 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-import pyfoal
 import pypar
 import torch
-import torchaudio
 from moviepy import editor as mpy
 from PIL import Image, ImageDraw, ImageFont
 from itertools import repeat
@@ -139,7 +137,7 @@ def from_files_to_files(
     """
     assert output_files is not None
     assert audio_files is not None or ppg_files is not None
-    
+
     if textgrid_files is None:
         textgrid_files = repeat(None)
 
@@ -180,8 +178,7 @@ def from_files_to_files(
                 font_filename=font_filename,
                 mode=mode
             )
-    
-    
+
 
 ###############################################################################
 # Constants
@@ -225,7 +222,6 @@ def from_audio_file_to_file(
     elif mode == 'image':
         from_ppg_to_image_file(
             ppg,
-            audio_filename,
             output_filename,
             textgrid_filename=textgrid_filename,
             font_filename=font_filename)
@@ -283,10 +279,6 @@ def from_ppg_to_image_file(
     scalefactor=(32, 32),
     padding=None):
     """Visualize PPG"""
-    # Load audio
-    # if audio_filename is not None:
-    #     audio = torchaudio.load(audio_filename)[0][0]
-
     # Visualize PPG
     if padding is None:
         padding = 5 * scalefactor[1] // scalefactor[0]
@@ -298,7 +290,6 @@ def from_ppg_to_image_file(
     else:
         alignment_pixels = from_textgrid_to_pixels(
             textgrid_filename,
-            # len(audio) // ppgs.HOPSIZE,
             ppg.T.shape[-1],
             padding=padding)
 
@@ -352,8 +343,7 @@ def from_ppg_to_video_file(
     ppg_pixels = from_ppg_to_pixels(ppg)
     textgrid_pixels = from_textgrid_to_pixels(
         textgrid_filename,
-        num_frames,
-    )
+        num_frames)
 
     pixels = combine_pixels(ppg_pixels, textgrid_pixels)
 
@@ -502,8 +492,7 @@ def from_ppg_file_to_file(
             ppg=ppg,
             audio_filename=audio_filename,
             video_filename=output_filename,
-            textgrid_filename=textgrid_filename,
-        )
+            textgrid_filename=textgrid_filename)
 
 
 def from_ppg_to_video(ppg, audio_filename, labels=ppgs.PHONEMES):
@@ -578,22 +567,18 @@ def from_textgrid_to_pixels(
         num_frames)
     times[-1] = alignment.duration()
 
-    # Change pyfoal phoneme mapping
-    with ppgs.data.dataset.ppgs_phoneme_list():
+    # Upsample phonemes to frame resolution
+    phonemes = torch.tensor(
+        alignment.framewise_phoneme_indices(
+            ppgs.PHONEME_TO_INDEX_MAPPING,
+            hopsize,
+            times),
+        dtype=torch.long)
 
-        # Upsample phonemes to frame resolution
-        phonemes = torch.tensor(
-            pyfoal.convert.alignment_to_indices(
-                alignment,
-                hopsize=hopsize,
-                return_word_breaks=False,
-                times=times),
-            dtype=torch.long)
-
-        # Convert to one-hot
-        phonemes = torch.nn.functional.one_hot(
-            phonemes,
-            num_classes=num_phonemes)
+    # Convert to one-hot
+    phonemes = torch.nn.functional.one_hot(
+        phonemes,
+        num_classes=num_phonemes)
 
     # Convert one-hot to image data
     pixels = phonemes * 255 # scale to [0, 255]
