@@ -91,7 +91,7 @@ def from_features(
     if hasattr(from_features, 'frontend'):
         preprocess_context = (
             torch.inference_mode if ppgs.MODEL == 'W2V2FC'
-            else functools.partial(inference_context, from_features.frontend))
+            else functools.partial(inference_context, from_features.frontend, device))
         with preprocess_context():
             features = from_features.frontend(features.to(device))
 
@@ -390,7 +390,6 @@ def distance(
     # Handle numerical instability at zero
     ppgX = torch.clamp(ppgX, 1e-9)
     ppgY = torch.clamp(ppgY, 1e-9)
-
     if normalize:
         if not hasattr(distance, 'similarity_matrix'):
             distance.similarity_matrix = torch.load(
@@ -400,6 +399,9 @@ def distance(
         distance.similarity_matrix = distance.similarity_matrix.to(ppgX.device)
         ppgX = torch.mm(distance.similarity_matrix.T ** ppgs.SIMILARITY_EXPONENT, ppgX).T
         ppgY = torch.mm(distance.similarity_matrix.T ** ppgs.SIMILARITY_EXPONENT, ppgY).T
+    else:
+        ppgX = ppgX.T
+        ppgY = ppgY.T
 
     # Average in parameter space
     log_average = torch.log((ppgX + ppgY) / 2)
@@ -407,11 +409,11 @@ def distance(
     # Compute KL divergences in both directions
     kl_X = torch.nn.functional.kl_div(
         log_average,
-        ppgX.T,
+        ppgX,
         reduction='none')
     kl_Y = torch.nn.functional.kl_div(
         log_average,
-        ppgY.T,
+        ppgY,
         reduction='none')
 
     # Sum reduction
@@ -609,18 +611,25 @@ def infer(features, lengths, checkpoint=None, softmax=True):
 
 
 @contextlib.contextmanager
-def inference_context(model):
-    device_type = next(model.parameters()).device.type
+def inference_context(model, device=None):
+    if isinstance(model, torch.nn.Module) or hasattr(model, 'parameters'):
+        device_type = next(model.parameters()).device.type
+    else:
+        if device is None:
+            raise ValueError('no way to determine device used with inference context')
+        device_type = device.type
 
-    # Prepare model for evaluation
-    model.eval()
+    if isinstance(model, torch.nn.Module) or hasattr(model, 'train'):
+        # Prepare model for evaluation
+        model.train(False)
 
-    # Turn off gradient computation; turn on mixed precision
+        # Turn off gradient computation; turn on mixed precision
     with torch.inference_mode(), torch.autocast(device_type):
         yield
 
-    # Prepare model for training
-    model.train()
+    if isinstance(model, torch.nn.Module) or hasattr(model, 'train'):
+        # Prepare model for training
+        model.train(True)
 
 
 def iterator(iterable, message, initial=0, total=None):
