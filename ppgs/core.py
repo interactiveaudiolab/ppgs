@@ -91,9 +91,9 @@ def from_features(
     if hasattr(from_features, 'frontend'):
         preprocess_context = (
             torch.inference_mode if ppgs.MODEL == 'W2V2FC'
-            else inference_context)
+            else functools.partial(inference_context, from_features.frontend))
         with preprocess_context():
-            features = from_features.frontend(features)
+            features = from_features.frontend(features.to(device))
 
     # Infer
     return infer(features.to(device), lengths.to(device), checkpoint, softmax)
@@ -294,7 +294,7 @@ def from_dataloader(
         # Setup progress bar
         progress = iterator(
             range(0, len(dataloader.dataset)),
-            f'Inferring PPGs',
+            ppgs.CONFIG,
             total=len(dataloader.dataset))
 
         # Iterate over dataset
@@ -407,16 +407,16 @@ def distance(
     # Compute KL divergences in both directions
     kl_X = torch.nn.functional.kl_div(
         log_average,
-        ppgX,
+        ppgX.T,
         reduction='none')
     kl_Y = torch.nn.functional.kl_div(
         log_average,
-        ppgY,
+        ppgY.T,
         reduction='none')
 
     # Sum reduction
-    kl_X = kl_X.sum(dim=-1)
-    kl_Y = kl_Y.sum(dim=-1)
+    kl_X = kl_X.sum(dim=0)
+    kl_Y = kl_Y.sum(dim=0)
 
     # Average KL
     average_kl = (kl_X + kl_Y) / 2
@@ -505,7 +505,6 @@ def aggregate(
         '.' + sink_extension if '.' not in sink_extension
         else sink_extension)
 
-
     lengths = set()
     for source_list in sources:
         lengths.add(len(source_list))
@@ -518,7 +517,6 @@ def aggregate(
     if sinks is None:
 
         # Get sources as a list of files
-
         source_files = [[] for _ in sources]
         for source_tuple in zip(*sources):
             source_paths = [Path(source) for source in source_tuple]
@@ -627,13 +625,12 @@ def inference_context(model):
 
 def iterator(iterable, message, initial=0, total=None):
     """Create a tqdm iterator"""
-    total = len(iterable) if total is None else total
     return tqdm.tqdm(
         iterable,
         desc=message,
         dynamic_ncols=True,
         initial=initial,
-        total=total)
+        total=len(iterable) if total is None else total)
 
 
 def resample(

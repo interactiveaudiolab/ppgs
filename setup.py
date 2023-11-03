@@ -14,6 +14,7 @@ setup(
     url='https://github.com/interactiveaudiolab/ppgs',
     extras_require={
         'train': [
+            'dac',
             'encodec',
             'espnet',
             'g2pM',
@@ -30,7 +31,6 @@ setup(
         'deepspeed',
         'moviepy',
         'numpy',
-        'pyfoal',
         'pypar',
         'torch',
         'torchaudio',

@@ -1,10 +1,8 @@
-import contextlib
 import json
 from pathlib import Path
 
 import accelerate
 import numpy as np
-import pyfoal
 import pypar
 import torch
 import torchaudio
@@ -65,12 +63,10 @@ class Dataset(torch.utils.data.Dataset):
                     (num_frames - 1) * hopsize + hopsize / 2,
                     num_frames)
                 times[-1] = alignment.duration()
-                with ppgs_phoneme_list():
-                    indices = pyfoal.convert.alignment_to_indices(
-                        alignment,
-                        hopsize=hopsize,
-                        return_word_breaks=False,
-                        times=times)
+                indices = alignment.framewise_phoneme_indices(
+                    ppgs.PHONEME_TO_INDEX_MAPPING,
+                    hopsize,
+                    times)
                 indices = torch.tensor(indices, dtype=torch.long)
                 feature_values.append(indices)
 
@@ -103,6 +99,8 @@ class Dataset(torch.utils.data.Dataset):
     def buckets(self):
         """Partition data into buckets based on length to minimize padding"""
         # Prevent errors when using small datasets
+        if len(self) == 0:
+            raise ValueError('Dataset has 0 items, cannot bucket')
         num_buckets = max(1, min(ppgs.BUCKETS, len(self)))
 
         # Get the size of a bucket
@@ -113,11 +111,7 @@ class Dataset(torch.utils.data.Dataset):
         indices = np.argsort(lengths)
 
         # Split into buckets based on length
-        try:
-            buckets = [indices[i:i + size] for i in range(0, len(self), size)]
-        except ValueError as error:
-            import pdb; pdb.set_trace()
-            pass
+        buckets = [indices[i:i + size] for i in range(0, len(self), size)]
 
         # Add max length of each bucket
         return [(lengths[bucket[-1]], bucket) for bucket in buckets]
@@ -186,29 +180,3 @@ class Metadata:
 
     def __len__(self):
         return len(self.stems)
-
-
-@contextlib.contextmanager
-def ppgs_phoneme_list():
-    """Context manager for changing the default phoneme mapping of pyfoal"""
-    # Get current state
-    previous = getattr(pyfoal.convert.phoneme_to_index, 'map', None)
-
-    try:
-
-        # Change state
-        setattr(
-            pyfoal.convert.phoneme_to_index,
-            'map',
-            ppgs.PHONEME_TO_INDEX_MAPPING)
-
-        # Execute user code
-        yield
-
-    finally:
-
-        # Restore state
-        if previous is not None:
-            setattr(pyfoal.convert.phoneme_to_index, 'map', previous)
-        else:
-            delattr(pyfoal.convert.phoneme_to_index, 'map')

@@ -19,6 +19,11 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     # Create output directory
     directory.mkdir(parents=True, exist_ok=True)
 
+    # Setup accelerator
+    accelerator = accelerate.Accelerator(
+        mixed_precision='fp16',
+        even_batches=False)
+
     #################
     # Create models #
     #################
@@ -70,9 +75,6 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     # Device placement #
     ####################
 
-    accelerator = accelerate.Accelerator(
-        mixed_precision='fp16',
-        even_batches=False)
     model, optimizer, train_loader, valid_loader = accelerator.prepare(
         model,
         optimizer,

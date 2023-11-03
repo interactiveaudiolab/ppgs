@@ -10,15 +10,15 @@ import ppgs
 
 
 ###############################################################################
-# Setup Charsiu
+# Setup Common Voice
 ###############################################################################
 
 
 def download():
     """Downloads the Charsiu-aligned subset of Common Voice"""
-    source_directory = ppgs.SOURCES_DIR / 'charsiu'
+    source_directory = ppgs.SOURCES_DIR / 'commonvoice'
     source_directory.mkdir(parents=True, exist_ok=True)
-    data_directory = ppgs.DATA_DIR / 'charsiu'
+    data_directory = ppgs.DATA_DIR / 'commonvoice'
     data_directory.mkdir(parents=True, exist_ok=True)
 
     # Download alignments
@@ -57,8 +57,8 @@ def download():
 
 
 def format():
-    """Formats the charsiu dataset"""
-    source_directory = ppgs.SOURCES_DIR / 'charsiu'
+    """Formats the Common Voice dataset"""
+    source_directory = ppgs.SOURCES_DIR / 'commonvoice'
 
     # Get alignment files
     textgrid_files = ppgs.data.download.files_with_extension(
@@ -70,7 +70,7 @@ def format():
     mp3_files = list(
         ppgs.data.download.files_with_extension(
             'mp3',
-            ppgs.DATA_DIR / 'charsiu' / 'mp3'))
+            ppgs.DATA_DIR / 'commonvoice' / 'mp3'))
 
     # Get correspondence between audio and alignment files
     found_stems = []
@@ -81,7 +81,7 @@ def format():
             mp3_found.append(mp3_file)
 
     # Multiprocessed formatting
-    cache_directory = ppgs.CACHE_DIR / 'charsiu'
+    cache_directory = ppgs.CACHE_DIR / 'commonvoice'
     cache_directory.mkdir(exist_ok=True, parents=True)
     process = functools.partial(
         mp3_textgrid,
