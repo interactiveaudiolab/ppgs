@@ -646,3 +646,12 @@ def resample(
     resampler = torchaudio.transforms.Resample(sample_rate, target_rate)
     resampler = resampler.to(audio.device)
     return resampler(audio)
+
+def representation_file_extension():
+    if ppgs.REPRESENTATION == ppgs.BEST_REPRESENTATION and ppgs.REPRESENTATION_KIND == 'ppg':
+        return '-ppg.pt'
+    else:
+        if ppgs.REPRESENTATION_KIND == 'ppg':
+            return f'-{ppgs.REPRESENTATION}-ppg.pt'
+        else:
+            return f'-{ppgs.REPRESENTATION}.pt'
