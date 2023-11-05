@@ -1,6 +1,13 @@
 import struct
 import re
 
+def edit_phone(ppg, old_phone, new_phone):
+    """edit a single phoneme by one-way reallocation of probability"""
+    old_index = ppgs.PHONEME_LIST.index(old_phone)
+    new_index = ppgs.PHONEME_LIST.index(new_phone)
+    ppg[new_index, :] += ppg[old_index, :]
+    ppg[old_index, :] = 0
+
 def subseq_search(seq, subseq):
     """A bit of regex and encoding abuse to match subsequences of phonemes in a sequence"""
     pattern = re.escape(struct.pack('b'*len(subseq), *subseq))
@@ -22,7 +29,6 @@ def edit_phone_seq(ppg, old_phone_seq, new_phone_seq):
         temporary = ppg[new_seq_indices[i], slicing].clone()
         ppg[new_seq_indices[i], slicing] = ppg[old_seq_indices[i], slicing]
         ppg[old_seq_indices[i], slicing] = temporary
-
 
 def reinforce_phone(ppg, phone):
     """Allocate all probability to the given phone when it is maximal"""
