@@ -91,9 +91,9 @@ def from_features(
     if hasattr(from_features, 'frontend'):
         preprocess_context = (
             torch.inference_mode if ppgs.MODEL == 'W2V2FC'
-            else inference_context)
+            else functools.partial(inference_context, from_features.frontend, device))
         with preprocess_context():
-            features = from_features.frontend(features)
+            features = from_features.frontend(features.to(device))
 
     # Infer
     return infer(features.to(device), lengths.to(device), checkpoint, softmax)
@@ -387,10 +387,9 @@ def distance(
     Returns
         Normalized Jenson-shannon divergence between PPGs
     """
-    # Handle numerical instability at zero
-    ppgX = torch.clamp(ppgX, 1e-9)
-    ppgY = torch.clamp(ppgY, 1e-9)
-
+    # Handle numerical instability at boundaries
+    ppgX = torch.clamp(ppgX, 1e-8, 1 - 1e-8)
+    ppgY = torch.clamp(ppgY, 1e-8, 1 - 1e-8)
     if normalize:
         if not hasattr(distance, 'similarity_matrix'):
             distance.similarity_matrix = torch.load(
@@ -398,25 +397,28 @@ def distance(
             ).to(ppgX.device)
             distance.device = ppgX.device
         distance.similarity_matrix = distance.similarity_matrix.to(ppgX.device)
-        ppgX = torch.mm(distance.similarity_matrix.T ** 1, ppgX).T
-        ppgY = torch.mm(distance.similarity_matrix.T ** 1, ppgY).T
+        ppgX = torch.mm(distance.similarity_matrix.T ** ppgs.SIMILARITY_EXPONENT, ppgX).T
+        ppgY = torch.mm(distance.similarity_matrix.T ** ppgs.SIMILARITY_EXPONENT, ppgY).T
+    else:
+        ppgX = ppgX.T
+        ppgY = ppgY.T
 
     # Average in parameter space
-    log_average = torch.log((ppgX.T + ppgY.T) / 2)
+    log_average = torch.log((ppgX + ppgY) / 2)
 
     # Compute KL divergences in both directions
     kl_X = torch.nn.functional.kl_div(
         log_average,
-        ppgX.T,
+        ppgX,
         reduction='none')
     kl_Y = torch.nn.functional.kl_div(
         log_average,
-        ppgY.T,
+        ppgY,
         reduction='none')
 
     # Sum reduction
-    kl_X = kl_X.sum(dim=0)
-    kl_Y = kl_Y.sum(dim=0)
+    kl_X = kl_X.sum(dim=1)
+    kl_Y = kl_Y.sum(dim=1)
 
     # Average KL
     average_kl = (kl_X + kl_Y) / 2
@@ -461,11 +463,20 @@ def interpolate(
         shape=(len(ppgs.PHONEMES), frames)
     """
     ppgX, ppgY = ppgX.squeeze(0), ppgY.squeeze(0)
+
+    # Spherical linear interpolation
     omega = torch.acos((ppgX * ppgY).sum(0, keepdim=True))
     sin_omega = torch.clip(torch.sin(omega), 1e-6)
-    return (
+    interpolated = (
         torch.sin((1. - interp) * omega) / sin_omega * ppgX +
         torch.sin(interp * omega) / sin_omega * ppgY)
+
+    # Fix locations where ppgX == ppgY
+    for i in range(ppgX.shape[-1]):
+        if not torch.count_nonzero(interpolated[:, i]):
+            interpolated[:, i] = ppgX[:, i]
+
+    return interpolated
 
 
 ###############################################################################
@@ -609,29 +620,35 @@ def infer(features, lengths, checkpoint=None, softmax=True):
 
 
 @contextlib.contextmanager
-def inference_context(model):
-    device_type = next(model.parameters()).device.type
+def inference_context(model, device=None):
+    if isinstance(model, torch.nn.Module) or hasattr(model, 'parameters'):
+        device_type = next(model.parameters()).device.type
+    else:
+        if device is None:
+            raise ValueError('no way to determine device used with inference context')
+        device_type = device.type
 
-    # Prepare model for evaluation
-    model.eval()
+    if isinstance(model, torch.nn.Module) or hasattr(model, 'train'):
+        # Prepare model for evaluation
+        model.train(False)
 
-    # Turn off gradient computation; turn on mixed precision
+        # Turn off gradient computation; turn on mixed precision
     with torch.inference_mode(), torch.autocast(device_type):
         yield
 
-    # Prepare model for training
-    model.train()
+    if isinstance(model, torch.nn.Module) or hasattr(model, 'train'):
+        # Prepare model for training
+        model.train(True)
 
 
 def iterator(iterable, message, initial=0, total=None):
     """Create a tqdm iterator"""
-    total = len(iterable) if total is None else total
     return tqdm.tqdm(
         iterable,
         desc=message,
         dynamic_ncols=True,
         initial=initial,
-        total=total)
+        total=len(iterable) if total is None else total)
 
 
 def resample(
@@ -644,3 +661,12 @@ def resample(
     resampler = torchaudio.transforms.Resample(sample_rate, target_rate)
     resampler = resampler.to(audio.device)
     return resampler(audio)
+
+def representation_file_extension():
+    if ppgs.REPRESENTATION == ppgs.BEST_REPRESENTATION and ppgs.REPRESENTATION_KIND == 'ppg':
+        return '-ppg.pt'
+    else:
+        if ppgs.REPRESENTATION_KIND == 'ppg':
+            return f'-{ppgs.REPRESENTATION}-ppg.pt'
+        else:
+            return f'-{ppgs.REPRESENTATION}.pt'

@@ -87,7 +87,7 @@ ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 ```
 
 
-#### Application programming interface (API)
+### Application programming interface (API)
 
 #### `ppgs.from_audio`
 
@@ -231,7 +231,7 @@ def from_paths_to_paths(
 ```
 
 
-#### Command-line interface (CLI)
+### Command-line interface (CLI)
 
 ```
 usage: python -m ppgs
@@ -484,7 +484,7 @@ automatically be loaded and training will resume from that checkpoint.
 You can monitor training via `tensorboard`.
 
 ```
-tensorboard --logdir runs/ --port <port>
+tensorboard --logdir runs/ --port <port> --load_fast true
 ```
 
 To use the `torchutil` notification system to receive notifications for long

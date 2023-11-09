@@ -53,8 +53,15 @@ ALL_REPRESENTATIONS = [
 # All datasets used by this codebase
 DATASETS = ['arctic', 'commonvoice', 'timit']
 
-# Input representation
+# Best representation
+BEST_REPRESENTATION = 'w2v2fb'
+
+# Default representation
 REPRESENTATION = 'w2v2fb'
+
+# representation kind
+# One of ['ppg', 'latents'].
+REPRESENTATION_KIND = 'ppg'
 
 # Datasets used for training
 TRAINING_DATASET = 'commonvoice'
@@ -109,6 +116,9 @@ EVALUATION_INTERVAL = 1000  # steps
 # Model parameters
 ###############################################################################
 
+# Local checkpoint to use
+#  If None, Huggingface will be used unless a checkpoint is given in the CLI
+LOCAL_CHECKPOINT = None
 
 # Number of attention heads
 ATTENTION_HEADS = 2
@@ -167,3 +177,11 @@ NUM_WORKERS = os.cpu_count() // 3
 
 # Seed for all random number generators
 RANDOM_SEED = 1234
+
+###############################################################################
+# Distance parameters
+###############################################################################
+
+
+# Exponent to use with similarity matrix in normalization
+SIMILARITY_EXPONENT = 1

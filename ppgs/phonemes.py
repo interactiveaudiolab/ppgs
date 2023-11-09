@@ -2,7 +2,7 @@ import pypar
 
 
 ###############################################################################
-# Phoneme parameters
+# PPG phoneme set
 ###############################################################################
 
 
@@ -52,6 +52,47 @@ PHONEMES = [
 
 # Mapping between phonemes and integer category indices
 PHONEME_TO_INDEX_MAPPING = {phone: i for i, phone in enumerate(PHONEMES)}
+
+
+###############################################################################
+# Phoneme categorizations
+###############################################################################
+
+
+VOICED = [
+	'aa',
+	'ae',
+	'ah',
+	'ao',
+	'aw',
+	'ay',
+	'eh',
+	'er',
+	'ey',
+	'hh',
+	'ih',
+	'iy',
+	'jh',
+	'l',
+	'm',
+	'n',
+	'ng',
+	'ow',
+	'oy',
+	'r',
+	'uh',
+	'uw',
+	'v',
+	'w',
+	'y',
+	'z',
+	'zh'
+]
+
+
+###############################################################################
+# Mappings between phoneme sets
+###############################################################################
 
 
 # The permutation of our phonemes used by Charsiu

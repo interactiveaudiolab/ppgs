@@ -1,8 +1,6 @@
 import torch
 import tqdm
 from huggingface_hub import hf_hub_download
-from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from pathlib import Path
 
 import ppgs
 
@@ -38,7 +36,9 @@ def from_audios(
 
     # Cache model
     if not hasattr(from_audios, 'model'):
-        conformer_checkpoint_file = hf_hub_download(repo_id='CameronChurchwell/ppg_conformer_model', filename='24epoch.pth')
+        conformer_checkpoint_file = hf_hub_download(
+            repo_id='CameronChurchwell/ppg_conformer_model',
+            filename='24epoch.pth')
         from_audios.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
             config,
             conformer_checkpoint_file,

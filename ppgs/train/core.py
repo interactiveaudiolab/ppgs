@@ -20,7 +20,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     # Create output directory
     directory.mkdir(parents=True, exist_ok=True)
 
-    # SETUP ACCELERATOR
+    # Setup accelerator
     accelerator = accelerate.Accelerator(
         mixed_precision='fp16',
         even_batches=False)
