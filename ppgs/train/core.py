@@ -4,6 +4,7 @@ import accelerate
 import matplotlib
 import torch
 import torchutil
+from autoclip.torch import QuantileClip
 
 import ppgs
 
@@ -71,6 +72,12 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     train_loader = ppgs.data.loader(dataset, 'train')
     valid_loader = ppgs.data.loader(dataset, 'valid')
 
+    ###########################
+    # Create gradient clipper #
+    ###########################
+
+    optimizer = QuantileClip.as_optimizer(optimizer=optimizer)
+
     ####################
     # Device placement #
     ####################
@@ -124,6 +131,9 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
 
                 # Backward pass
                 accelerator.backward(train_loss)
+
+                # Gradient unscaling and clipping
+                accelerator.unscale_gradients()
 
                 # Update weights
                 optimizer.step()
