@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Union, Optional
 
 import huggingface_hub
 import torch
@@ -11,6 +12,16 @@ import ppgs
 ###############################################################################
 # Loading utilities
 ###############################################################################
+
+def ppg_from_stem(stem: str):
+    """Given a stem, loads the corresponding PPG"""
+
+    if not hasattr(ppg_from_stem, 'extension'):
+        ppg_from_stem.extension = ppgs.representation_file_extension()
+
+    path = Path(str(stem) + ppg_from_stem.extension)
+
+    return torch.load(path)
 
 
 def audio(file):
@@ -34,13 +45,18 @@ def model(checkpoint=None):
         return model
 
     # Maybe download from HuggingFace
-    if checkpoint is None:
+    if checkpoint is None and ppgs.LOCAL_CHECKPOINT is None:
         checkpoint = huggingface_hub.hf_hub_download(
             'CameronChurchwell/ppgs-w2v2fb',
             'ppg.pt')
+    elif checkpoint is None and ppgs.LOCAL_CHECKPOINT is not None:
+        checkpoint = ppgs.LOCAL_CHECKPOINT
 
     # Load from checkpoint
-    model.load_state_dict(torch.load(checkpoint, map_location='cpu')['model'])
+    state_dict = torch.load(checkpoint, map_location='cpu')
+    if 'model' in state_dict:
+        state_dict = state_dict['model']
+    model.load_state_dict(state_dict)
 
     return model
 

@@ -14,6 +14,7 @@ setup(
     url='https://github.com/interactiveaudiolab/ppgs',
     extras_require={
         'train': [
+            'dac',
             'encodec',
             'espnet',
             'g2pM',
@@ -22,7 +23,7 @@ setup(
             'librosa',
             'nltk',
             'pyyaml',
-            'torch_complex',
+            'torch-complex',
         ]
     },
     install_requires=[
@@ -30,7 +31,6 @@ setup(
         'deepspeed',
         'moviepy',
         'numpy',
-        'pyfoal',
         'pypar',
         'torch',
         'torchaudio',
@@ -39,6 +39,7 @@ setup(
         'transformers',
         'opencv-python',
         'yapecs>=0.0.7',
+        'gdown>=4.6.2'
     ],
     packages=['ppgs'],
     package_data={'ppgs': ['assets/*', 'assets/*/*']},
