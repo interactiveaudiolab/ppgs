@@ -28,6 +28,7 @@ setup(
     },
     install_requires=[
         'accelerate',
+        'autoclip',
         'deepspeed',
         'moviepy',
         'numpy',
