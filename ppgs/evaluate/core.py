@@ -36,7 +36,7 @@ def datasets(datasets, checkpoint=None, gpu=None):
         dataloader = ppgs.data.loader(dataset, 'test')
 
         # Iterate over test set
-        for input_features, indices, lengths in ppgs.iterator(
+        for input_features, indices, lengths in torchutil.iterator(
             dataloader,
             f'Evaluating {ppgs.CONFIG} on {dataset}',
             total=len(dataloader)

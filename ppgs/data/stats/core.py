@@ -1,6 +1,7 @@
 import itertools
 
 import torchaudio
+import torchutil
 
 import ppgs
 
@@ -22,7 +23,7 @@ def process(datasets):
 
         # Get duration in seconds
         duration = 0.
-        for stem in ppgs.iterator(
+        for stem in torchutil.iterator(
             stems,
             f'Computing dataset statistics for {dataset}',
             total=len(stems)

@@ -22,10 +22,14 @@ def loader(
     partition=None,
     features=TRAINING_FEATURES,
     num_workers=ppgs.NUM_WORKERS,
-    max_frames=ppgs.MAX_FRAMES):
+    max_frames=ppgs.MAX_TRAINING_FRAMES):
     """Retrieve a data loader"""
     # Initialize dataset
-    dataset = ppgs.data.Dataset(dataset_or_files, partition, features)
+    dataset = ppgs.data.Dataset(
+        dataset_or_files,
+        partition,
+        features,
+        max_frames)
 
     # Initialize sampler
     sampler = ppgs.data.Sampler(dataset, max_frames)

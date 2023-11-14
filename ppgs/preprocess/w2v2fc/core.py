@@ -1,4 +1,5 @@
 import torch
+import torchutil
 import transformers
 
 import ppgs
@@ -94,7 +95,7 @@ def from_file_to_file(audio_file, output_file, gpu=None):
 
 def from_files_to_files(audio_files, output_files, gpu=None):
     """Compute W2V2FC latents from audio files and save to disk"""
-    for audio_file, output_file in ppgs.iterator(
+    for audio_file, output_file in torchutil.iterator(
         zip(audio_files, output_files),
         'Extracting W2V2FC latents',
         total=len(audio_files)
