@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
-from typing import Union, Optional
 
 import huggingface_hub
 import torch
+import torchutil
 import torchaudio
 
 import ppgs
@@ -85,7 +85,7 @@ def phoneme_weights(device='cpu'):
 
             # Get phoneme counts
             counts = torch.zeros(40, dtype=torch.long).to(device)
-            for phonemes, lengths in ppgs.iterator(
+            for phonemes, lengths in torchutil.iterator(
                 loader,
                 'Computing phoneme frequencies for class balancing',
                 total=len(loader)

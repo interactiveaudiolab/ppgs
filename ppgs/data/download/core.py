@@ -56,11 +56,11 @@ def download_google_drive_zip(url, path, skip_first=True):
     f.close()
     gdown.download(url, f.name)
     with zipfile.ZipFile(f.name) as zf:
-        iterator = ppgs.iterator(
+        for zipinfo in torchutil.iterator(
             zf.infolist()[1 if skip_first else 0:],
             'Extracting zip contents',
-            total=len(zf.infolist()))
-        for zipinfo in iterator:
+            total=len(zf.infolist())
+        ):
             fname = Path(zipinfo.filename).name
             with zf.open(zipinfo, 'r') as in_file, open(path / fname, 'wb') as out_file:
                 out_file.write(in_file.read())

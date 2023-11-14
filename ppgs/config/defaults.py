@@ -164,7 +164,7 @@ CLASS_BALANCED = False
 LEARNING_RATE = 2e-4
 
 # Maximum number of frames in a batch
-MAX_FRAMES = 100000
+MAX_TRAINING_FRAMES = 100000
 
 # Maximum number of frames in a batch during preprocessing
 MAX_PREPROCESS_FRAMES = 10000

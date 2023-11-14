@@ -27,3 +27,5 @@ def _frontend(device='cpu'):
 
 # This function takes as input a torch.Device and returns a callable frontend
 FRONTEND = _frontend
+
+LOG_INTERVAL = 100
