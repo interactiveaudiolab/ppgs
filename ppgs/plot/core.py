@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import pypar
 import torch
+import torchutil
 from moviepy import editor as mpy
 from PIL import Image, ImageDraw, ImageFont
 from itertools import repeat
@@ -239,7 +240,7 @@ def from_audio_files_to_files(
     gpu=None,
     mode='video'):
     """Create PPG visuals from audio files and save"""
-    for audio_filename in ppgs.iterator(
+    for audio_filename in torchutil.iterator(
         audio_filenames,
         'Creating visualizations',
         total=len(audio_filenames)

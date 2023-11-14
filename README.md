@@ -242,7 +242,7 @@ usage: python -m ppgs
     [--checkpoint CHECKPOINT]
     [--num-workers NUM_WORKERS]
     [--gpu GPU]
-    [--max-frames MAX_FRAMES]
+    [--max-frames MAX_TRAINING_FRAMES]
 
 arguments:
     --input_paths INPUT_PATHS [INPUT_PATHS ...]

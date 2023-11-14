@@ -12,7 +12,7 @@ import sys
 
 import torch
 import torchaudio
-import tqdm
+import torchutil
 
 import ppgs
 
@@ -295,7 +295,7 @@ def from_dataloader(
     try:
 
         # Setup progress bar
-        progress = iterator(
+        progress = torchutil.iterator(
             range(0, len(dataloader.dataset)),
             ppgs.CONFIG,
             total=len(dataloader.dataset))
@@ -401,9 +401,9 @@ def distance(
     if exponent is None:
         exponent = ppgs.SIMILARITY_EXPONENT
 
-    # Handle numerical instability at zero
-    ppgX = torch.clamp(ppgX, 1e-9)
-    ppgY = torch.clamp(ppgY, 1e-9)
+    # Handle numerical instability at boundaries
+    ppgX = torch.clamp(ppgX, 1e-8, 1 - 1e-8)
+    ppgY = torch.clamp(ppgY, 1e-8, 1 - 1e-8)
     if normalize:
         if not hasattr(distance, 'similarity_matrix'):
             distance.similarity_matrix = torch.load(
@@ -431,8 +431,8 @@ def distance(
         reduction='none')
 
     # Sum reduction
-    kl_X = kl_X.sum(dim=0)
-    kl_Y = kl_Y.sum(dim=0)
+    kl_X = kl_X.sum(dim=1)
+    kl_Y = kl_Y.sum(dim=1)
 
     # Average KL
     average_kl = (kl_X + kl_Y) / 2
@@ -477,11 +477,20 @@ def interpolate(
         shape=(len(ppgs.PHONEMES), frames)
     """
     ppgX, ppgY = ppgX.squeeze(0), ppgY.squeeze(0)
+
+    # Spherical linear interpolation
     omega = torch.acos((ppgX * ppgY).sum(0, keepdim=True))
     sin_omega = torch.clip(torch.sin(omega), 1e-6)
-    return (
+    interpolated = (
         torch.sin((1. - interp) * omega) / sin_omega * ppgX +
         torch.sin(interp * omega) / sin_omega * ppgY)
+
+    # Fix locations where ppgX == ppgY
+    for i in range(ppgX.shape[-1]):
+        if not torch.count_nonzero(interpolated[:, i]):
+            interpolated[:, i] = ppgX[:, i]
+
+    return interpolated
 
 
 ###############################################################################
@@ -650,16 +659,6 @@ def inference_context(model, device=None):
     if isinstance(model, torch.nn.Module) or hasattr(model, 'train'):
         # Prepare model for training
         model.train(True)
-
-
-def iterator(iterable, message, initial=0, total=None):
-    """Create a tqdm iterator"""
-    return tqdm.tqdm(
-        iterable,
-        desc=message,
-        dynamic_ncols=True,
-        initial=initial,
-        total=len(iterable) if total is None else total)
 
 
 def resample(

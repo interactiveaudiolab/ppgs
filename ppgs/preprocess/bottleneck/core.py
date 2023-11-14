@@ -1,8 +1,6 @@
 import torch
-import tqdm
+import torchutil
 from huggingface_hub import hf_hub_download
-from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from pathlib import Path
 
 import ppgs
 
@@ -37,13 +35,15 @@ def from_audios(
     with torch.no_grad():
         device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
-        # Cache model
-        if not hasattr(from_audios, 'model'):
-            conformer_checkpoint_file = hf_hub_download(repo_id='CameronChurchwell/ppg_conformer_model', filename='24epoch.pth')
-            from_audios.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
-                config,
-                conformer_checkpoint_file,
-                device)
+    # Cache model
+    if not hasattr(from_audios, 'model'):
+        conformer_checkpoint_file = hf_hub_download(
+            repo_id='CameronChurchwell/ppg_conformer_model',
+            filename='24epoch.pth')
+        from_audios.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
+            config,
+            conformer_checkpoint_file,
+            device)
 
         # Maybe resample
         audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
@@ -106,10 +106,9 @@ def from_file_to_file(audio_file, output_file, gpu=None):
 
 def from_files_to_files(audio_files, output_files, gpu=None):
     """Compute Bottleneck PPGs from audio files and save to disk"""
-    iterator = tqdm.tqdm(
+    for audio_file, output_file in torchutil.iterator(
         zip(audio_files, output_files),
-        desc='Extracting PPGs',
-        total=len(audio_files),
-        dynamic_ncols=True)
-    for audio_file, output_file in iterator:
+        'Extracting PPGs',
+        total=len(audio_files)
+    ):
         from_file_to_file(audio_file, output_file, gpu)
