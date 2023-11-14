@@ -34,25 +34,27 @@ def from_audios(
     config=W2V2FC_CONFIG,
     gpu=None):
     """Compute W2V2FC latents from audio"""
-    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
-    # Cache model
-    if not hasattr(from_audio, 'model'):
-        from_audio.model = transformers.Wav2Vec2Model.from_pretrained(
-            config).to(device)
+    with torch.no_grad():
+        device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
-    # Maybe resample
-    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
-    pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
-    padded_audio = torch.nn.functional.pad(audio, (pad, pad)).squeeze(dim=1)
+        # Cache model
+        if not hasattr(from_audio, 'model'):
+            from_audio.model = transformers.Wav2Vec2Model.from_pretrained(
+                config).to(device)
 
-    # Infer W2V2FC latents
-    mask = ppgs.model.transformer.mask_from_lengths(
-        lengths
-    ).squeeze(dim=1).to(torch.long).to(audio.device)
-    output = from_audio.model(padded_audio, mask).last_hidden_state
-    output = torch.transpose(output, 1, 2)
-    return output.to(torch.float16)
+        # Maybe resample
+        audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).to(device)
+        pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
+        padded_audio = torch.nn.functional.pad(audio, (pad, pad)).squeeze(dim=1)
+
+        # Infer W2V2FC latents
+        mask = ppgs.model.transformer.mask_from_lengths(
+            lengths
+        ).squeeze(dim=1).to(torch.long).to(audio.device)
+        output = from_audio.model(padded_audio, mask).last_hidden_state
+        output = torch.transpose(output, 1, 2)
+        return output.to(torch.float16)
 
 
 def from_audio(
@@ -61,24 +63,26 @@ def from_audio(
     config=W2V2FC_CONFIG,
     gpu=None):
     """Compute W2V2FC latents from audio"""
-    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
-    # Cache model
-    if not hasattr(from_audio, 'model'):
-        from_audio.model = transformers.Wav2Vec2Model.from_pretrained(
-            config).to(device)
-
-    # Maybe resample
-    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
-
-    # Setup features
-    pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
-    inputs = torch.nn.functional.pad(audio, (pad, pad)).unsqueeze(dim=0)
-    inputs = inputs.to(device)
-
-    # Infer W2V2FC latents
     with torch.no_grad():
-        return from_audio.model(inputs).last_hidden_state.squeeze().T
+        device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+
+        # Cache model
+        if not hasattr(from_audio, 'model'):
+            from_audio.model = transformers.Wav2Vec2Model.from_pretrained(
+                config).to(device)
+
+        # Maybe resample
+        audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).squeeze()
+
+        # Setup features
+        pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
+        inputs = torch.nn.functional.pad(audio, (pad, pad)).unsqueeze(dim=0)
+        inputs = inputs.to(device)
+
+        # Infer W2V2FC latents
+        with torch.no_grad():
+            return from_audio.model(inputs).last_hidden_state.squeeze().T
 
 
 def from_file(audio_file, gpu=None):

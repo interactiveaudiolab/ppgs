@@ -6,6 +6,9 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 from itertools import repeat
+import warnings
+
+import sys
 
 import torch
 import torchaudio
@@ -315,6 +318,9 @@ def from_dataloader(
                     gpu=gpu)
                 attention_mask_lengths = frame_lengths
 
+            if features.requires_grad:
+                raise ValueError('all representations should be detached!')
+
             # Infer
             result = from_features(
                 features,
@@ -368,7 +374,8 @@ def distance(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
     reduction: Optional[str] = 'mean',
-    normalize: Optional[bool] = True
+    normalize: Optional[bool] = True,
+    exponent: Optional[float] = None
 ) -> torch.Tensor:
     """Compute the pronunciation distance between two aligned PPGs
 
@@ -387,6 +394,13 @@ def distance(
     Returns
         Normalized Jenson-shannon divergence between PPGs
     """
+    if ppgs.REPRESENTATION_KIND != 'ppg':
+        warnings.warn('ppg distance is only supported when REPRESENTATION_KIND == "ppg", returning NaN')
+        return torch.tensor(float('nan'))
+
+    if exponent is None:
+        exponent = ppgs.SIMILARITY_EXPONENT
+
     # Handle numerical instability at zero
     ppgX = torch.clamp(ppgX, 1e-9)
     ppgY = torch.clamp(ppgY, 1e-9)
@@ -397,8 +411,8 @@ def distance(
             ).to(ppgX.device)
             distance.device = ppgX.device
         distance.similarity_matrix = distance.similarity_matrix.to(ppgX.device)
-        ppgX = torch.mm(distance.similarity_matrix.T ** ppgs.SIMILARITY_EXPONENT, ppgX).T
-        ppgY = torch.mm(distance.similarity_matrix.T ** ppgs.SIMILARITY_EXPONENT, ppgY).T
+        ppgX = torch.mm(distance.similarity_matrix.T ** exponent, ppgX).T
+        ppgY = torch.mm(distance.similarity_matrix.T ** exponent, ppgY).T
     else:
         ppgX = ppgX.T
         ppgY = ppgY.T
@@ -587,6 +601,12 @@ def aggregate(
 
 def infer(features, lengths, checkpoint=None, softmax=True):
     """Perform model inference"""
+
+    # Skip inference if we want input representations
+    if ppgs.REPRESENTATION_KIND == 'latents':
+        warnings.warn('Returning input latents, not ppg')
+        return features
+
     # Maybe cache model
     if (
         not hasattr(infer, 'model') or

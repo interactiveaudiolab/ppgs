@@ -34,57 +34,60 @@ def from_audios(
     sample_rate=None,
     gpu=None):
     """Compute W2V2FB latents from audio"""
-    if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
-    config=W2V2FB_CONFIG
-    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+    with torch.no_grad():
+        if sample_rate is None: sample_rate=ppgs.SAMPLE_RATE
+        config=W2V2FB_CONFIG
+        device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
-    # Cache model
-    if not hasattr(from_audios, 'model'):
-        from_audios.model = transformers.Wav2Vec2Model.from_pretrained(
-            config).to(device)
+        # Cache model
+        if not hasattr(from_audios, 'model'):
+            from_audios.model = transformers.Wav2Vec2Model.from_pretrained(
+                config).to(device)
 
-    # Maybe resample
-    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).to(device)
+        # Maybe resample
+        audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).to(device)
 
-    # Pad
-    lengths = torch.ceil(lengths * (SAMPLE_RATE / sample_rate)).to(torch.long)
-    pad = WINDOW_SIZE // 2 - HOP_SIZE // 2
-    padded_audio = torch.nn.functional.pad(
-        audio,
-        (pad, pad)
-    ).squeeze(dim=1)
+        # Pad
+        lengths = torch.ceil(lengths * (SAMPLE_RATE / sample_rate)).to(torch.long)
+        pad = WINDOW_SIZE // 2 - HOP_SIZE // 2
+        padded_audio = torch.nn.functional.pad(
+            audio,
+            (pad, pad)
+        ).squeeze(dim=1)
 
-    # Infer W2V2FB latents
-    mask = ppgs.model.transformer.mask_from_lengths(
-        lengths, pad
-    ).squeeze(dim=1).to(torch.long).to(audio.device)
-    output = from_audios.model(padded_audio, mask).last_hidden_state
-    output = torch.transpose(output, 1, 2)
+        # Infer W2V2FB latents
+        mask = ppgs.model.transformer.mask_from_lengths(
+            lengths, pad
+        ).squeeze(dim=1).to(torch.long).to(audio.device)
+        output = from_audios.model(padded_audio, mask).last_hidden_state
+        output = torch.transpose(output, 1, 2)
 
-    # Upsample
-    upsampled_outputs = torch.nn.functional.interpolate(
-        output,
-        size=audio.shape[-1] // ppgs.HOPSIZE,
-        mode='nearest')
+        # Upsample
+        upsampled_outputs = torch.nn.functional.interpolate(
+            output,
+            size=audio.shape[-1] // ppgs.HOPSIZE,
+            mode='nearest')
 
-    return upsampled_outputs.to(torch.float16)
+        return upsampled_outputs.to(torch.float16)
 
 def from_audio(
     audio: torch.Tensor,
     sample_rate: float = None,
     gpu=None):
     """Compute W2V2FB latents from audio"""
-    num_dims = audio.dim()
-    if num_dims == 1:
-        audio = audio.unsqueeze(dim=0)
-    predicted_ppgs = from_audios(
-        audio=audio,
-        lengths = torch.tensor([audio.shape[-1]]),
-        sample_rate=sample_rate,
-        gpu=gpu)
-    if num_dims == 1:
-        predicted_ppgs = predicted_ppgs.squeeze(dim=0)
-    return predicted_ppgs
+
+    with torch.no_grad():
+        num_dims = audio.dim()
+        if num_dims == 1:
+            audio = audio.unsqueeze(dim=0)
+        predicted_ppgs = from_audios(
+            audio=audio,
+            lengths = torch.tensor([audio.shape[-1]]),
+            sample_rate=sample_rate,
+            gpu=gpu)
+        if num_dims == 1:
+            predicted_ppgs = predicted_ppgs.squeeze(dim=0)
+        return predicted_ppgs
 
 
 def from_file(audio_file, gpu=None):

@@ -34,29 +34,30 @@ def from_audios(
     config=CONFIG_FILE,
     gpu=None):
     """Compute Bottleneck PPGs from audio"""
-    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+    with torch.no_grad():
+        device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
-    # Cache model
-    if not hasattr(from_audios, 'model'):
-        conformer_checkpoint_file = hf_hub_download(repo_id='CameronChurchwell/ppg_conformer_model', filename='24epoch.pth')
-        from_audios.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
-            config,
-            conformer_checkpoint_file,
-            device)
+        # Cache model
+        if not hasattr(from_audios, 'model'):
+            conformer_checkpoint_file = hf_hub_download(repo_id='CameronChurchwell/ppg_conformer_model', filename='24epoch.pth')
+            from_audios.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
+                config,
+                conformer_checkpoint_file,
+                device)
 
-    # Maybe resample
-    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
+        # Maybe resample
+        audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
 
-    # Setup features
-    pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
-    lengths = lengths + 2*pad
-    audio = torch.nn.functional.pad(audio, (pad, pad))
-    audio = audio.to(device)
-    audio = audio.squeeze(dim=1)
+        # Setup features
+        pad = WINDOW_SIZE//2 - ppgs.HOPSIZE//2
+        lengths = lengths + 2*pad
+        audio = torch.nn.functional.pad(audio, (pad, pad))
+        audio = audio.to(device)
+        audio = audio.squeeze(dim=1)
 
-    # Infer Bottleneck PPGs
-    output = from_audios.model(audio, lengths).transpose(1, 2)
-    return output.to(torch.float16)
+        # Infer Bottleneck PPGs
+        output = from_audios.model(audio, lengths).transpose(1, 2)
+        return output.to(torch.float16)
 
 
 def from_audio(
@@ -65,30 +66,31 @@ def from_audio(
     config=CONFIG_FILE,
     gpu=None):
     """Compute Bottleneck PPGs from audio"""
-    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
-
-    # Cache model
-    if not hasattr(from_audio, 'model'):
-        conformer_checkpoint_file = hf_hub_download(repo_id='CameronChurchwell/ppg_conformer_model', filename='24epoch.pth')
-        from_audio.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
-            config,
-            conformer_checkpoint_file,
-            device)
-
-    # Maybe resample
-    audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
-
-    # Setup features
-    audio = audio.to(device)
-    pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
-    length = (
-        torch.tensor([audio.shape[-1]], dtype=torch.long, device=device) +
-        2 * pad)
-    audio = torch.nn.functional.pad(audio, (pad, pad))
-
-    # Infer Bottleneck PPGs
     with torch.no_grad():
-        return from_audio.model(audio, length)[0].T
+        device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
+
+        # Cache model
+        if not hasattr(from_audio, 'model'):
+            conformer_checkpoint_file = hf_hub_download(repo_id='CameronChurchwell/ppg_conformer_model', filename='24epoch.pth')
+            from_audio.model = ppgs.preprocess.bottleneck.conformer_ppg_model.build_ppg_model.load_ppg_model(
+                config,
+                conformer_checkpoint_file,
+                device)
+
+        # Maybe resample
+        audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE)
+
+        # Setup features
+        audio = audio.to(device)
+        pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
+        length = (
+            torch.tensor([audio.shape[-1]], dtype=torch.long, device=device) +
+            2 * pad)
+        audio = torch.nn.functional.pad(audio, (pad, pad))
+
+        # Infer Bottleneck PPGs
+        with torch.no_grad():
+            return from_audio.model(audio, length)[0].T
 
 
 def from_file(audio_file, gpu=None):
