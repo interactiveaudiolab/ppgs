@@ -9,7 +9,7 @@ from itertools import repeat
 
 import torch
 import torchaudio
-import tqdm
+import torchutil
 
 import ppgs
 
@@ -292,7 +292,7 @@ def from_dataloader(
     try:
 
         # Setup progress bar
-        progress = iterator(
+        progress = torchutil.iterator(
             range(0, len(dataloader.dataset)),
             ppgs.CONFIG,
             total=len(dataloader.dataset))
@@ -639,16 +639,6 @@ def inference_context(model, device=None):
     if isinstance(model, torch.nn.Module) or hasattr(model, 'train'):
         # Prepare model for training
         model.train(True)
-
-
-def iterator(iterable, message, initial=0, total=None):
-    """Create a tqdm iterator"""
-    return tqdm.tqdm(
-        iterable,
-        desc=message,
-        dynamic_ncols=True,
-        initial=initial,
-        total=len(iterable) if total is None else total)
 
 
 def resample(

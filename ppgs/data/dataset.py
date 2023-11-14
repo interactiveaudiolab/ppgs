@@ -1,4 +1,5 @@
 import json
+import warnings
 from pathlib import Path
 
 import accelerate
@@ -17,9 +18,17 @@ import ppgs
 
 class Dataset(torch.utils.data.Dataset):
 
-    def __init__(self, name_or_files, partition=None, features=['audio']):
+    def __init__(
+        self,
+        name_or_files,
+        partition=None,
+        features=['audio'],
+        max_frames=ppgs.MAX_TRAINING_FRAMES):
         self.features = features
-        self.metadata = Metadata(name_or_files, partition=partition)
+        self.metadata = Metadata(
+            name_or_files,
+            partition=partition,
+            max_frames=max_frames)
         self.cache = self.metadata.cache
         self.stems = self.metadata.stems
         self.audio_files = self.metadata.audio_files
@@ -110,8 +119,12 @@ class Dataset(torch.utils.data.Dataset):
         lengths = self.metadata.lengths
         indices = np.argsort(lengths)
 
-        # Split into buckets based on length
         buckets = [indices[i:i + size] for i in range(0, len(self), size)]
+
+        # Concatenate partial bucket
+        if len(buckets) == num_buckets + 1:
+            residual = buckets.pop()
+            buckets[-1] = np.concatenate((buckets[-1], residual))
 
         # Add max length of each bucket
         return [(lengths[bucket[-1]], bucket) for bucket in buckets]
@@ -124,7 +137,12 @@ class Dataset(torch.utils.data.Dataset):
 
 class Metadata:
 
-    def __init__(self, name_or_files, partition=None, overwrite_cache=False):
+    def __init__(
+        self,
+        name_or_files,
+        partition=None,
+        overwrite_cache=False,
+        max_frames=ppgs.MAX_TRAINING_FRAMES):
         """Create a metadata object for the given dataset or sources"""
         with accelerate.state.PartialState().main_process_first():
             lengths = {}
@@ -160,15 +178,25 @@ class Metadata:
             else:
                 self.name = '<list of files>'
                 self.audio_files = name_or_files
-                self.stems = [Path(file).stem for file in self.audio_files]
+                self.stems = [
+                    Path(file).parent / Path(file).stem
+                    for file in self.audio_files]
                 self.cache = None
 
             if not lengths:
 
                 # Compute length in frames
                 for stem, audio_file in zip(self.stems, self.audio_files):
-                    lengths[stem] = \
-                        torchaudio.info(audio_file).num_frames // ppgs.HOPSIZE
+                    info = torchaudio.info(audio_file)
+                    length = int(info.num_frames * (ppgs.SAMPLE_RATE / info.sample_rate)) // ppgs.HOPSIZE
+
+                    # Omit if length is too long to avoid OOM
+                    if length <= max_frames:
+                        lengths[stem] = length
+                    else:
+                        warnings.warn(
+                            f'File {audio_file} of length {length} '
+                            f'exceeds max_frames of {max_frames}. Skipping.')
 
                 # Maybe cache lengths
                 if self.cache is not None:
@@ -176,7 +204,16 @@ class Metadata:
                         json.dump(lengths, file)
 
             # Match ordering
-            self.lengths = [lengths[stem] for stem in self.stems]
+            (
+                self.audio_files,
+                self.stems,
+                self.lengths
+             ) = zip(*[
+                (file, stem, lengths[stem])
+                for file, stem in zip(self.audio_files, self.stems)
+                if stem in lengths
+            ])
+
 
     def __len__(self):
         return len(self.stems)

@@ -93,7 +93,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     #########
 
     # Setup progress bar
-    progress = ppgs.iterator(
+    progress = torchutil.iterator(
         range(step, ppgs.NUM_STEPS),
         f'Training {ppgs.CONFIG}',
         step,

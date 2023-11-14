@@ -46,7 +46,8 @@ def datasets(
                 dataset,
                 partition,
                 features=['audio', 'length', 'audio_file'],
-                num_workers=num_workers // 2)
+                num_workers=num_workers // 2,
+                max_frames=ppgs.MAX_PREPROCESS_FRAMES)
 
         except ValueError:
 
@@ -88,7 +89,8 @@ def from_files_to_files(
     dataloader = ppgs.data.loader(
         audio_files,
         features=['audio', 'length', 'audio_file'],
-        num_workers=num_workers//2)
+        num_workers=num_workers//2,
+        max_frames=ppgs.MAX_PREPROCESS_FRAMES)
     from_dataloader(
         dataloader,
         representations,
@@ -130,7 +132,7 @@ def from_dataloader(loader, representations, output, num_workers=0, gpu=None):
         with torch.inference_mode():
 
             # Batch preprocess
-            for audios, lengths, audio_files in ppgs.iterator(
+            for audios, lengths, audio_files in torchutil.iterator(
                 loader,
                 f'Preprocessing {", ".join(representations)} '
                 f'for {loader.dataset.metadata.name}',
