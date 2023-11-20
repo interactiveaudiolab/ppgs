@@ -13,7 +13,7 @@ import ppgs
 ###############################################################################
 
 
-@torchutil.notify.on_return('preprocess')
+@torchutil.notify('preprocess')
 def datasets(
     datasets=ppgs.DATASETS,
     representations=None,

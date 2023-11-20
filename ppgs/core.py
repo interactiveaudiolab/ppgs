@@ -672,6 +672,7 @@ def resample(
     resampler = resampler.to(audio.device)
     return resampler(audio)
 
+
 def representation_file_extension():
     if ppgs.REPRESENTATION == ppgs.BEST_REPRESENTATION and ppgs.REPRESENTATION_KIND == 'ppg':
         return '-ppg.pt'
