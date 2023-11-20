@@ -13,7 +13,7 @@ import ppgs
 ###############################################################################
 
 
-@torchutil.notify.on_return('download')
+@torchutil.notify('download')
 def datasets(datasets=ppgs.DATASETS, format_only=False, purge_sources=False):
     """Downloads datasets"""
     for dataset in [dataset.lower() for dataset in datasets]:

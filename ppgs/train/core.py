@@ -14,7 +14,7 @@ import ppgs
 ###############################################################################
 
 
-@torchutil.notify.on_return('train')
+@torchutil.notify('train')
 def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     """Train a model"""
     # Create output directory
