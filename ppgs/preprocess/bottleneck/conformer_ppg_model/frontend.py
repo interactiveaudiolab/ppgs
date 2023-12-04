@@ -4,7 +4,6 @@ from typing import Union
 
 import numpy as np
 import torch
-from torch_complex.tensor import ComplexTensor
 
 from .log_mel import LogMel
 from .stft import Stft
@@ -80,6 +79,8 @@ class DefaultFrontend(torch.nn.Module):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        from torch_complex.tensor import ComplexTensor
+
         # 1. Domain-conversion: e.g. Stft: time -> time-freq
         # input_stft = self.stft(input)
         # input_stft = input_stft.transpose(1, 2)
