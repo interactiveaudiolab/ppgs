@@ -94,14 +94,14 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
 
     # Setup progress bar
     progress = torchutil.iterator(
-        range(step, ppgs.NUM_STEPS),
+        range(step, ppgs.STEPS),
         f'Training {ppgs.CONFIG}',
         step,
-        ppgs.NUM_STEPS)
+        ppgs.STEPS)
 
     try:
 
-        while step < ppgs.NUM_STEPS:
+        while step < ppgs.STEPS:
 
             # Update epoch-based random seed
             train_loader.batch_sampler.set_epoch(epoch)
@@ -175,7 +175,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                         epoch=epoch)
 
                 # Update training step count
-                if step >= ppgs.NUM_STEPS:
+                if step >= ppgs.STEPS:
                     break
                 step += 1
 
