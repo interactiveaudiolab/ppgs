@@ -22,9 +22,9 @@ def from_paths_to_paths(
     output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
     audio_extensions: Optional[List[str]] = None,
     checkpoint: Union[str, bytes, os.PathLike] = None,
-    video: Optional[bool] = False,
+    video: bool = False,
     font_filename: Union[str, bytes, os.PathLike] = None,
-    pdf: Optional[bool] = False,
+    pdf: bool = False,
     gpu: Optional[int] = None) -> None:
     """Infer ppgs from audio files and save to torch tensor files
 

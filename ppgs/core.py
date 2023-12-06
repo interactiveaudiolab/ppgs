@@ -373,9 +373,9 @@ def from_dataloader(
 def distance(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
-    reduction: Optional[str] = 'mean',
-    normalize: Optional[bool] = True,
-    exponent: Optional[float] = None
+    reduction: str = 'mean',
+    normalize: bool = True,
+    exponent: float = ppgs.SIMILARITY_EXPONENT
 ) -> torch.Tensor:
     """Compute the pronunciation distance between two aligned PPGs
 
@@ -397,9 +397,6 @@ def distance(
     if ppgs.REPRESENTATION_KIND != 'ppg':
         warnings.warn('ppg distance is only supported when REPRESENTATION_KIND == "ppg", returning NaN')
         return torch.tensor(float('nan'))
-
-    if exponent is None:
-        exponent = ppgs.SIMILARITY_EXPONENT
 
     # Handle numerical instability at boundaries
     ppgX = torch.clamp(ppgX, 1e-8, 1 - 1e-8)
