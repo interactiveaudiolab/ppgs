@@ -15,5 +15,4 @@ def parse_args():
     return parser.parse_known_args()[0]
 
 
-if __name__ == '__main__':
-    ppgs.data.stats.process(**vars(parse_args()))
+ppgs.data.stats.process(**vars(parse_args()))

@@ -50,5 +50,4 @@ def parse_args():
     return parser.parse_args()
 
 
-if __name__ == '__main__':
-    ppgs.from_paths_to_paths(**vars(parse_args()))
+ppgs.from_paths_to_paths(**vars(parse_args()))
