@@ -273,8 +273,8 @@ distance between two PPGs, use `ppgs.distance()`.
 def distance(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
-    reduction: Optional[str] = 'mean',
-    normalize: Optional[bool] = True
+    reduction: str = 'mean',
+    normalize: bool = True
 ) -> torch.Tensor:
     """Compute the pronunciation distance between two aligned PPGs
 
