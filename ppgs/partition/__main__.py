@@ -15,5 +15,4 @@ def parse_args():
     return parser.parse_known_args()[0]
 
 
-if __name__ == '__main__':
-    ppgs.partition.datasets(**vars(parse_args()))
+ppgs.partition.datasets(**vars(parse_args()))

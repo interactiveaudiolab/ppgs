@@ -173,10 +173,16 @@ MAX_PREPROCESS_FRAMES = 10000
 STEPS = 200000
 
 # Number of data loading worker threads
-NUM_WORKERS = os.cpu_count() // 3
+# TEMPORARY
+# try:
+#     NUM_WORKERS = int(os.cpu_count() / max(1, len(GPUtil.getGPUs())))
+# except ValueError:
+#     NUM_WORKERS = os.cpu_count()
+NUM_WORKERS = 12
 
 # Seed for all random number generators
 RANDOM_SEED = 1234
+
 
 ###############################################################################
 # Distance parameters

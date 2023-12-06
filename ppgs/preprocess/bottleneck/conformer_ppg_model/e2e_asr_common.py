@@ -18,6 +18,6 @@ def get_vgg2l_odim(idim, in_channel=3, out_channel=128, downsample=True):
     """
     idim = idim / in_channel
     if downsample:
-        idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
-        idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
+        idim = np.ceil(np.array(idim, dtype=float) / 2)  # 1st max pooling
+        idim = np.ceil(np.array(idim, dtype=float) / 2)  # 2nd max pooling
     return int(idim) * out_channel  # numer of channels

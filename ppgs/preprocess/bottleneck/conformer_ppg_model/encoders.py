@@ -194,11 +194,11 @@ class VGG2L(torch.nn.Module):
         if torch.is_tensor(ilens):
             ilens = ilens.cpu().numpy()
         else:
-            ilens = np.array(ilens, dtype=np.float32)
+            ilens = np.array(ilens, dtype=float)
         if self.downsample:
             ilens = np.array(np.ceil(ilens / 2), dtype=np.int64)
             ilens = np.array(
-                np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64).tolist()
+                np.ceil(np.array(ilens, dtype=float) / 2), dtype=np.int64).tolist()
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs_pad = xs_pad.transpose(1, 2)

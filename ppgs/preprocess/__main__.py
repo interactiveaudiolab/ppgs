@@ -37,5 +37,4 @@ def parse_args():
     return parser.parse_args()
 
 
-if __name__ == '__main__':
-    ppgs.preprocess.datasets(**vars(parse_args()))
+ppgs.preprocess.datasets(**vars(parse_args()))

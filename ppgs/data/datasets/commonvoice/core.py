@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pypar
 import torchaudio
-import tqdm
+import torchutil
 
 import ppgs
 
@@ -88,13 +88,12 @@ def format():
         audio_directory=cache_directory,
         alignment_directory=cache_directory,
         source_directory=source_directory)
-    tqdm.contrib.concurrent.process_map(
+    torchutil.multiprocess_iterator(
         process,
         mp3_found,
-        desc='Formatting Common Voice',
-        max_workers=ppgs.NUM_WORKERS,
-        chunksize=512,
-        dynamic_ncols=True)
+        message='Formatting Common Voice',
+        num_workers=ppgs.NUM_WORKERS,
+        worker_chunk_size=512)
 
 
 ###############################################################################
