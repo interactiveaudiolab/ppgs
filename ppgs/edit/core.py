@@ -143,7 +143,8 @@ def swap(ppg: torch.Tensor, phonemeA: str, phonemeB: str) -> torch.Tensor:
 
     Arguments
         ppg
-            Input PPG            shape=(len(ppg.PHONEMES), frames)
+            Input PPG
+            shape=(len(ppg.PHONEMES), frames)
         phonemeA
             Input phoneme A
         phonemeB

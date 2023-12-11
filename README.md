@@ -29,6 +29,10 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
     * [`ppgs.edit.grid.from_alignments`](#ppgseditgridfrom_alignments)
     * [`ppgs.edit.grid.of_length`](#ppgseditgridof_length)
     * [`ppgs.edit.grid.sample`](#ppgseditgridsample)
+    * [`ppgs.edit.reallocate`](#ppgseditreallocate)
+    * [`ppgs.edit.regex`](#ppgseditregex)
+    * [`ppgs.edit.shift`](#ppgseditshift)
+    * [`ppgs.edit.swap`](#ppgseditswap)
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -419,6 +423,101 @@ def grid_sample(ppg: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
 
     Returns
         Interpolated PPG
+    """
+```
+
+
+### `ppgs.edit.reallocate`
+
+```python
+def reallocate(
+    ppg: torch.Tensor,
+    source: str,
+    target: str,
+    value: Optional[float] = None
+) -> torch.Tensor:
+    """Reallocate probability from source phoneme to target phoneme
+
+    Arguments
+        ppg
+            Input PPG
+            shape=(len(ppgs.PHONEMES), frames)
+        source
+            Source phoneme
+        target
+            Target phoneme
+        value
+            Max amount to reallocate. If None, reallocates all probability.
+
+    Returns
+        Edited PPG
+    """
+```
+
+
+### `ppgs.edit.regex`
+
+```python
+def regex(
+    ppg: torch.Tensor,
+    source_phonemes: List[str],
+    target_phonemes: List[str]
+) -> torch.Tensor:
+    """Regex match and replace (via swap) for phoneme sequences
+
+    Arguments
+        ppg
+            Input PPG
+            shape=(len(ppgs.PHONEMES), frames)
+        source_phonemes
+            Source phoneme sequence
+        target_phonemes
+            Target phoneme sequence
+
+    Returns
+        Edited PPG
+    """
+```
+
+
+### `ppgs.edit.shift`
+
+```python
+def shift(ppg: torch.Tensor, phoneme: str, value: float):
+    """Shift probability of a phoneme and reallocate proportionally
+
+    Arguments
+        ppg
+            Input PPG
+            shape=(len(ppgs.PHONEMES), frames)
+        phoneme
+            Input phoneme
+        value
+            Maximal shift amount
+
+    Returns
+        Edited PPG
+    """
+```
+
+
+### `ppgs.edit.swap`
+
+```python
+def swap(ppg: torch.Tensor, phonemeA: str, phonemeB: str) -> torch.Tensor:
+    """Swap the probabilities of two phonemes
+
+    Arguments
+        ppg
+            Input PPG
+            shape=(len(ppg.PHONEMES), frames)
+        phonemeA
+            Input phoneme A
+        phonemeB
+            Input phoneme B
+
+    Returns
+        Edited PPG
     """
 ```
 
