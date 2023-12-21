@@ -2,7 +2,7 @@ import json
 import warnings
 from pathlib import Path
 
-import accelerate
+# import accelerate
 import numpy as np
 import pypar
 import torch
@@ -142,75 +142,75 @@ class Metadata:
         overwrite_cache=False,
         max_frames=ppgs.MAX_TRAINING_FRAMES):
         """Create a metadata object for the given dataset or sources"""
-        with accelerate.state.PartialState().main_process_first():
-            lengths = {}
+        # with accelerate.state.PartialState().main_process_first():
+        lengths = {}
 
-            # Create dataset from string identifier
-            if isinstance(name_or_files, str):
-                self.name = name_or_files
-                self.cache = ppgs.CACHE_DIR / self.name
+        # Create dataset from string identifier
+        if isinstance(name_or_files, str):
+            self.name = name_or_files
+            self.cache = ppgs.CACHE_DIR / self.name
 
-                # Get stems corresponding to partition
-                partition_dict = ppgs.load.partition(self.name)
-                if partition is not None:
-                    self.stems = partition_dict[partition]
-                    lengths_file = self.cache / f'{partition}-lengths.json'
-                else:
-                    self.stems = sum(partition_dict.values(), start=[])
-                    lengths_file = self.cache / f'lengths.json'
-
-                # Get audio filenames
-                self.audio_files = [
-                    self.cache / (stem + '.wav') for stem in self.stems]
-
-                # Maybe remove previous cached lengths
-                if overwrite_cache:
-                     lengths_file.unlink(missing_ok=True)
-
-                # Load cached lengths
-                if lengths_file.exists():
-                    with open(lengths_file, 'r') as f:
-                        lengths = json.load(f)
-
-            # Create dataset from a list of audio filenames
+            # Get stems corresponding to partition
+            partition_dict = ppgs.load.partition(self.name)
+            if partition is not None:
+                self.stems = partition_dict[partition]
+                lengths_file = self.cache / f'{partition}-lengths.json'
             else:
-                self.name = '<list of files>'
-                self.audio_files = name_or_files
-                self.stems = [
-                    Path(file).parent / Path(file).stem
-                    for file in self.audio_files]
-                self.cache = None
+                self.stems = sum(partition_dict.values(), start=[])
+                lengths_file = self.cache / f'lengths.json'
 
-            if not lengths:
+            # Get audio filenames
+            self.audio_files = [
+                self.cache / (stem + '.wav') for stem in self.stems]
 
-                # Compute length in frames
-                for stem, audio_file in zip(self.stems, self.audio_files):
-                    info = torchaudio.info(audio_file)
-                    length = int(info.num_frames * (ppgs.SAMPLE_RATE / info.sample_rate)) // ppgs.HOPSIZE
+            # Maybe remove previous cached lengths
+            if overwrite_cache:
+                    lengths_file.unlink(missing_ok=True)
 
-                    # Omit if length is too long to avoid OOM
-                    if length <= max_frames:
-                        lengths[stem] = length
-                    else:
-                        warnings.warn(
-                            f'File {audio_file} of length {length} '
-                            f'exceeds max_frames of {max_frames}. Skipping.')
+            # Load cached lengths
+            if lengths_file.exists():
+                with open(lengths_file, 'r') as f:
+                    lengths = json.load(f)
 
-                # Maybe cache lengths
-                if self.cache is not None:
-                    with open(lengths_file, 'w+') as file:
-                        json.dump(lengths, file)
+        # Create dataset from a list of audio filenames
+        else:
+            self.name = '<list of files>'
+            self.audio_files = name_or_files
+            self.stems = [
+                Path(file).parent / Path(file).stem
+                for file in self.audio_files]
+            self.cache = None
 
-            # Match ordering
-            (
-                self.audio_files,
-                self.stems,
-                self.lengths
-             ) = zip(*[
-                (file, stem, lengths[stem])
-                for file, stem in zip(self.audio_files, self.stems)
-                if stem in lengths
-            ])
+        if not lengths:
+
+            # Compute length in frames
+            for stem, audio_file in zip(self.stems, self.audio_files):
+                info = torchaudio.info(audio_file)
+                length = int(info.num_frames * (ppgs.SAMPLE_RATE / info.sample_rate)) // ppgs.HOPSIZE
+
+                # Omit if length is too long to avoid OOM
+                if length <= max_frames:
+                    lengths[stem] = length
+                else:
+                    warnings.warn(
+                        f'File {audio_file} of length {length} '
+                        f'exceeds max_frames of {max_frames}. Skipping.')
+
+            # Maybe cache lengths
+            if self.cache is not None:
+                with open(lengths_file, 'w+') as file:
+                    json.dump(lengths, file)
+
+        # Match ordering
+        (
+            self.audio_files,
+            self.stems,
+            self.lengths
+            ) = zip(*[
+            (file, stem, lengths[stem])
+            for file, stem in zip(self.audio_files, self.stems)
+            if stem in lengths
+        ])
 
 
     def __len__(self):

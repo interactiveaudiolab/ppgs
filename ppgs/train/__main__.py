@@ -10,7 +10,7 @@ import ppgs
 ###############################################################################
 
 
-def main(config, dataset):
+def main(config, dataset, gpu=None):
     """Train from configuration"""
     # Create output directory
     directory = ppgs.RUNS_DIR / config.stem
@@ -20,7 +20,7 @@ def main(config, dataset):
     shutil.copyfile(config, directory / config.name)
 
     # Train
-    ppgs.train(dataset, directory)
+    ppgs.train(dataset, directory, gpu)
 
 
 def parse_args():
@@ -34,6 +34,10 @@ def parse_args():
         '--dataset',
         default=ppgs.TRAINING_DATASET,
         help='The dataset to train on')
+    parser.add_argument(
+        '--gpu',
+        type=int,
+        help='The gpu to run training on')
     return parser.parse_args()
 
 
