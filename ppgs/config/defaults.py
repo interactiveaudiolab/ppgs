@@ -76,13 +76,16 @@ TRAINING_DATASET = 'commonvoice'
 ASSETS_DIR = Path(__file__).parent.parent / 'assets'
 
 # Location of initial downloads before processing into DATA_DIR
-SOURCES_DIR = Path(__file__).parent.parent.parent / 'data' / 'sources'
+# SOURCES_DIR = Path(__file__).parent.parent.parent / 'data' / 'sources'
+SOURCES_DIR = Path('/hemera-storage1/pardo/promo/repos/ppgs/data/sources')
 
 # Location of preprocessed features
-CACHE_DIR = Path(__file__).parent.parent.parent / 'data' / 'cache'
+# CACHE_DIR = Path(__file__).parent.parent.parent / 'data' / 'cache'
+CACHE_DIR = Path('/hemera-storage1/pardo/promo/repos/ppgs/data/cache')
 
 # Location of datasets on disk
-DATA_DIR = Path(__file__).parent.parent.parent / 'data' / 'datasets'
+# DATA_DIR = Path(__file__).parent.parent.parent / 'data' / 'datasets'
+DATA_DIR = Path('/hemera-storage1/pardo/promo/repos/ppgs/data/data')
 
 # Location to save evaluation artifacts
 EVAL_DIR = Path(__file__).parent.parent.parent / 'eval'
@@ -115,6 +118,7 @@ EVALUATION_INTERVAL = 1000  # steps
 ###############################################################################
 # Model parameters
 ###############################################################################
+
 
 # Local checkpoint to use
 #  If None, Huggingface will be used unless a checkpoint is given in the CLI
@@ -166,20 +170,16 @@ BATCH_SIZE = 72
 # Whether to use class-balanced loss weights
 CLASS_BALANCED = False
 
+# Method to use for gradient clipping.
+# One of ['autoclip', 'inf', 'l1', 'l2', 'skip'].
+GRADIENT_CLIPPING_METHOD = None
+
+# Gradient clipping threshold.
+# For autoclip, this specifies the clipping percentile.
+GRADIENT_CLIPPING_THRESHOLD = 1.0
+
 # Optimizer step size
 LEARNING_RATE = 2e-4
-
-# Type of norm to use forclipping (float or 'inf')
-CLIPPING_NORM_TYPE = 2.0
-
-# Whether to use AutoClip or fixed threshold clipping
-USE_AUTOCLIP = True
-
-# Quantile to clip at if using AutoClip
-CLIPPING_QUANTILE = 0.9
-
-# fixed treshold for clipping
-CLIPPING_THRESHOLD = 1.0
 
 # Maximum number of frames in a batch
 MAX_TRAINING_FRAMES = 100000
