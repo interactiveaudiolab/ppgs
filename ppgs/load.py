@@ -13,7 +13,6 @@ import ppgs
 # Loading utilities
 ###############################################################################
 
-
 def ppg_from_stem(stem: str):
     """Given a stem, loads the corresponding PPG"""
 
@@ -29,7 +28,10 @@ def audio(file):
     """Load audio from disk"""
     path = Path(file)
     if path.suffix.lower() == '.mp3':
-        audio, sample_rate = torchaudio.load(path, format='mp3')
+        try:
+            audio, sample_rate = torchaudio.load(path, format='mp3')
+        except RuntimeError:
+            raise RuntimeError("Failed to load mp3 file, make sure ffmpeg<=4.3 is installed")
     else:
         audio, sample_rate = torchaudio.load(file)
 

@@ -30,6 +30,7 @@ setup(
         'accelerate',
         'autoclip',
         'deepspeed',
+        'huggingface-hub',
         'moviepy',
         'numpy',
         'pypar',

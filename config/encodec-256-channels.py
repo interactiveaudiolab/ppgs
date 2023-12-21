@@ -3,10 +3,12 @@ from encodec import EncodecModel
 MODULE = 'ppgs'
 
 # Configuration name
-CONFIG = 'encodec'
+CONFIG = 'encodec-256-channels'
 
 # Dimensionality of input representation
 INPUT_CHANNELS = 128
+
+HIDDEN_CHANNELS = 256
 
 # Input representation
 REPRESENTATION = 'encodec'
@@ -17,10 +19,9 @@ def _frontend(device='cpu'):
     quantizer.to(device)
 
     def _quantize(batch: torch.Tensor):
-        with torch.no_grad():
-            batch = batch.to(torch.int)
-            batch = batch.transpose(0, 1)
-            return quantizer.decode(batch)
+        batch = batch.to(torch.int)
+        batch = batch.transpose(0, 1)
+        return quantizer.decode(batch)
 
     return _quantize
 

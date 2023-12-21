@@ -32,6 +32,7 @@ class Dataset(torch.utils.data.Dataset):
         self.cache = self.metadata.cache
         self.stems = self.metadata.stems
         self.audio_files = self.metadata.audio_files
+        self.lengths = self.metadata.lengths
 
     def __getitem__(self, index):
         """Retrieve the indexth item"""
@@ -106,28 +107,25 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.stems)
 
     def buckets(self):
-        """Partition data into buckets based on length to minimize padding"""
-        # Prevent errors when using small datasets
-        if len(self) == 0:
-            raise ValueError('Dataset has 0 items, cannot bucket')
-        num_buckets = max(1, min(ppgs.BUCKETS, len(self)))
-
+        """Partition indices into buckets based on length for sampling"""
         # Get the size of a bucket
-        size = len(self) // num_buckets
+        size = len(self) // ppgs.BUCKETS
 
         # Get indices in order of length
-        lengths = self.metadata.lengths
-        indices = np.argsort(lengths)
+        indices = np.argsort(self.lengths)
+        lengths = np.sort(self.lengths)
 
-        buckets = [indices[i:i + size] for i in range(0, len(self), size)]
+        # Split into buckets based on length
+        buckets = [
+            np.stack((indices[i:i + size], lengths[i:i + size])).T
+            for i in range(0, len(self), size)]
 
         # Concatenate partial bucket
-        if len(buckets) == num_buckets + 1:
+        if len(buckets) == ppgs.BUCKETS + 1:
             residual = buckets.pop()
-            buckets[-1] = np.concatenate((buckets[-1], residual))
+            buckets[-1] = np.concatenate((buckets[-1], residual), axis=0)
 
-        # Add max length of each bucket
-        return [(lengths[bucket[-1]], bucket) for bucket in buckets]
+        return buckets
 
 
 ###############################################################################

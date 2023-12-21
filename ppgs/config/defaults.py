@@ -155,13 +155,31 @@ OUTPUT_CHANNELS = 40
 
 
 # Number of buckets to partition training examples to minimize padding
-BUCKETS = 8
+BUCKETS = 4
+
+# Whether to use variable size batches
+VARIABLE_BATCH = True
+
+# Batch size for fixed size batches
+BATCH_SIZE = 72
 
 # Whether to use class-balanced loss weights
 CLASS_BALANCED = False
 
 # Optimizer step size
 LEARNING_RATE = 2e-4
+
+# Type of norm to use forclipping (float or 'inf')
+CLIPPING_NORM_TYPE = 2.0
+
+# Whether to use AutoClip or fixed threshold clipping
+USE_AUTOCLIP = True
+
+# Quantile to clip at if using AutoClip
+CLIPPING_QUANTILE = 0.9
+
+# fixed treshold for clipping
+CLIPPING_THRESHOLD = 1.0
 
 # Maximum number of frames in a batch
 MAX_TRAINING_FRAMES = 100000
