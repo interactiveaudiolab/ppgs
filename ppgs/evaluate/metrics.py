@@ -4,6 +4,7 @@ from matplotlib.colors import PowerNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import ppgs
+from torchutil.metrics import CudaMaxMemoryUsage
 
 
 ###############################################################################
@@ -19,7 +20,8 @@ class Metrics:
             CategoricalAccuracy(),
             JensenShannon(),
             TopKAccuracy(3),
-            Loss()]
+            Loss(),
+            CudaMaxMemoryUsage()]
         if include_figures:
             self.metrics.append(DistanceMatrix())
 

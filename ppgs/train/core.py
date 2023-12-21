@@ -14,7 +14,7 @@ import ppgs
 ###############################################################################
 
 
-@torchutil.notify('train')
+@torchutil.notify(f'train-{ppgs.CONFIG}')
 def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     """Train a model"""
     # Create output directory
@@ -41,6 +41,17 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     ####################
 
     optimizer = torch.optim.Adam(model.parameters(), lr=ppgs.LEARNING_RATE)
+
+    ###########################
+    # Create gradient clipper #
+    ###########################
+
+    if ppgs.USE_AUTOCLIP:
+        optimizer = QuantileClip.as_optimizer(
+            optimizer=optimizer,
+            quantile=ppgs.CLIPPING_QUANTILE,
+            norm_type=ppgs.CLIPPING_NORM_TYPE
+        )
 
     ##############################
     # Maybe load from checkpoint #
@@ -71,12 +82,6 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     torch.manual_seed(ppgs.RANDOM_SEED)
     train_loader = ppgs.data.loader(dataset, 'train')
     valid_loader = ppgs.data.loader(dataset, 'valid')
-
-    ###########################
-    # Create gradient clipper #
-    ###########################
-
-    optimizer = QuantileClip.as_optimizer(optimizer=optimizer)
 
     ####################
     # Device placement #
@@ -133,7 +138,10 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                 accelerator.backward(train_loss)
 
                 # Gradient unscaling and clipping
-                accelerator.unscale_gradients()
+                # one of these two lines MUST be present for QuantileClip to work
+                # accelerator.unscale_gradients()
+                if not ppgs.USE_AUTOCLIP:
+                    accelerator.clip_grad_norm_(model.parameters(), ppgs.CLIPPING_THRESHOLD, norm_type=ppgs.CLIPPING_NORM_TYPE)
 
                 # Update weights
                 optimizer.step()
@@ -143,6 +151,8 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                 ############
 
                 if step % ppgs.EVALUATION_INTERVAL == 0:
+
+                    print(torch.cuda.memory_summary(accelerator.device.index))
 
                     # Clear cache to make space for evaluation tensors
                     del train_loss
@@ -284,8 +294,8 @@ def evaluate(
     torchutil.tensorboard.update(
         directory,
         step,
-        figures=figures,
-        scalars=scalars)
+        figures={partition: figures},
+        scalars={partition: scalars})
 
 
 ###############################################################################

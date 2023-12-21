@@ -428,13 +428,14 @@ def distance(
         reduction='none')
 
     # Sum reduction
-    kl_X = kl_X.sum(dim=1)
-    kl_Y = kl_Y.sum(dim=1)
+    # kl_X = kl_X.sum(dim=1)
+    # kl_Y = kl_Y.sum(dim=1)
 
     # Average KL
     average_kl = (kl_X + kl_Y) / 2
     average_kl[average_kl < 0] = 0
     jsd = torch.sqrt(average_kl)
+    jsd = jsd.sum(dim=1)
 
     # Maybe reduce
     if reduction == 'mean':
