@@ -1,10 +1,10 @@
+import collections
 import functools
 
 import accelerate
 import matplotlib
 import torch
 import torchutil
-from autoclip.torch import QuantileClip
 
 import ppgs
 
@@ -46,12 +46,8 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     # Create gradient clipper #
     ###########################
 
-    if ppgs.USE_AUTOCLIP:
-        optimizer = QuantileClip.as_optimizer(
-            optimizer=optimizer,
-            quantile=ppgs.CLIPPING_QUANTILE,
-            norm_type=ppgs.CLIPPING_NORM_TYPE
-        )
+    if ppgs.GRADIENT_CLIPPING_METHOD == 'autoclip':
+        gradient_history = collections.deque()
 
     ##############################
     # Maybe load from checkpoint #
@@ -137,11 +133,51 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                 # Backward pass
                 accelerator.backward(train_loss)
 
-                # Gradient unscaling and clipping
-                # one of these two lines MUST be present for QuantileClip to work
-                # accelerator.unscale_gradients()
-                if not ppgs.USE_AUTOCLIP:
-                    accelerator.clip_grad_norm_(model.parameters(), ppgs.CLIPPING_THRESHOLD, norm_type=ppgs.CLIPPING_NORM_TYPE)
+                # Get gradient norm
+                max_grad = 0
+                total_norm = 0
+                for p in model.parameters():
+                    if p.grad is not None:
+                        max_grad = max(max_grad, p.grad.data.max())
+                        total_norm += p.grad.data.norm(2)
+                total_norm = total_norm ** (1. / 2)
+                torchutil.tensorboard.update(
+                    directory,
+                    step,
+                    scalars={
+                        'gradient_norm': total_norm,
+                        'max_gradient': max_grad})
+
+                # Gradient clipping
+                if ppgs.GRADIENT_CLIPPING_METHOD is not None:
+
+                    # Just skip the update
+                    if ppgs.GRADIENT_CLIPPING_METHOD == 'skip':
+                        continue
+
+                    # Prepare FP16 gradients for clipping
+                    accelerator.unscale_gradients()
+
+                    # Autoclip (with L2)
+                    if ppgs.GRADIENT_CLIPPING_METHOD == 'autoclip':
+                        gradient_history.append(total_norm)
+                        if len(gradient_history) > 1000:
+                            clip_value = np.percentile(
+                                gradient_history, ppgs.GRADIENT_CLIPPING_THRESHOLD)
+                            accelerator.clip_grad_norm_(model.parameters(), clip_value)
+
+                    else:
+
+                        if ppgs.GRADIENT_CLIPPING_METHOD == 'l2':
+                            norm_type = 2.0
+                        elif ppgs.GRADIENT_CLIPPING_METHOD == 'l1':
+                            norm_type = 1.0
+                        elif ppgs.GRADIENT_CLIPPING_METHOD == 'inf':
+                            norm_type = 'inf'
+                        accelerator.clip_grad_norm_(
+                            model.parameters(),
+                            ppgs.GRADIENT_CLIPPING_THRESHOLD,
+                            norm_type=norm_type)
 
                 # Update weights
                 optimizer.step()
@@ -152,7 +188,17 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
 
                 if step % ppgs.EVALUATION_INTERVAL == 0:
 
+                    # Log VRAM utilization
                     print(torch.cuda.memory_summary(accelerator.device.index))
+                    scalars = {
+                        'max_allocated (GB)': torch.cuda.max_memory_allocated(
+                            accelerator.device.index) / (1024 ** 3),
+                        'max_reserved (GB)': torch.cuda.max_memory_reserved(
+                            accelerator.device.index) / (1024 ** 3)}
+                    torchutil.tensorboard.update(
+                        directory,
+                        step,
+                        scalars=scalars)
 
                     # Clear cache to make space for evaluation tensors
                     del train_loss
@@ -288,14 +334,14 @@ def evaluate(
     scalars, figures = {}, {}
     for key, val in metrics().items():
         if isinstance(val, matplotlib.figure.Figure):
-            figures[key] = val
+            figures[f'{partition}/{key}'] = val
         else:
-            scalars[key] = val
+            scalars[f'{partition}/{key}'] = val
     torchutil.tensorboard.update(
         directory,
         step,
-        figures={partition: figures},
-        scalars={partition: scalars})
+        figures=figures,
+        scalars=scalars)
 
 
 ###############################################################################

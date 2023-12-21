@@ -20,8 +20,7 @@ class Metrics:
             CategoricalAccuracy(),
             JensenShannon(),
             TopKAccuracy(3),
-            Loss(),
-            CudaMaxMemoryUsage()]
+            Loss()]
         if include_figures:
             self.metrics.append(DistanceMatrix())
 

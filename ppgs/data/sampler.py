@@ -40,7 +40,7 @@ class Sampler(torch.utils.data.sampler.BatchSampler):
         self.max_frames = max_frames
         self.epoch = 0
         self.buckets = dataset.buckets()
-        self.variable_batch=variable_batch
+        self.variable_batch = variable_batch
 
     def __iter__(self):
         return iter(self.batch())
