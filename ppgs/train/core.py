@@ -1,7 +1,7 @@
 import collections
 import functools
 
-import accelerate
+# import accelerate
 import matplotlib
 import torch
 import torchutil
@@ -15,26 +15,30 @@ import ppgs
 
 
 @torchutil.notify(f'train-{ppgs.CONFIG}')
-def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
+def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
     """Train a model"""
     # Create output directory
     directory.mkdir(parents=True, exist_ok=True)
 
     # Setup accelerator
-    accelerator = accelerate.Accelerator(
-        mixed_precision='fp16',
-        even_batches=False)
+    # accelerator = accelerate.Accelerator(
+    #     mixed_precision='fp16',
+    #     even_batches=False)
+
+    # Get torch device
+    device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     #################
     # Create models #
     #################
 
     if ppgs.FRONTEND is not None and callable(ppgs.FRONTEND):
-        frontend = ppgs.FRONTEND(accelerator.device)
+        # frontend = ppgs.FRONTEND(accelerator.device)
+        frontend = ppgs.FRONTEND(device)
     else:
         frontend = None
 
-    model = ppgs.Model()
+    model = ppgs.Model().to(device)
 
     ####################
     # Create optimizer #
@@ -83,11 +87,13 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
     # Device placement #
     ####################
 
-    model, optimizer, train_loader, valid_loader = accelerator.prepare(
-        model,
-        optimizer,
-        train_loader,
-        valid_loader)
+    # model, optimizer, train_loader, valid_loader = accelerator.prepare(
+    #     model,
+    #     optimizer,
+    #     train_loader,
+    #     valid_loader)
+    # Automatic mixed precision (amp) gradient scaler
+    scaler = torch.cuda.amp.GradScaler()
 
     #########
     # Train #
@@ -110,28 +116,33 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
             for batch in train_loader:
 
                 # Unpack batch
-                input_representation, indices, lengths = batch
+                input_representation, indices, lengths = (
+                    item.to(device) for item in batch)
 
                 if frontend is not None:
                     with torch.no_grad():
                         input_representation = frontend(
-                            input_representation).to(torch.float16)
+                            input_representation
+                        ).to(torch.float16)
 
-                # Zero gradients
-                optimizer.zero_grad()
+                with torch.autocast(device.type):
 
-                # Forward pass
-                predicted_ppgs = model(input_representation, lengths)
+                    # Forward pass
+                    predicted_ppgs = model(input_representation, lengths)
 
-                # Compute loss
-                train_loss = loss(predicted_ppgs, indices)
+                    # Compute loss
+                    train_loss = loss(predicted_ppgs, indices)
 
                 ##################
                 # Optimize model #
                 ##################
 
+                # Zero gradients
+                optimizer.zero_grad()
+
                 # Backward pass
-                accelerator.backward(train_loss)
+                # accelerator.backward(train_loss)
+                scaler.scale(train_loss).backward()
 
                 # Get gradient norm
                 max_grad = 0
@@ -155,8 +166,8 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                     if ppgs.GRADIENT_CLIPPING_METHOD == 'skip':
                         continue
 
-                    # Prepare FP16 gradients for clipping
-                    accelerator.unscale_gradients()
+                    # Unscale gradients
+                    scaler.unscale_(optimizer)
 
                     # Autoclip (with L2)
                     if ppgs.GRADIENT_CLIPPING_METHOD == 'autoclip':
@@ -164,7 +175,12 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                         if len(gradient_history) > 1000:
                             clip_value = np.percentile(
                                 gradient_history, ppgs.GRADIENT_CLIPPING_THRESHOLD)
-                            accelerator.clip_grad_norm_(model.parameters(), clip_value)
+                            # accelerator.clip_grad_norm_(
+                            #     model.parameters(),
+                            #     clip_value)
+                            torch.nn.utils.clip_grad_norm_(
+                                model.parameters(),
+                                clip_value)
 
                     else:
 
@@ -174,13 +190,21 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                             norm_type = 1.0
                         elif ppgs.GRADIENT_CLIPPING_METHOD == 'inf':
                             norm_type = 'inf'
-                        accelerator.clip_grad_norm_(
+                        # accelerator.clip_grad_norm_(
+                        #     model.parameters(),
+                        #     ppgs.GRADIENT_CLIPPING_THRESHOLD,
+                        #     norm_type=norm_type)
+                        torch.nn.utils.clip_grad_norm_(
                             model.parameters(),
                             ppgs.GRADIENT_CLIPPING_THRESHOLD,
-                            norm_type=norm_type)
+                            norm_type='inf')
 
                 # Update weights
-                optimizer.step()
+                # optimizer.step()
+                scaler.step(optimizer)
+
+                # Update gradient scaler
+                scaler.update()
 
                 ############
                 # Evaluate #
@@ -189,12 +213,14 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                 if step % ppgs.EVALUATION_INTERVAL == 0:
 
                     # Log VRAM utilization
-                    print(torch.cuda.memory_summary(accelerator.device.index))
+                    # index = accelerator.device.index
+                    index = device.index
+                    print(torch.cuda.memory_summary(index))
                     scalars = {
                         'max_allocated (GB)': torch.cuda.max_memory_allocated(
-                            accelerator.device.index) / (1024 ** 3),
+                            index) / (1024 ** 3),
                         'max_reserved (GB)': torch.cuda.max_memory_reserved(
-                            accelerator.device.index) / (1024 ** 3)}
+                            index) / (1024 ** 3)}
                     torchutil.tensorboard.update(
                         directory,
                         step,
@@ -211,8 +237,10 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                         directory,
                         step,
                         model,
+                        gpu,
                         frontend,
-                        accelerator=accelerator)
+                        # accelerator=accelerator
+                    )
                     with ppgs.inference_context(model):
                         evaluate_fn(train_loader, 'train')
                         evaluate_fn(valid_loader, 'valid')
@@ -226,7 +254,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
                         directory / f'{step:08d}.pt',
                         model,
                         optimizer,
-                        accelerator=accelerator,
+                        # accelerator=accelerator,
                         step=step,
                         epoch=epoch)
 
@@ -248,7 +276,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
             directory / f'{step:08d}.pt',
             model,
             optimizer,
-            accelerator=accelerator,
+            # accelerator=accelerator,
             step=step,
             epoch=epoch)
 
@@ -262,7 +290,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG):
         directory / f'{step:08d}.pt',
         model,
         optimizer,
-        accelerator=accelerator,
+        # accelerator=accelerator,
         step=step,
         epoch=epoch)
 
@@ -276,55 +304,62 @@ def evaluate(
     directory,
     step,
     model,
+    gpu,
     frontend,
     loader,
     partition,
-    accelerator=None):
+    # accelerator=None
+):
     """Perform model evaluation"""
+    device = 'cpu' if gpu is None else f'cuda:{gpu}'
+
     # Setup evaluation metrics
     metrics = ppgs.evaluate.Metrics(partition)
 
     for i, batch in enumerate(loader):
 
         # Unpack batch
-        input_representation, indices, lengths = batch
+        input_representation, indices, lengths = (
+            item.to(device) for item in batch
+        )
 
         # Maybe encode
         if frontend is not None:
             input_representation = frontend(
-                input_representation).to(torch.float16)
+                input_representation
+            ).to(torch.float16)
 
         # Forward pass
         predicted_ppgs = model(input_representation, lengths)
 
         # Gather indices
-        indices = accelerator.pad_across_processes(
-            indices,
-            dim=1,
-            pad_index=-100)
-        indices = accelerator.pad_across_processes(
-            indices,
-            dim=0,
-            pad_index=-100)
-        indices = accelerator.gather_for_metrics(indices)
-        non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
-        indices = indices[non_pad_batches]
+        # indices = accelerator.pad_across_processes(
+        #     indices,
+        #     dim=1,
+        #     pad_index=-100)
+        # indices = accelerator.pad_across_processes(
+        #     indices,
+        #     dim=0,
+        #     pad_index=-100)
+        # indices = accelerator.gather_for_metrics(indices)
+        # non_pad_batches = torch.argwhere(indices[:, 0] != -100).squeeze(dim=1)
+        # indices = indices[non_pad_batches]
 
         # Gather PPGs
-        predicted_ppgs = accelerator.pad_across_processes(
-            predicted_ppgs,
-            dim=2,
-            pad_index=0)
-        predicted_ppgs = accelerator.pad_across_processes(
-            predicted_ppgs,
-            dim=0,
-            pad_index=torch.nan)
-        predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
-        predicted_ppgs = predicted_ppgs[non_pad_batches]
+        # predicted_ppgs = accelerator.pad_across_processes(
+        #     predicted_ppgs,
+        #     dim=2,
+        #     pad_index=0)
+        # predicted_ppgs = accelerator.pad_across_processes(
+        #     predicted_ppgs,
+        #     dim=0,
+        #     pad_index=torch.nan)
+        # predicted_ppgs = accelerator.gather_for_metrics(predicted_ppgs)
+        # predicted_ppgs = predicted_ppgs[non_pad_batches]
 
         # Update metrics
-        if accelerator.is_main_process:
-            metrics.update(predicted_ppgs, indices)
+        # if accelerator.is_main_process:
+        metrics.update(predicted_ppgs, indices)
 
         # Finish when we have completed all or enough batches
         if i == ppgs.EVALUATION_BATCHES:

@@ -4,7 +4,6 @@ from matplotlib.colors import PowerNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import ppgs
-from torchutil.metrics import CudaMaxMemoryUsage
 
 
 ###############################################################################
