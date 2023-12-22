@@ -196,7 +196,7 @@ STEPS = 200000
 #     NUM_WORKERS = int(os.cpu_count() / max(1, len(GPUtil.getGPUs())))
 # except ValueError:
 #     NUM_WORKERS = os.cpu_count()
-NUM_WORKERS = 12
+NUM_WORKERS = 8
 
 # Seed for all random number generators
 RANDOM_SEED = 1234
