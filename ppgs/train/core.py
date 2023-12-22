@@ -3,6 +3,7 @@ import functools
 
 # import accelerate
 import matplotlib
+import numpy as np
 import torch
 import torchutil
 
@@ -151,7 +152,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
                     if p.grad is not None:
                         max_grad = max(max_grad, p.grad.data.max())
                         total_norm += p.grad.data.norm(2)
-                total_norm = total_norm ** (1. / 2)
+                total_norm = (total_norm ** (1. / 2)).item()
                 torchutil.tensorboard.update(
                     directory,
                     step,
@@ -163,7 +164,12 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
                 if ppgs.GRADIENT_CLIPPING_METHOD is not None:
 
                     # Just skip the update
-                    if ppgs.GRADIENT_CLIPPING_METHOD == 'skip':
+                    if (
+                        ppgs.GRADIENT_CLIPPING_METHOD == 'skip' and
+                        max_grad > ppgs.GRADIENT_CLIPPING_THRESHOLD and
+                        step > 1000
+                    ):
+                        print(f'{max_grad} exceeds threshold of {ppgs.GRADIENT_CLIPPING_THRESHOLD}. Skipping.')
                         continue
 
                     # Unscale gradients
@@ -214,17 +220,11 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
 
                     # Log VRAM utilization
                     # index = accelerator.device.index
-                    index = device.index
-                    print(torch.cuda.memory_summary(index))
-                    scalars = {
-                        'max_allocated (GB)': torch.cuda.max_memory_allocated(
-                            index) / (1024 ** 3),
-                        'max_reserved (GB)': torch.cuda.max_memory_reserved(
-                            index) / (1024 ** 3)}
+                    print(torch.cuda.memory_summary(device.index))
                     torchutil.tensorboard.update(
                         directory,
                         step,
-                        scalars=scalars)
+                        scalars=torchutil.cuda.utilization(device, 'MB'))
 
                     # Clear cache to make space for evaluation tensors
                     del train_loss
