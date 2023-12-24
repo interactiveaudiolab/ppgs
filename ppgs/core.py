@@ -474,10 +474,8 @@ def interpolate(
         Interpolated PPGs
         shape=(len(ppgs.PHONEMES), frames)
     """
-    ppgX, ppgY = ppgX.squeeze(0), ppgY.squeeze(0)
-
     # Spherical linear interpolation
-    omega = torch.acos((ppgX * ppgY).sum(0, keepdim=True))
+    omega = torch.acos((ppgX * ppgY).sum(-2, keepdim=True))
     sin_omega = torch.clip(torch.sin(omega), 1e-6)
     interpolated = (
         torch.sin((1. - interp) * omega) / sin_omega * ppgX +
@@ -485,8 +483,8 @@ def interpolate(
 
     # Fix locations where ppgX == ppgY
     for i in range(ppgX.shape[-1]):
-        if not torch.count_nonzero(interpolated[:, i]):
-            interpolated[:, i] = ppgX[:, i]
+        if not torch.count_nonzero(interpolated[..., i]):
+            interpolated[..., i] = ppgX[..., i]
 
     return interpolated
 

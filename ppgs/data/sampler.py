@@ -31,16 +31,10 @@ def sampler(dataset, partition):
 
 class Sampler(torch.utils.data.sampler.BatchSampler):
 
-    def __init__(
-        self,
-        dataset,
-        max_frames=ppgs.MAX_TRAINING_FRAMES,
-        variable_batch=ppgs.VARIABLE_BATCH
-    ):
+    def __init__(self, dataset, max_frames=ppgs.MAX_TRAINING_FRAMES):
         self.max_frames = max_frames
         self.epoch = 0
         self.buckets = dataset.buckets()
-        self.variable_batch = variable_batch
 
     def __iter__(self):
         return iter(self.batch())
@@ -63,26 +57,19 @@ class Sampler(torch.utils.data.sampler.BatchSampler):
                 torch.randperm(len(bucket), generator=generator).tolist()]
 
             # Variable batch size
-            if self.variable_batch:
-                batch = []
-                max_length = 0
-                for index, length in bucket:
-                    max_length = max(max_length, length)
-                    if (
-                        batch and
-                        (len(batch) + 1) * max_length > self.max_frames
-                    ):
-                        batches.append(batch)
-                        max_length = length
-                        batch = [index]
-                    else:
-                        batch.append(index)
-
-            # Constant batch size
-            else:
-                batches.extend([
-                    bucket[i:i + ppgs.BATCH_SIZE, 0]
-                    for i in range(0, len(bucket), ppgs.BATCH_SIZE)])
+            batch = []
+            max_length = 0
+            for index, length in bucket:
+                max_length = max(max_length, length)
+                if (
+                    batch and
+                    (len(batch) + 1) * max_length > self.max_frames
+                ):
+                    batches.append(batch)
+                    max_length = length
+                    batch = [index]
+                else:
+                    batch.append(index)
 
         # Shuffle
         return [

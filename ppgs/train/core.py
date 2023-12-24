@@ -1,5 +1,5 @@
-import collections
 import functools
+import math
 
 # import accelerate
 import matplotlib
@@ -46,13 +46,6 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
     ####################
 
     optimizer = torch.optim.Adam(model.parameters(), lr=ppgs.LEARNING_RATE)
-
-    ###########################
-    # Create gradient clipper #
-    ###########################
-
-    if ppgs.GRADIENT_CLIPPING_METHOD == 'autoclip':
-        gradient_history = collections.deque()
 
     ##############################
     # Maybe load from checkpoint #
@@ -145,65 +138,55 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
                 # accelerator.backward(train_loss)
                 scaler.scale(train_loss).backward()
 
-                # Get gradient norm
-                max_grad = 0
-                total_norm = 0
-                for p in model.parameters():
-                    if p.grad is not None:
-                        max_grad = max(max_grad, p.grad.data.max())
-                        total_norm += p.grad.data.norm(2)
-                total_norm = (total_norm ** (1. / 2)).item()
+                # Monitor gradient statistics
+                gradient_statistics = torchutil.gradients.stats(model)
                 torchutil.tensorboard.update(
                     directory,
                     step,
-                    scalars={
-                        'gradient_norm': total_norm,
-                        'max_gradient': max_grad})
+                    scalars=gradient_statistics)
 
-                # Gradient clipping
-                if ppgs.GRADIENT_CLIPPING_METHOD is not None:
-
-                    # Just skip the update
-                    if (
-                        ppgs.GRADIENT_CLIPPING_METHOD == 'skip' and
-                        max_grad > ppgs.GRADIENT_CLIPPING_THRESHOLD and
-                        step > 1000
-                    ):
-                        print(f'{max_grad} exceeds threshold of {ppgs.GRADIENT_CLIPPING_THRESHOLD}. Skipping.')
-                        continue
+                # Maybe perform gradient clipping
+                if (
+                    ppgs.GRADIENT_CLIP_THRESHOLD_INF is not None or
+                    ppgs.GRADIENT_CLIP_THRESHOLD_L2 is not None
+                ):
 
                     # Unscale gradients
                     scaler.unscale_(optimizer)
 
-                    # Autoclip (with L2)
-                    if ppgs.GRADIENT_CLIPPING_METHOD == 'autoclip':
-                        gradient_history.append(total_norm)
-                        if len(gradient_history) > 1000:
-                            clip_value = np.percentile(
-                                gradient_history, ppgs.GRADIENT_CLIPPING_THRESHOLD)
+                    if ppgs.GRADIENT_CLIP_THRESHOLD_L2 is not None:
+
+                        # Compare gradient norm to threshold
+                        grad_norm = gradient_statistics['gradients/norm']
+                        if grad_norm > promonet.GRADIENT_CLIP_THRESHOLD_L2:
+
+                            # Clip
                             # accelerator.clip_grad_norm_(
                             #     model.parameters(),
-                            #     clip_value)
+                            #     ppgs.GRADIENT_CLIPPING_THRESHOLD,
+                            #     norm_type=2.0)
                             torch.nn.utils.clip_grad_norm_(
                                 model.parameters(),
-                                clip_value)
+                                ppgs.GRADIENT_CLIP_THRESHOLD_L2,
+                                norm_type=2.0)
 
-                    else:
+                    if ppgs.GRADIENT_CLIP_THRESHOLD_INF is not None:
 
-                        if ppgs.GRADIENT_CLIPPING_METHOD == 'l2':
-                            norm_type = 2.0
-                        elif ppgs.GRADIENT_CLIPPING_METHOD == 'l1':
-                            norm_type = 1.0
-                        elif ppgs.GRADIENT_CLIPPING_METHOD == 'inf':
-                            norm_type = 'inf'
-                        # accelerator.clip_grad_norm_(
-                        #     model.parameters(),
-                        #     ppgs.GRADIENT_CLIPPING_THRESHOLD,
-                        #     norm_type=norm_type)
-                        torch.nn.utils.clip_grad_norm_(
-                            model.parameters(),
-                            ppgs.GRADIENT_CLIPPING_THRESHOLD,
-                            norm_type='inf')
+                        # Compare maximum gradient to threshold
+                        max_grad = max(
+                            gradient_statistics['gradients/max'],
+                            math.abs(gradient_statistics['gradients/min']))
+                        if max_grad > promonet.GRADIENT_CLIP_THRESHOLD_INF:
+
+                            # Clip
+                            # accelerator.clip_grad_norm_(
+                            #     model.parameters(),
+                            #     ppgs.GRADIENT_CLIPPING_THRESHOLD,
+                            #     norm_type='inf')
+                            torch.nn.utils.clip_grad_norm_(
+                                model.parameters(),
+                                ppgs.GRADIENT_CLIP_THRESHOLD_INF,
+                                norm_type='inf')
 
                 # Update weights
                 # optimizer.step()
@@ -232,6 +215,9 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
                     torch.cuda.empty_cache()
 
                     # Evaluate
+                    evaluation_steps = (
+                        None if step == ppgs.STEPS
+                        else ppgs.DEFAULT_EVALUATION_STEPS)
                     evaluate_fn = functools.partial(
                         evaluate,
                         directory,
@@ -239,10 +225,10 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
                         model,
                         gpu,
                         frontend,
-                        # accelerator=accelerator
-                    )
+                        # accelerator=accelerator,
+                        evaluation_steps=evaluation_steps)
                     with ppgs.inference_context(model):
-                        evaluate_fn(train_loader, 'train')
+                        # evaluate_fn(train_loader, 'train')
                         evaluate_fn(valid_loader, 'valid')
 
                 ###################
@@ -306,9 +292,10 @@ def evaluate(
     model,
     gpu,
     frontend,
+    # accelerator=None,
     loader,
     partition,
-    # accelerator=None
+    evaluation_steps=None
 ):
     """Perform model evaluation"""
     device = 'cpu' if gpu is None else f'cuda:{gpu}'
@@ -361,8 +348,8 @@ def evaluate(
         # if accelerator.is_main_process:
         metrics.update(predicted_ppgs, indices)
 
-        # Finish when we have completed all or enough batches
-        if i == ppgs.EVALUATION_BATCHES:
+        # Stop when we exceed some number of batches
+        if evaluation_steps is not None and i + 1 == evaluation_steps:
             break
 
     # Write to tensorboard

@@ -3,13 +3,7 @@ from encodec import EncodecModel
 MODULE = 'ppgs'
 
 # Configuration name
-CONFIG = 'encodec'
-
-# Dimensionality of input representation
-INPUT_CHANNELS = 128
-
-# Input representation
-REPRESENTATION = 'encodec'
+CONFIG = 'encodec-5layer-512channel'
 
 def _frontend(device='cpu'):
     import torch
@@ -26,3 +20,15 @@ def _frontend(device='cpu'):
 
 # This function takes as input a torch.Device and returns a callable frontend
 FRONTEND = _frontend
+
+# Network width
+HIDDEN_CHANNELS = 512
+
+# Dimensionality of input representation
+INPUT_CHANNELS = 128
+
+# Number of hidden layers
+NUM_HIDDEN_LAYERS = 5
+
+# Input representation
+REPRESENTATION = 'encodec'
