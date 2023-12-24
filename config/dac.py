@@ -27,5 +27,3 @@ def _frontend(device='cpu'):
 
 # This function takes as input a torch.Device and returns a callable frontend
 FRONTEND = _frontend
-
-EVALUATION_INTERVAL = 100

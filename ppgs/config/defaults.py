@@ -109,7 +109,7 @@ SIMILARITY_MATRIX_PATH = ASSETS_DIR / 'balanced_similarity.pt'
 CHECKPOINT_INTERVAL = 25000  # steps
 
 # Number of batches to perform during evaluation
-EVALUATION_BATCHES = 16
+DEFAULT_EVALUATION_STEPS = 16
 
 # Number of steps between evaluation
 EVALUATION_INTERVAL = 1000  # steps
@@ -159,30 +159,22 @@ OUTPUT_CHANNELS = 40
 
 
 # Number of buckets to partition training examples to minimize padding
-BUCKETS = 4
-
-# Whether to use variable size batches
-VARIABLE_BATCH = True
-
-# Batch size for fixed size batches
-BATCH_SIZE = 72
+BUCKETS = 1
 
 # Whether to use class-balanced loss weights
 CLASS_BALANCED = False
 
-# Method to use for gradient clipping.
-# One of ['autoclip', 'inf', 'l1', 'l2', 'skip'].
-GRADIENT_CLIPPING_METHOD = None
+# Infinity norm gradient clipping threshold
+GRADIENT_CLIP_THRESHOLD_INF = None
 
-# Gradient clipping threshold.
-# For autoclip, this specifies the clipping percentile.
-GRADIENT_CLIPPING_THRESHOLD = 1.0
+# L2 norm gradient clipping threshold
+GRADIENT_CLIP_THRESHOLD_L2 = None
 
 # Optimizer step size
 LEARNING_RATE = 2e-4
 
 # Maximum number of frames in a batch
-MAX_TRAINING_FRAMES = 100000
+MAX_TRAINING_FRAMES = 150000
 
 # Maximum number of frames in a batch during preprocessing
 MAX_PREPROCESS_FRAMES = 10000
