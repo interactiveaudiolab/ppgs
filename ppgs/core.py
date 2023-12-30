@@ -158,7 +158,7 @@ def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = 8,
+    num_workers: int = 0,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
 ) -> None:
@@ -216,7 +216,7 @@ def from_paths_to_paths(
     output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
     extensions: Optional[List[str]] = None,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = 8,
+    num_workers: int = 0,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
 ) -> None:
@@ -252,8 +252,8 @@ def from_paths_to_paths(
         input_files,
         output_files,
         checkpoint,
-        gpu,
         num_workers,
+        gpu,
         max_frames)
 
 
