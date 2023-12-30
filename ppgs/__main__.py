@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument(
         '--num-workers',
         type=int,
-        default=ppgs.NUM_WORKERS,
+        default=0,
         help='Number of CPU threads for multiprocessing')
     parser.add_argument(
         '--gpu',
