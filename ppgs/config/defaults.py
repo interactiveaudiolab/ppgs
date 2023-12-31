@@ -45,10 +45,8 @@ ALL_REPRESENTATIONS = [
     'bottleneck',
     'w2v2fb',
     'w2v2fc',
-    'spectrogram',
     'mel',
-    'encodec',
-    'dac']
+    'encodec']
 
 # All datasets used by this codebase
 DATASETS = ['arctic', 'commonvoice', 'timit']
