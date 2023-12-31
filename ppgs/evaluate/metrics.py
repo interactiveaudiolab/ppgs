@@ -191,15 +191,16 @@ class Loss:
         return {f'loss': (self.total / self.count).item()}
 
     def reset(self):
-        self.total = torch.tensor(0., dtype=torch.float64)
+        self.total = 0.
         self.count = 0
 
     def update(self, predicted_logits, target_indices):
         """Update the total cross entropy loss"""
         self.total += ppgs.loss(
-            predicted_logits.to(torch.float64),
+            predicted_logits,
             target_indices,
-            reduction='sum').item()
+            reduction='sum'
+        ).item()
         self.count += (target_indices != -100).sum()
 
 

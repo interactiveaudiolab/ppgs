@@ -2,6 +2,8 @@ import json
 
 import matplotlib.pyplot as plt
 
+import ppgs
+
 
 ###############################################################################
 # Constants
@@ -19,7 +21,7 @@ COLORS = ['red', 'green', 'blue', 'orange', 'purple', 'cyan', 'lime']
 def from_eval(
     output_file,
     datasets=ppgs.DATASETS,
-    representations=ppgs.REPRESENTATIONS
+    representations=ppgs.ALL_REPRESENTATIONS
 ):
     """Plot accuracy of evaluated datasets and represenations"""
     # Get evaluation files
