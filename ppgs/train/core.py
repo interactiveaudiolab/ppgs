@@ -227,7 +227,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
                         frontend,
                         # accelerator=accelerator,
                         evaluation_steps=evaluation_steps)
-                    with ppgs.inference_context(model):
+                    with torchutil.inference.context(model):
                         # evaluate_fn(train_loader, 'train')
                         evaluate_fn(valid_loader, 'valid')
 

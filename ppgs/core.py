@@ -92,10 +92,10 @@ def from_features(
 
     # Codebook lookup
     if hasattr(from_features, 'frontend'):
-        preprocess_context = (
-            torch.inference_mode if ppgs.MODEL == 'W2V2FC'
-            else functools.partial(inference_context, from_features.frontend, device))
-        with preprocess_context():
+        with torchutil.inference.context(
+            from_features.frontend,
+            ppgs.MODEL != 'W2V2FC'
+        ):
             features = from_features.frontend(features.to(device))
 
     # Infer
@@ -191,6 +191,7 @@ def from_files_to_files(
     else:
 
         # Initialize multi-threaded dataloader
+        # TODO - is this dropping the last batch?
         dataloader = ppgs.data.loader(
             audio_files,
             features=['audio', 'length', 'audio_file'],
@@ -363,6 +364,7 @@ def from_dataloader(
         if save_workers > 0:
             pool.close()
             pool.join()
+            # TODO - terminate?
 
 
 ###############################################################################
@@ -394,10 +396,6 @@ def distance(
     Returns
         Normalized Jenson-shannon divergence between PPGs
     """
-    if ppgs.REPRESENTATION_KIND != 'ppg':
-        warnings.warn('ppg distance is only supported when REPRESENTATION_KIND == "ppg", returning NaN')
-        return torch.tensor(float('nan'))
-
     # Handle numerical instability at boundaries
     ppgX = torch.clamp(ppgX, 1e-8, 1 - 1e-8)
     ppgY = torch.clamp(ppgY, 1e-8, 1 - 1e-8)
@@ -426,10 +424,6 @@ def distance(
         log_average,
         ppgY,
         reduction='none')
-
-    # Sum reduction
-    # kl_X = kl_X.sum(dim=1)
-    # kl_Y = kl_Y.sum(dim=1)
 
     # Average KL
     average_kl = (kl_X + kl_Y) / 2
@@ -626,35 +620,13 @@ def infer(features, lengths, checkpoint=None, softmax=True):
     infer.model = infer.model.to(features.device)
 
     # Infer
-    with inference_context(infer.model):
+    with torchutil.inference.context(infer.model):
         logits = infer.model(features, lengths)
 
         # Postprocess
         if softmax:
             return torch.nn.functional.softmax(logits, dim=1)
         return logits
-
-
-@contextlib.contextmanager
-def inference_context(model, device=None):
-    if isinstance(model, torch.nn.Module) or hasattr(model, 'parameters'):
-        device_type = next(model.parameters()).device.type
-    else:
-        if device is None:
-            raise ValueError('no way to determine device used with inference context')
-        device_type = device.type
-
-    if isinstance(model, torch.nn.Module) or hasattr(model, 'train'):
-        # Prepare model for evaluation
-        model.train(False)
-
-        # Turn off gradient computation; turn on mixed precision
-    with torch.inference_mode(), torch.autocast(device_type):
-        yield
-
-    if isinstance(model, torch.nn.Module) or hasattr(model, 'train'):
-        # Prepare model for training
-        model.train(True)
 
 
 def resample(
