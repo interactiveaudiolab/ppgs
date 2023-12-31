@@ -41,12 +41,7 @@ WINDOW_SIZE = 1024
 ALL_FEATURES = ['audio', 'phonemes']
 
 # All supported input representations
-ALL_REPRESENTATIONS = [
-    'bottleneck',
-    'w2v2fb',
-    'w2v2fc',
-    'mel',
-    'encodec']
+ALL_REPRESENTATIONS = ['bottleneck', 'w2v2fb', 'w2v2fc', 'mel', 'encodec']
 
 # All datasets used by this codebase
 DATASETS = ['arctic', 'commonvoice', 'timit']
@@ -55,7 +50,7 @@ DATASETS = ['arctic', 'commonvoice', 'timit']
 BEST_REPRESENTATION = 'w2v2fb'
 
 # Default representation
-REPRESENTATION = 'w2v2fb'
+REPRESENTATION = BEST_REPRESENTATION
 
 # representation kind
 # One of ['ppg', 'latents'].
@@ -119,7 +114,7 @@ EVALUATION_INTERVAL = 1000  # steps
 
 
 # Local checkpoint to use
-#  If None, Huggingface will be used unless a checkpoint is given in the CLI
+# If None, Huggingface will be used unless a checkpoint is given in the CLI
 LOCAL_CHECKPOINT = None
 
 # Number of attention heads
