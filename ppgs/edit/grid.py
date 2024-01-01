@@ -27,7 +27,7 @@ def sample(ppg: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
 
     # Get PPG indices
     xp = torch.arange(ppg.shape[-1], device=ppg.device)
-    i = torch.searchsorted(xp, grid, right=True)
+    i = torch.searchsorted(xp, grid, side='right')
 
     # Spherical linear interpolation
     ppg = torch.nn.functional.pad(ppg, (0, 1), mode='replicate')
