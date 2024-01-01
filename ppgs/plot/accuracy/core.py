@@ -38,12 +38,13 @@ def from_eval(
     # Get average accuracy over datasets
     average = {}
     for represenation in represenations:
-        average[model] = \
+        average[representation] = \
             sum([accuracies[dataset] for dataset in datasets]) / len(datasets)
 
-    # TODO - Get sort order
-    sorted_indices = list(reversed(np.argsort([item[1] for item in average_accuracy_items])))
-    representations = representations[sorted_indices]
+    # Get sort order
+    representations = {
+        representation for representation, _ in
+        sorted(average.items(), key=lambda item: item[1], reverse=True)}
 
     # Display names
     representation_map = {

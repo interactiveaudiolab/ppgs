@@ -191,7 +191,6 @@ def from_files_to_files(
     else:
 
         # Initialize multi-threaded dataloader
-        # TODO - is this dropping the last batch?
         dataloader = ppgs.data.loader(
             audio_files,
             features=['audio', 'length', 'audio_file'],
@@ -364,7 +363,6 @@ def from_dataloader(
         if save_workers > 0:
             pool.close()
             pool.join()
-            # TODO - terminate?
 
 
 ###############################################################################
