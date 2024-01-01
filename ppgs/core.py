@@ -359,6 +359,9 @@ def from_dataloader(
 
     finally:
 
+        # Close progress bar
+        progress.close()
+
         # Maybe shutdown multiprocessing
         if save_workers > 0:
             pool.close()
