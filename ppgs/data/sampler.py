@@ -71,6 +71,10 @@ class Sampler(torch.utils.data.sampler.BatchSampler):
                 else:
                     batch.append(index)
 
+            # Don't drop last batch
+            if batch:
+                batches.append(batch)
+
         # Shuffle
         return [
             batches[i] for i in
