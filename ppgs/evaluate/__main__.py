@@ -20,11 +20,6 @@ def parse_args():
         choices=ppgs.DATASETS,
         help='The datasets to evaluate')
     parser.add_argument(
-        '--checkpoint',
-        type=Path,
-        default=None,
-        help='The checkpoint file to evaluate')
-    parser.add_argument(
         '--gpu',
         type=int,
         help='The index of the GPU to use for evaluation')
