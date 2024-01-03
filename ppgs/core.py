@@ -623,6 +623,7 @@ def infer(features, lengths, checkpoint=None, softmax=True):
         # Postprocess
         if softmax:
             return torch.nn.functional.softmax(logits, dim=1)
+
         return logits
 
 
