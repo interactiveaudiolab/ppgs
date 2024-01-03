@@ -92,11 +92,7 @@ def from_features(
 
     # Codebook lookup
     if hasattr(from_features, 'frontend'):
-        with torchutil.inference.context(
-            from_features.frontend,
-            ppgs.MODEL != 'W2V2FC'
-        ):
-            features = from_features.frontend(features.to(device))
+        features = from_features.frontend(features.to(device))
 
     # Infer
     return infer(features.to(device), lengths.to(device), checkpoint, softmax)

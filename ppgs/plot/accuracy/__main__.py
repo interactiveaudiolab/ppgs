@@ -26,8 +26,8 @@ def parse_args():
     parser.add_argument(
         '--representations',
         nargs='+',
-        default=ppgs.REPRESENTATIONS,
-        choices=ppgs.REPRESENTATIONS,
+        default=ppgs.ALL_REPRESENTATIONS,
+        choices=ppgs.ALL_REPRESENTATIONS,
         help='The representations to plot')
     return parser.parse_args()
 
