@@ -44,7 +44,7 @@ ALL_FEATURES = ['audio', 'phonemes']
 ALL_REPRESENTATIONS = ['bottleneck', 'w2v2fb', 'w2v2fc', 'mel', 'encodec']
 
 # All datasets used by this codebase
-DATASETS = ['arctic', 'commonvoice', 'timit']
+DATASETS = ['commonvoice', 'arctic', 'timit']
 
 # Best representation
 BEST_REPRESENTATION = 'w2v2fb'

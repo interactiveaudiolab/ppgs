@@ -23,7 +23,7 @@ def from_eval(
     datasets=ppgs.DATASETS,
     representations=ppgs.ALL_REPRESENTATIONS
 ):
-    """Plot accuracy of evaluated datasets and represenations"""
+    """Plot accuracy of evaluated datasets and representations"""
     # Get evaluation files
     files = {
         r: ppgs.EVAL_DIR / r / 'overall.json' for r in representations}
@@ -32,19 +32,23 @@ def from_eval(
     accuracies = {dataset: {} for dataset in datasets}
     for representation, file in files.items():
         with open(file, 'r') as file:
-            accuracies[dataset][represenation] = \
-                json.load(file)[dataset]['Accuracy']
+            results = json.load(file)
+            for dataset in datasets:
+                accuracies[dataset][representation] = \
+                    results[dataset]['Accuracy']
 
     # Get average accuracy over datasets
     average = {}
-    for represenation in represenations:
+    for representation in representations:
         average[representation] = \
-            sum([accuracies[dataset] for dataset in datasets]) / len(datasets)
+            sum([
+                accuracies[dataset][representation] for dataset in datasets
+            ]) / len(datasets)
 
     # Get sort order
-    representations = {
+    representations = [
         representation for representation, _ in
-        sorted(average.items(), key=lambda item: item[1], reverse=True)}
+        sorted(average.items(), key=lambda item: item[1], reverse=True)]
 
     # Display names
     representation_map = {
@@ -75,8 +79,8 @@ def from_eval(
             ax.spines[pos].set_visible(False)
         ax.tick_params(left=False, bottom=False)
         ax.set_xticks(
-            range(len(accuracies)),
-            [representation_map[r] for r in represenations],
+            range(len(representations)),
+            [representation_map[r] for r in representations],
             rotation=45,
             rotation_mode='anchor',
             ha='right',
@@ -85,8 +89,11 @@ def from_eval(
 
         # Plot accuracies
         bar = ax.bar(
-            range(len(represenations)),
-            [accuracies[represenation] for represenation in represenations],
+            range(len(representations)),
+            [
+                accuracies[dataset][representation]
+                for representation in representations
+            ],
             align='center',
             color=COLORS)
 
@@ -113,7 +120,7 @@ def from_eval(
     lax.axis('off')
     legend_labels = [
         representation_map[r] + f'\n(avg={average[r]:.3f})'
-        for r in represenations]
+        for r in representations]
     top_legend = lax.legend(
         bar,
         legend_labels,
