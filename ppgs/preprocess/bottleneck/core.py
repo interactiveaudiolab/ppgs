@@ -31,7 +31,7 @@ def from_audios(
     sample_rate=ppgs.SAMPLE_RATE,
     config=CONFIG_FILE,
     gpu=None):
-    """Compute Bottleneck PPGs from audio"""
+    """Compute ASR bottleneck features from audio"""
     with torch.no_grad():
         device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
