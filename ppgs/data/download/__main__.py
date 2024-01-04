@@ -21,10 +21,6 @@ def parse_args():
         '--format-only',
         action='store_true',
         help='Skip download step and format only')
-    parser.add_argument(
-        '--purge-sources',
-        action='store_true',
-        help='Autoremove non-essential tarballs, zipfiles, etc. upon completion')
     return parser.parse_args()
 
 

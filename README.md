@@ -53,7 +53,7 @@ To perform training, install training dependencies and FFMPEG.
 
 ```bash
 pip install ppgs[train]
-conda install -c conda-forge 'ffmpeg<5'
+conda install -c conda-forge ffmpeg
 ``````
 
 If you wish to use the Charsiu representation, download the code,
@@ -67,7 +67,7 @@ cd ppgs/
 
 # Install dependencies
 pip install -e .[train]
-conda install -c conda-forge 'ffmpeg<5'
+conda install -c conda-forge ffmpeg
 
 # Download Charsiu
 git submodule init

@@ -14,7 +14,7 @@ import ppgs
 
 
 @torchutil.notify('download')
-def datasets(datasets=ppgs.DATASETS, format_only=False, purge_sources=False):
+def datasets(datasets=ppgs.DATASETS, format_only=False):
     """Downloads datasets"""
     for dataset in [dataset.lower() for dataset in datasets]:
 
@@ -29,10 +29,6 @@ def datasets(datasets=ppgs.DATASETS, format_only=False, purge_sources=False):
 
             # Extract relevant data in common format
             dataset_object.format()
-
-            # Maybe clean-up
-            if purge_sources:
-                ppgs.data.purge.datasets(datasets=[dataset], kinds=['sources'])
 
         else:
 
