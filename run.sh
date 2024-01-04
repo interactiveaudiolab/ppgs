@@ -65,4 +65,4 @@ python -m ppgs.evaluate \
 ###############################################################################
 
 
-python -m ppgs.plot.accuracy --output_file eval/accuracy.pdf
+python -m ppgs.plot.accuracy --output_file accuracy.pdf
