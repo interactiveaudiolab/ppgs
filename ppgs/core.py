@@ -1,14 +1,12 @@
 import contextlib
 import functools
+import itertools
 import multiprocessing as mp
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Union
-from itertools import repeat
-import warnings
-
-import sys
 
 import torch
 import torchaudio
@@ -504,7 +502,7 @@ def aggregate(
     sources = list(sources)
     for i in range(0, len(sources)):
         if sources[i] is None:
-            sources[i] = repeat(None)
+            sources[i] = itertools.repeat(None)
 
     # Standardize extensions
     if source_extensions is not None:
@@ -600,7 +598,6 @@ def infer(features, lengths, checkpoint=None, softmax=True):
 
     # Skip inference if we want input representations
     if ppgs.REPRESENTATION_KIND == 'latents':
-        warnings.warn('Returning input latents, not ppg')
         return features
 
     # Maybe cache model

@@ -193,4 +193,4 @@ RANDOM_SEED = 1234
 
 
 # Exponent to use with similarity matrix in normalization
-SIMILARITY_EXPONENT = 1
+SIMILARITY_EXPONENT = 1.

@@ -29,8 +29,18 @@ def sample(ppg: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
     xp = torch.arange(ppg.shape[-1], device=ppg.device)
     i = torch.searchsorted(xp, grid, side='right')
 
+    # Replicate final frame
+    # "replication_pad1d_cpu" not implemented for 'Half'
+    if ppg.dtype == torch.float16:
+        ppg = torch.nn.functional.pad(
+            ppg.to(torch.float32),
+            (0, 1),
+            mode='replicate'
+        ).to(torch.float16)
+    else:
+        ppg = torch.nn.functional.pad(ppg, (0, 1), mode='replicate')
+
     # Spherical linear interpolation
-    ppg = torch.nn.functional.pad(ppg, (0, 1), mode='replicate')
     return ppgs.interpolate(ppg[..., i - 1], ppg[..., i], interp)
 
 
