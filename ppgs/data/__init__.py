@@ -4,4 +4,3 @@ from .loader import loader
 from .dataset import Dataset
 from . import datasets
 from . import download
-from . import purge
