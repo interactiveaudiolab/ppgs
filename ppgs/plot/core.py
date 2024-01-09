@@ -464,8 +464,8 @@ def from_ppg_to_video_file(
 
 def from_ppg_file_to_file(
     ppg_filename,
-    audio_filename,
     output_filename,
+    audio_filename=None,
     textgrid_filename=None,
     second_ppg_filename=None,
     font_filename=None,
