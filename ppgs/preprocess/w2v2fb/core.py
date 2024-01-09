@@ -41,9 +41,10 @@ def from_audios(
         device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
         # Cache model
-        if not hasattr(from_audios, 'model'):
+        if not hasattr(from_audios, 'model') or from_audios.device != device:
             from_audios.model = transformers.Wav2Vec2Model.from_pretrained(
                 config).to(device)
+            from_audios.device = device
 
         # Maybe resample
         audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).to(device)
