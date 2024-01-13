@@ -47,7 +47,7 @@ ALL_REPRESENTATIONS = ['bottleneck', 'w2v2fb', 'w2v2fc', 'mel', 'encodec']
 DATASETS = ['commonvoice', 'arctic', 'timit']
 
 # Best representation
-BEST_REPRESENTATION = 'w2v2fb'
+BEST_REPRESENTATION = 'mel'
 
 # Default representation
 REPRESENTATION = BEST_REPRESENTATION
@@ -127,10 +127,10 @@ ATTENTION_WINDOW_SIZE = 4
 FRONTEND = None
 
 # Network width
-HIDDEN_CHANNELS = 512
+HIDDEN_CHANNELS = 256
 
 # Dimensionality of input representation
-INPUT_CHANNELS = 768
+INPUT_CHANNELS = 80
 
 # Kernel width
 KERNEL_SIZE = 5

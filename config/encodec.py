@@ -27,8 +27,5 @@ HIDDEN_CHANNELS = 256
 # Dimensionality of input representation
 INPUT_CHANNELS = 128
 
-# Number of hidden layers
-NUM_HIDDEN_LAYERS = 5
-
 # Input representation
 REPRESENTATION = 'encodec'

@@ -27,9 +27,6 @@ setup(
         ]
     },
     install_requires=[
-        'accelerate',
-        'autoclip',
-        'deepspeed',
         'huggingface-hub',
         'moviepy',
         'numpy',
@@ -40,7 +37,7 @@ setup(
         'tqdm',
         'transformers',
         'opencv-python',
-        'yapecs>=0.0.7',
+        'yapecs',
         'gdown>=4.6.2'
     ],
     packages=['ppgs'],

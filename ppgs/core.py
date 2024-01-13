@@ -3,7 +3,6 @@ import functools
 import itertools
 import multiprocessing as mp
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Union
@@ -395,12 +394,14 @@ def distance(
     ppgX = torch.clamp(ppgX, 1e-8, 1 - 1e-8)
     ppgY = torch.clamp(ppgY, 1e-8, 1 - 1e-8)
     if normalize:
-        if not hasattr(distance, 'similarity_matrix'):
+        if (
+            not hasattr(distance, 'similarity_matrix') or
+            distance.device != ppgX.device
+        ):
             distance.similarity_matrix = torch.load(
                 ppgs.SIMILARITY_MATRIX_PATH
-            ).to(ppgX.device)
+            ).to(device=ppgX.device, dtype=ppgX.dtype)
             distance.device = ppgX.device
-        distance.similarity_matrix = distance.similarity_matrix.to(ppgX.device)
         ppgX = torch.mm(distance.similarity_matrix.T ** exponent, ppgX).T
         ppgY = torch.mm(distance.similarity_matrix.T ** exponent, ppgY).T
     else:
