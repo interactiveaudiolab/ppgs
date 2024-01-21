@@ -15,7 +15,7 @@ try:
     charsiu_models = importlib.util.module_from_spec(charsiu_spec)
     charsiu_spec.loader.exec_module(charsiu_models)
 
-except (ImportError, ModuleNotFoundError):
+except (FileNotFoundError, ImportError, ModuleNotFoundError):
 
     # Continue without Charsiu
     pass
