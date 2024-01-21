@@ -16,7 +16,6 @@ setup(
         'train': [
             'dac',
             'encodec',
-            'espnet',
             'g2pM',
             'gdown>=4.6.2',
             'humanfriendly',
@@ -27,6 +26,7 @@ setup(
         ]
     },
     install_requires=[
+        'espnet',
         'huggingface-hub',
         'moviepy',
         'numpy',
