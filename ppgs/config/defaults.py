@@ -192,5 +192,8 @@ RANDOM_SEED = 1234
 ###############################################################################
 
 
-# Exponent to use with similarity matrix in normalization
-SIMILARITY_EXPONENT = 1.
+# A hyperparameter that weights the relative contribution of the acoustic
+# phoneme similarity matrix. The default value was tuned to maximize
+# correlation between word error rate (WER) and the average JS divergence
+# between PPGs.
+SIMILARITY_EXPONENT = 0.6

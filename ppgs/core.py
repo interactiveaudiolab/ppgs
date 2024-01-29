@@ -480,6 +480,50 @@ def interpolate(
 
 
 ###############################################################################
+# PPG sparsification
+###############################################################################
+
+
+def sparsify(
+    ppg: torch.Tensor,
+    method: str='percentile',
+    threshold: Union[float, int]=0.85
+) -> torch.Tensor:
+    """Make phonetic posteriorgrams sparse
+
+    Arguments
+        ppg
+            Input PPG
+            shape=(*, len(ppgs.PHONEMES), frames)
+        method
+            Sparsification method. One of ['constant', 'percentile', 'topk'].
+        threshold
+            In [0, 1] for 'contant' and 'percentile'; integer > 0 for 'topk'.
+
+    Returns
+        Sparse phonetic posteriorgram
+        shape=(*, len(ppgs.PHONEMES), frames)
+    """
+    # Threshold either a constant value or a percentile
+    if method in ['constant', 'percentile']:
+        if method == 'percentile':
+            threshold = torch.quantile(ppg, threshold, dim=-2, keepdim=True)
+        ppg = torch.where(ppg > threshold, ppg, 0)
+
+    # Take the top n bins
+    elif method == 'topk':
+        values, indices = ppg.topk(
+            threshold,
+            dim=-2)
+        ppg.zero_()
+        for t in range(ppg.shape[-1]):
+            ppg[..., indices[..., t], t] = values[..., t]
+
+    # Renormalize after sparsification
+    return torch.softmax(torch.log(ppg + 1e-8), -2)
+
+
+###############################################################################
 # Utilities
 ###############################################################################
 
