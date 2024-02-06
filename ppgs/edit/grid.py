@@ -31,12 +31,13 @@ def sample(ppg: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
 
     # Replicate final frame
     # "replication_pad1d_cpu" not implemented for 'Half'
-    if ppg.dtype == torch.float16:
+    dtype = ppg.dtype
+    if dtype in [torch.float16, torch.bfloat16]:
         ppg = torch.nn.functional.pad(
             ppg.to(torch.float32),
             (0, 1),
             mode='replicate'
-        ).to(torch.float16)
+        ).to(dtype)
     else:
         ppg = torch.nn.functional.pad(ppg, (0, 1), mode='replicate')
 
