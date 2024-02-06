@@ -464,8 +464,17 @@ def interpolate(
         Interpolated PPGs
         shape=(len(ppgs.PHONEMES), frames)
     """
-    # Spherical linear interpolation
-    omega = torch.acos((ppgX * ppgY).sum(-2, keepdim=True))
+    # "acos_vml_cpu" not implemented for 'Half'
+    dtype = ppgX.dtype
+    if dtype in [torch.float16, torch.bfloat16]:
+        omega = torch.acos(
+            (ppgX.to(torch.float32) * ppgY.to(torch.float32)).sum(
+                -2,
+                keepdim=True)
+        ).to(dtype)
+    else:
+        omega = torch.acos((ppgX * ppgY).sum(-2, keepdim=True))
+
     sin_omega = torch.clip(torch.sin(omega), 1e-6)
     interpolated = (
         torch.sin((1. - interp) * omega) / sin_omega * ppgX +
