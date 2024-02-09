@@ -11,3 +11,6 @@ INPUT_CHANNELS = 80
 
 # Input representation
 REPRESENTATION = 'mel'
+
+# Number of training steps
+STEPS = 200000

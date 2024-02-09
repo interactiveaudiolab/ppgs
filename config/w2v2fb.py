@@ -11,3 +11,6 @@ INPUT_CHANNELS = 768
 
 # Input representation
 REPRESENTATION = 'w2v2fb'
+
+# Number of training steps
+STEPS = 200000
