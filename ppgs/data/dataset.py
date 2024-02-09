@@ -142,7 +142,6 @@ class Metadata:
         overwrite_cache=False,
         max_frames=ppgs.MAX_TRAINING_FRAMES):
         """Create a metadata object for the given dataset or sources"""
-        # with accelerate.state.PartialState().main_process_first():
         lengths = {}
 
         # Create dataset from string identifier
