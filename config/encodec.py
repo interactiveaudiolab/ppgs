@@ -29,3 +29,6 @@ INPUT_CHANNELS = 128
 
 # Input representation
 REPRESENTATION = 'encodec'
+
+# Number of training steps
+STEPS = 200000

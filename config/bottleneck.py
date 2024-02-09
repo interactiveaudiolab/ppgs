@@ -11,3 +11,6 @@ INPUT_CHANNELS = 144
 
 # Input representation
 REPRESENTATION = 'bottleneck'
+
+# Number of training steps
+STEPS = 200000

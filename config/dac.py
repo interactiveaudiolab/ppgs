@@ -12,6 +12,9 @@ INPUT_CHANNELS = 96
 # Input representation
 REPRESENTATION = 'dac'
 
+# Number of training steps
+STEPS = 200000
+
 def _frontend(device='cpu'):
     model_path = dac.utils.download(model_type='16khz')
     model = dac.DAC.load(model_path)
