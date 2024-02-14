@@ -33,6 +33,7 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
     * [`ppgs.edit.regex`](#ppgseditregex)
     * [`ppgs.edit.shift`](#ppgseditshift)
     * [`ppgs.edit.swap`](#ppgseditswap)
+- [Sparsify](#ppgssparsify)
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -519,6 +520,31 @@ def swap(ppg: torch.Tensor, phonemeA: str, phonemeB: str) -> torch.Tensor:
 
     Returns
         Edited PPG
+    """
+```
+
+## `ppgs.sparsify`
+
+```python
+def sparsify(
+    ppg: torch.Tensor,
+    method: str='percentile',
+    threshold: Union[float, int]=0.85
+) -> torch.Tensor:
+    """Make phonetic posteriorgrams sparse
+
+    Arguments
+        ppg
+            Input PPG
+            shape=(*, len(ppgs.PHONEMES), frames)
+        method
+            Sparsification method. One of ['constant', 'percentile', 'topk'].
+        threshold
+            In [0, 1] for 'contant' and 'percentile'; integer > 0 for 'topk'.
+
+    Returns
+        Sparse phonetic posteriorgram
+        shape=(*, len(ppgs.PHONEMES), frames)
     """
 ```
 
