@@ -145,6 +145,7 @@ def from_file(
         ppgs
             Phonetic posteriorgram
             shape=(len(ppgs.PHONEMES), frames)
+    """
 ```
 
 
