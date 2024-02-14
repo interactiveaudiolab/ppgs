@@ -47,7 +47,7 @@ ALL_REPRESENTATIONS = ['bottleneck', 'w2v2fb', 'w2v2fc', 'mel', 'encodec']
 DATASETS = ['commonvoice', 'arctic', 'timit']
 
 # Best representation
-BEST_REPRESENTATION = 'w2v2fb'
+BEST_REPRESENTATION = 'mel'
 
 # Default representation
 REPRESENTATION = BEST_REPRESENTATION
@@ -69,16 +69,13 @@ TRAINING_DATASET = 'commonvoice'
 ASSETS_DIR = Path(__file__).parent.parent / 'assets'
 
 # Location of initial downloads before processing into DATA_DIR
-# SOURCES_DIR = Path(__file__).parent.parent.parent / 'data' / 'sources'
-SOURCES_DIR = Path('/hemera-storage1/pardo/promo/repos/ppgs/data/sources')
+SOURCES_DIR = Path(__file__).parent.parent.parent / 'data' / 'sources'
 
 # Location of preprocessed features
-# CACHE_DIR = Path(__file__).parent.parent.parent / 'data' / 'cache'
-CACHE_DIR = Path('/hemera-storage1/pardo/promo/repos/ppgs/data/cache')
+CACHE_DIR = Path(__file__).parent.parent.parent / 'data' / 'cache'
 
 # Location of datasets on disk
-# DATA_DIR = Path(__file__).parent.parent.parent / 'data' / 'datasets'
-DATA_DIR = Path('/hemera-storage1/pardo/promo/repos/ppgs/data/data')
+DATA_DIR = Path(__file__).parent.parent.parent / 'data' / 'datasets'
 
 # Location to save evaluation artifacts
 EVAL_DIR = Path(__file__).parent.parent.parent / 'eval'
@@ -127,10 +124,10 @@ ATTENTION_WINDOW_SIZE = 4
 FRONTEND = None
 
 # Network width
-HIDDEN_CHANNELS = 512
+HIDDEN_CHANNELS = 256
 
 # Dimensionality of input representation
-INPUT_CHANNELS = 768
+INPUT_CHANNELS = 80
 
 # Kernel width
 KERNEL_SIZE = 5
@@ -173,7 +170,7 @@ MAX_TRAINING_FRAMES = 150000
 MAX_PREPROCESS_FRAMES = 10000
 
 # Number of training steps
-STEPS = 200000
+STEPS = 500000
 
 # Number of data loading worker threads
 # TEMPORARY
@@ -192,5 +189,8 @@ RANDOM_SEED = 1234
 ###############################################################################
 
 
-# Exponent to use with similarity matrix in normalization
-SIMILARITY_EXPONENT = 1.
+# A hyperparameter that weights the relative contribution of the acoustic
+# phoneme similarity matrix. The default value was tuned to maximize
+# correlation between word error rate (WER) and the average JS divergence
+# between PPGs.
+SIMILARITY_EXPONENT = 1.2
