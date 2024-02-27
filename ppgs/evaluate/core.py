@@ -13,12 +13,13 @@ import ppgs
 
 
 @torchutil.notify('evaluate')
-def datasets(datasets, gpu=None):
+def datasets(datasets, gpu=None, checkpoint=None):
     """Perform evaluation"""
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     # Get model checkpoint
-    checkpoint = torchutil.checkpoint.latest_path(ppgs.RUNS_DIR / ppgs.CONFIG)
+    if checkpoint is None:
+        checkpoint = torchutil.checkpoint.latest_path(ppgs.RUNS_DIR / ppgs.CONFIG)
 
     # Containers for results
     results = {}

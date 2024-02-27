@@ -164,7 +164,7 @@ class Metadata:
 
             # Maybe remove previous cached lengths
             if overwrite_cache:
-                    lengths_file.unlink(missing_ok=True)
+                lengths_file.unlink(missing_ok=True)
 
             # Load cached lengths
             if lengths_file.exists():
@@ -210,7 +210,6 @@ class Metadata:
             for file, stem in zip(self.audio_files, self.stems)
             if stem in lengths
         ])
-
 
     def __len__(self):
         return len(self.stems)

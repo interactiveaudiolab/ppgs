@@ -22,6 +22,7 @@ import ppgs
 def from_audio(
     audio: torch.Tensor,
     sample_rate: Union[int, float],
+    representation: Optional[str] = None,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: int = None
 ) -> torch.Tensor:
@@ -44,18 +45,29 @@ def from_audio(
             shape=(batch, len(ppgs.PHONEMES), frames)
     """
     # Preprocess
-    features = ppgs.preprocess.from_audio(audio, sample_rate, gpu)
+    features = ppgs.preprocess.from_audio(
+        audio=audio,
+        sample_rate=sample_rate,
+        representation=representation,
+        gpu=gpu
+    )
 
     # Get length in frames
     length = torch.tensor([features.shape[-1]], dtype=torch.long)
 
     # Infer
-    return from_features(features, length, checkpoint, gpu)
+    return from_features(
+        features=features,
+        lengths=length, 
+        representation=representation,
+        checkpoint=checkpoint, 
+        gpu=gpu)
 
 
 def from_features(
     features: torch.Tensor,
     lengths: torch.Tensor,
+    representation: Optional[str],
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None,
     softmax: bool = True
@@ -83,20 +95,28 @@ def from_features(
     """
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
-    # Maybe load and cache codebook
-    if not hasattr(from_features, 'frontend') and ppgs.FRONTEND is not None:
-        from_features.frontend = ppgs.FRONTEND(device)
+    if representation is None: # neither mel nor w2v2fb have a frontend
+        # Maybe load and cache codebook
+        if not hasattr(from_features, 'frontend') and ppgs.FRONTEND is not None:
+            from_features.frontend = ppgs.FRONTEND(device)
 
-    # Codebook lookup
-    if hasattr(from_features, 'frontend'):
-        features = from_features.frontend(features.to(device))
+        # Codebook lookup
+        if hasattr(from_features, 'frontend'):
+            features = from_features.frontend(features.to(device))
 
     # Infer
-    return infer(features.to(device), lengths.to(device), checkpoint, softmax)
+    return infer(
+        features=features.to(device),
+        lengths=lengths.to(device),
+        representation=representation,
+        checkpoint=checkpoint,
+        softmax=softmax
+    )
 
 
 def from_file(
     file: Union[str, bytes, os.PathLike],
+    representation: Optional[str] = None,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None
 ) -> torch.Tensor:
@@ -119,12 +139,19 @@ def from_file(
     audio = ppgs.load.audio(file)
 
     # Compute PPGs
-    return from_audio(audio, ppgs.SAMPLE_RATE, checkpoint, gpu).squeeze(0)
+    return from_audio(
+        audio=audio,
+        sample_rate=ppgs.SAMPLE_RATE,
+        representation=representation,
+        checkpoint=checkpoint,
+        gpu=gpu
+    ).squeeze(0)
 
 
 def from_file_to_file(
     audio_file: Union[str, bytes, os.PathLike],
     output_file: Union[str, bytes, os.PathLike],
+    representation: Optional[str] = None,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None
 ) -> None:
@@ -141,7 +168,12 @@ def from_file_to_file(
             The index of the GPU to use for inference
     """
     # Compute PPGs
-    result = from_file(audio_file, checkpoint, gpu)
+    result = from_file(
+        file=audio_file, 
+        checkpoint=checkpoint, 
+        representation=representation,
+        gpu=gpu
+    )
 
     # Save to disk
     torch.save(result.detach().cpu(), output_file)
@@ -151,6 +183,7 @@ def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
+    representation: Optional[str] = None,
     num_workers: int = 0,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
@@ -175,6 +208,7 @@ def from_files_to_files(
     if num_workers == 0:
         infer_fn = functools.partial(
             from_file_to_file,
+            representation=representation,
             checkpoint=checkpoint,
             gpu=gpu)
         for audio_file, output_file in zip(audio_files, output_files):
@@ -197,11 +231,13 @@ def from_files_to_files(
 
         # Batch inference
         from_dataloader(
-            dataloader,
-            output_files,
-            checkpoint,
-            num_workers // 2,
-            gpu)
+            dataloader=dataloader,
+            output_files=output_files,
+            representation=representation,
+            checkpoint=checkpoint,
+            num_workers=num_workers // 2,
+            gpu=gpu
+        )
 
 
 def from_paths_to_paths(
@@ -209,6 +245,7 @@ def from_paths_to_paths(
     output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
     extensions: Optional[List[str]] = None,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
+    representation: Optional[str] = None,
     num_workers: int = 0,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
@@ -242,12 +279,14 @@ def from_paths_to_paths(
             input_paths,
             source_extensions=extensions)
     from_files_to_files(
-        input_files,
-        output_files,
-        checkpoint,
-        num_workers,
-        gpu,
-        max_frames)
+        audio_files=input_files,
+        output_files=output_files,
+        checkpoint=checkpoint,
+        representation=representation,
+        num_workers=num_workers,
+        gpu=gpu,
+        max_frames=max_frames
+    )
 
 
 ###############################################################################
@@ -260,6 +299,7 @@ def from_dataloader(
     output_files: Dict[
         Union[str, bytes, os.PathLike],
         Union[str, bytes, os.PathLike]],
+    representation: Optional[str] = ppgs.REPRESENTATION,
     checkpoint: Union[str, bytes, os.PathLike] = None,
     save_workers: int = 1,
     gpu: Optional[int] = None
@@ -298,13 +338,13 @@ def from_dataloader(
             frame_lengths = lengths // ppgs.HOPSIZE
 
             # Preprocess
-            if ppgs.REPRESENTATION == 'wav':
+            if representation == 'wav':
                 features = audios
                 attention_mask_lengths = lengths
             else:
                 features = getattr(
                     ppgs.preprocess,
-                    ppgs.REPRESENTATION
+                    representation
                 ).from_audios(
                     audios,
                     lengths,
@@ -316,10 +356,11 @@ def from_dataloader(
 
             # Infer
             result = from_features(
-                features,
-                attention_mask_lengths,
-                checkpoint,
-                gpu)
+                features=features,
+                lengths=attention_mask_lengths,
+                representation=representation,
+                checkpoint=checkpoint,
+                gpu=gpu)
 
             # Get output filenames
             filenames = [output_files[file] for file in audio_files]
@@ -595,6 +636,7 @@ def aggregate(
                     source_files[i].append(source)
 
         # Sink files are source files with sink extension
+        source_files = sum(source_files, [])
         sink_files = [
             file.with_suffix(sink_extension) for file in source_files]
 
@@ -641,13 +683,13 @@ def aggregate(
                     source_files[i].append(source)
                 sink_files.append(sink)
 
-    if len(source_files) == 1:
-        source_files = source_files[0]
+    # if len(source_files) == 1:
+    #     source_files = source_files[0]
 
     return source_files, sink_files
 
 
-def infer(features, lengths, checkpoint=None, softmax=True):
+def infer(features, lengths, representation='mel', checkpoint=None, softmax=True):
     """Perform model inference"""
 
     # Skip inference if we want input representations
@@ -655,13 +697,19 @@ def infer(features, lengths, checkpoint=None, softmax=True):
         return features
 
     # Maybe cache model
+    if not hasattr(infer, 'models'): infer.models = {}
     if (
         not hasattr(infer, 'model') or
         infer.checkpoint != checkpoint or
-        infer.device_type != features.device.type
+        infer.device_type != features.device.type or
+        infer.representation != representation
     ):
-        infer.model = ppgs.load.model(checkpoint=checkpoint)
+        model_key = str(representation) + str(checkpoint)
+        if model_key not in infer.models:
+            infer.models[model_key] = ppgs.load.model(checkpoint=checkpoint, representation=representation)
+        infer.model = infer.models[model_key]
         infer.checkpoint = checkpoint
+        infer.representation = representation
         infer.device_type = features.device.type
 
     # Move model to correct device (no-op if devices are the same)

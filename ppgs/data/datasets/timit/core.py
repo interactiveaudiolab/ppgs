@@ -5,6 +5,8 @@ import tarfile
 
 import pypar
 
+import torchutil
+
 import ppgs
 
 
@@ -60,7 +62,7 @@ def format():
         data_directory)
 
     # Convert NIST sphere files to WAV format
-    for sphere_file in ppgs.iterator(
+    for sphere_file in torchutil.iterator(
         sphere_files,
         'Converting TIMIT audio',
         total=len(sphere_files)
@@ -71,7 +73,7 @@ def format():
             file.write(sphere_to_wav(sphere_file))
 
     # Format phoneme labels
-    for phone_file in ppgs.iterator(
+    for phone_file in torchutil.iterator(
         phone_files,
         'Converting TIMIT phonemes',
         total=len(phone_files)
@@ -108,7 +110,7 @@ def format():
             writer.writerows(ipa_to_cmu(rows))
 
     # Format word alignments
-    for word_file in ppgs.iterator(
+    for word_file in torchutil.iterator(
         word_files,
         'Converting TIMIT word alignments',
         total=len(word_files)

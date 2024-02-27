@@ -27,7 +27,7 @@ def download(speakers=['bdl', 'slt', 'awb', 'jmk', 'ksp', 'clb', 'rms']):
     error_file.unlink(missing_ok=True)
 
     # Download audio tarball
-    for speaker in ppgs.iterator(
+    for speaker in torchutil.iterator(
         speakers,
         'Downloading arctic speaker datasets',
         total=len(speakers)
@@ -75,7 +75,7 @@ def format(speakers=None):
             for speaker in speakers]
 
     # Format each speaker
-    for speaker in ppgs.iterator(
+    for speaker in torchutil.iterator(
         speakers,
         'Formatting arctic speakers',
         total=len(speakers)

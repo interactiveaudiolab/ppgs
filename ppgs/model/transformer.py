@@ -14,22 +14,27 @@ class Transformer(torch.nn.Module):
 
     def __init__(
         self,
-        num_layers=ppgs.NUM_HIDDEN_LAYERS,
-        channels=ppgs.HIDDEN_CHANNELS):
+        num_hidden_layers=ppgs.NUM_HIDDEN_LAYERS,
+        hidden_channels=ppgs.HIDDEN_CHANNELS,
+        input_channels=ppgs.INPUT_CHANNELS,
+        output_channels=ppgs.OUTPUT_CHANNELS,
+        kernel_size=ppgs.KERNEL_SIZE,
+        attention_heads=ppgs.ATTENTION_HEADS
+    ):
         super().__init__()
-        self.position = PositionalEncoding(channels)
+        self.position = PositionalEncoding(hidden_channels)
         self.input_layer = torch.nn.Conv1d(
-            ppgs.INPUT_CHANNELS,
-            ppgs.HIDDEN_CHANNELS,
-            kernel_size=ppgs.KERNEL_SIZE,
+            input_channels,
+            hidden_channels,
+            kernel_size=kernel_size,
             padding='same')
         self.model = torch.nn.TransformerEncoder(
-            torch.nn.TransformerEncoderLayer(channels, ppgs.ATTENTION_HEADS),
-            num_layers)
+            torch.nn.TransformerEncoderLayer(hidden_channels, attention_heads),
+            num_hidden_layers)
         self.output_layer = torch.nn.Conv1d(
-            ppgs.HIDDEN_CHANNELS,
-            ppgs.OUTPUT_CHANNELS,
-            kernel_size=ppgs.KERNEL_SIZE,
+            hidden_channels,
+            output_channels,
+            kernel_size=kernel_size,
             padding='same')
 
     def forward(self, x, lengths):
