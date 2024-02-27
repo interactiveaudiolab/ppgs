@@ -34,6 +34,8 @@ def from_audio(
             shape=(batch, 1, samples)
         sample_rate
             Audio sampling rate
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -81,6 +83,8 @@ def from_features(
         lengths
             The lengths of the features
             shape=(batch,)
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -125,6 +129,8 @@ def from_file(
     Arguments
         file
             The audio file
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -162,6 +168,8 @@ def from_file_to_file(
             The audio file
         output_file
             The .pt file to save PPGs
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -182,8 +190,8 @@ def from_file_to_file(
 def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
-    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     representation: Optional[str] = None,
+    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     num_workers: int = 0,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
@@ -195,6 +203,8 @@ def from_files_to_files(
             The audio files
         output_files
             The .pt files to save PPGs
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         num_workers
@@ -244,8 +254,8 @@ def from_paths_to_paths(
     input_paths: List[Union[str, bytes, os.PathLike]],
     output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
     extensions: Optional[List[str]] = None,
-    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     representation: Optional[str] = None,
+    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     num_workers: int = 0,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
@@ -259,6 +269,8 @@ def from_paths_to_paths(
             The one-to-one corresponding outputs
         extensions
             Extensions to glob for in directories
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         num_workers
@@ -281,8 +293,8 @@ def from_paths_to_paths(
     from_files_to_files(
         audio_files=input_files,
         output_files=output_files,
-        checkpoint=checkpoint,
         representation=representation,
+        checkpoint=checkpoint,
         num_workers=num_workers,
         gpu=gpu,
         max_frames=max_frames
@@ -312,6 +324,8 @@ def from_dataloader(
             the DataLoader must yield batches (audio, length, audio_filename)
         output_files
             A dictionary mapping audio filenames to output filenames
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         save_workers
