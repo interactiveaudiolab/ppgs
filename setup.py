@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 with open('README.md') as file:
@@ -8,7 +8,7 @@ with open('README.md') as file:
 setup(
     name='ppgs',
     description='Phonetic posteriorgrams',
-    version='0.0.1',
+    version='0.0.2',
     author='Interactive Audio Lab',
     author_email='interactiveaudiolab@gmail.com',
     url='https://github.com/interactiveaudiolab/ppgs',
@@ -40,7 +40,7 @@ setup(
         'yapecs',
         'gdown>=4.6.2'
     ],
-    packages=['ppgs'],
+    packages=find_packages(),
     package_data={'ppgs': ['assets/*', 'assets/*/*']},
     long_description=long_description,
     long_description_content_type='text/markdown',
