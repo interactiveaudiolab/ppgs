@@ -8,7 +8,7 @@ with open('README.md') as file:
 setup(
     name='ppgs',
     description='Phonetic posteriorgrams',
-    version='0.0.2',
+    version='0.0.3',
     author='Interactive Audio Lab',
     author_email='interactiveaudiolab@gmail.com',
     url='https://github.com/interactiveaudiolab/ppgs',
@@ -20,9 +20,11 @@ setup(
             'gdown>=4.6.2',
             'humanfriendly',
             'librosa',
+            'mamba-ssm',
+            'matplotlib',
             'nltk',
             'pyyaml',
-            'torch-complex',
+            'torch-complex'
         ]
     },
     install_requires=[
