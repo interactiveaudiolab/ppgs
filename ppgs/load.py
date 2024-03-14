@@ -40,7 +40,6 @@ def audio(file):
 
 def model(checkpoint=None, representation=None):
     """Load a model"""
-    breakpoint()
     if representation is not None:
         if representation == 'w2v2fb':
             checkpoint = huggingface_hub.hf_hub_download(
@@ -50,6 +49,7 @@ def model(checkpoint=None, representation=None):
             conf = {k: v for k, v in conf.items() if not k.startswith('__')}
             kwargs = {kv[0].lower() : kv[1] for kv in conf.items()}
         elif representation == 'mel':
+            kwargs = {}
             pass # nothing to do
         else:
             raise ValueError("supplying representation directly only supported for w2v2fb and mel")

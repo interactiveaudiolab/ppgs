@@ -158,7 +158,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
 
                         # Compare gradient norm to threshold
                         grad_norm = gradient_statistics['gradients/norm']
-                        if grad_norm > promonet.GRADIENT_CLIP_THRESHOLD_L2:
+                        if grad_norm > ppgs.GRADIENT_CLIP_THRESHOLD_L2:
 
                             # Clip
                             # accelerator.clip_grad_norm_(
@@ -175,8 +175,8 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
                         # Compare maximum gradient to threshold
                         max_grad = max(
                             gradient_statistics['gradients/max'],
-                            math.abs(gradient_statistics['gradients/min']))
-                        if max_grad > promonet.GRADIENT_CLIP_THRESHOLD_INF:
+                            abs(gradient_statistics['gradients/min']))
+                        if max_grad > ppgs.GRADIENT_CLIP_THRESHOLD_INF:
 
                             # Clip
                             # accelerator.clip_grad_norm_(

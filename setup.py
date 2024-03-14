@@ -26,6 +26,7 @@ setup(
         ]
     },
     install_requires=[
+        'mamba_ssm',
         'espnet',
         'huggingface-hub',
         'moviepy',

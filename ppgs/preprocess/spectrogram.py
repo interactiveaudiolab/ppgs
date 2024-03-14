@@ -45,6 +45,7 @@ def from_audios(audio, lengths, gpu=None):
 
     # Compute magnitude
     spectrogram = torch.sqrt(stft.pow(2).sum(-1) + 1e-6)
+    return spectrogram
 
     # Maybe convert to mels
     return spectrogram.to(torch.float16)
