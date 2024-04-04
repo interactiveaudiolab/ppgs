@@ -64,9 +64,16 @@ def model(checkpoint=None, representation=None):
 
     # Maybe download from HuggingFace
     if checkpoint is None and ppgs.LOCAL_CHECKPOINT is None:
-        checkpoint = huggingface_hub.hf_hub_download(
-            'CameronChurchwell/ppgs',
-            'mel-800k.pt')
+        if ppgs.REPRESENTATION == 'mel' or ppgs.REPRESENTATION is None:
+            checkpoint = huggingface_hub.hf_hub_download(
+                'CameronChurchwell/ppgs',
+                'mel-800k.pt')
+        elif ppgs.REPRESENTATION == 'w2v2fb':
+            checkpoint = huggingface_hub.hf_hub_download(
+                'CameronChurchwell/ppgs',
+                'w2v2fb-425k.pt')
+        else:
+            raise ValueError(f"no default checkpoints exist for representation {ppgs.REPRESENTATION}")
     elif checkpoint is None and ppgs.LOCAL_CHECKPOINT is not None:
         checkpoint = ppgs.LOCAL_CHECKPOINT
 

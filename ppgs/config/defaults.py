@@ -120,6 +120,9 @@ ATTENTION_HEADS = 2
 # Attention window size
 ATTENTION_WINDOW_SIZE = 4
 
+# Use causal masking/methods
+IS_CAUSAL = False
+
 # This function takes as input a torch.Device and returns a callable frontend
 FRONTEND = None
 

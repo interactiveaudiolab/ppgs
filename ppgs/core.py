@@ -235,7 +235,7 @@ def from_files_to_files(
             output_files=output_files,
             representation=representation,
             checkpoint=checkpoint,
-            num_workers=num_workers // 2,
+            save_workers=num_workers // 2,
             gpu=gpu
         )
 
@@ -319,6 +319,9 @@ def from_dataloader(
         gpu
             The index of the GPU to use for inference
     """
+    # catch None values
+    if representation is None: representation = ppgs.REPRESENTATION
+
     # Setup multiprocessing
     if save_workers == 0:
         pool = contextlib.nullcontext()
@@ -508,13 +511,15 @@ def interpolate(
     # "acos_vml_cpu" not implemented for 'Half'
     dtype = ppgX.dtype
     if dtype in [torch.float16, torch.bfloat16]:
-        omega = torch.acos(
-            (ppgX.to(torch.float32) * ppgY.to(torch.float32)).sum(
-                -2,
-                keepdim=True)
-        ).to(dtype)
+        p = ppgX.to(torch.float32) * ppgY.to(torch.float32)
+        s = p.sum(-2, keepdim=True)
+        s = s.clamp(-1.0, 1.0)
+        omega = torch.acos(s).to(dtype)
     else:
-        omega = torch.acos((ppgX * ppgY).sum(-2, keepdim=True))
+        p = ppgX * ppgY
+        s = p.sum(-2, keepdim=True)
+        s = s.clamp(-1.0, 1.0)
+        omega = torch.acos(s)
 
     sin_omega = torch.clip(torch.sin(omega), 1e-6)
     interpolated = (
