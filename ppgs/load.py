@@ -40,7 +40,6 @@ def audio(file):
 
 def model(checkpoint=None, representation=None):
     """Load a model"""
-    breakpoint()
     if representation is not None:
         if representation == 'w2v2fb':
             checkpoint = huggingface_hub.hf_hub_download(
