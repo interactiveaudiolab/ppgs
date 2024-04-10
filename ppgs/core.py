@@ -430,6 +430,8 @@ def distance(
             Reduction to apply to the output. One of ['mean', 'none', 'sum'].
         normalize
             Apply similarity based normalization
+        exponent
+            Similarty exponent
 
     Returns
         Normalized Jenson-shannon divergence between PPGs
@@ -541,8 +543,8 @@ def interpolate(
 
 def sparsify(
     ppg: torch.Tensor,
-    method: str='percentile',
-    threshold: Union[float, int]=0.85
+    method: Optional[str] = 'percentile',
+    threshold: Optional[Union[float, int]] = 0.85
 ) -> torch.Tensor:
     """Make phonetic posteriorgrams sparse
 
@@ -576,6 +578,43 @@ def sparsify(
 
     # Renormalize after sparsification
     return torch.softmax(torch.log(ppg + 1e-8), -2)
+
+def sparse_phonemes(
+    ppg: torch.Tensor,
+    method: Optional[str] = 'percentile',
+    threshold: Optional[Union[float, int]] = 0.85,
+    per_frame: Optional[bool] = False,
+) -> torch.Tensor:
+    """Make phonetic posteriorgrams sparse
+
+    Arguments
+        ppg
+            Input PPG
+            shape=(*, len(ppgs.PHONEMES), frames)
+        method
+            Sparsification method. One of ['constant', 'percentile', 'topk'].
+        threshold
+            In [0, 1] for 'contant' and 'percentile'; integer > 0 for 'topk'.
+        per_frame
+            return phonemes used per frame or throughout entire ppg
+
+    Returns
+        Sparse phonetic posteriorgram
+        shape=(*, len(ppgs.PHONEMES), frames)
+    """
+    # only operate on single ppg, not batch
+    assert ppg.dim() == 2 or (ppg.dim() == 3 and ppg.shape[0] == 0)
+    sppg = sparsify(ppg, method=method, threshold=threshold)
+    #TODO decide on threshold based on numerical stability of sparsify
+    if per_frame:
+        indices = (sppg.squeeze(dim=0) > 1e-7)
+        frames = []
+        for i in range(0, indices.shape[-1]):
+            frames.append(indices[:, i].argwhere())
+        return frames
+    else:
+        indices = (sppg.squeeze(dim=0) > 1e-7).any(dim=-1).argwhere().squeeze(dim=-1)
+        return indices
 
 
 ###############################################################################

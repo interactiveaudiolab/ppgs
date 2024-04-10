@@ -547,6 +547,9 @@ def combine_pixels(red, blue=None, green=None):
         combined[..., 2] = blue[..., 2]
     if green is not None:
         combined[..., 1] = green[..., 1]
+    if blue is None and green is None:
+        combined[..., 1] = combined[..., 0]
+        combined[..., 2] = combined[..., 0]
 
     return combined
 

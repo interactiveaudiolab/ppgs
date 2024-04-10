@@ -55,6 +55,40 @@ def reallocate(
     return ppg
 
 
+def regex_find(
+    ppg: torch.Tensor,
+    find_phonemes: List[str],
+) -> torch.Tensor:
+    """Regex match and replace (via swap) for phoneme sequences
+
+    Arguments
+        ppg
+            Input PPG
+            shape=(len(ppgs.PHONEMES), frames)
+        find_phonemes
+            Source phoneme sequence
+
+    Returns
+        sequence of indices
+    """
+    source_indices = [ppgs.PHONEMES.index(phone) for phone in find_phonemes]
+
+    # Decode to phoneme indices using argmax
+    indices = ppg.argmax(dim=0)
+    unique_indices, inverse = torch.unique_consecutive(
+        indices,
+        return_inverse=True)
+
+    # Regex search for source matches
+    pattern = re.escape(
+        struct.pack('b' * len(source_indices),
+        *source_indices))
+    string = struct.pack('b' * len(unique_indices), *unique_indices)
+    match_spans = torch.tensor(
+        [match.span() for match in re.finditer(pattern, string)])
+
+    return [[torch.argwhere(inverse == start)[0], torch.argwhere(inverse == end-1)[-1]+1] for start, end in match_spans]
+
 def regex(
     ppg: torch.Tensor,
     source_phonemes: List[str],
