@@ -1,5 +1,7 @@
 import csv
 
+import torchutil
+
 import ppgs
 
 
@@ -129,7 +131,7 @@ def from_files_to_files(phone_files, output_files, prompt_file=None):
             next(reader) #skip header
             prompts = {k: v for k, v in reader}
 
-    for phone_file, output_file in ppgs.iterator(
+    for phone_file, output_file in torchutil.iterator(
         zip(phone_files, output_files),
         'Creating phoneme alignment representation',
         total=len(phone_files)

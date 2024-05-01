@@ -33,6 +33,7 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
     * [`ppgs.edit.regex`](#ppgseditregex)
     * [`ppgs.edit.shift`](#ppgseditshift)
     * [`ppgs.edit.swap`](#ppgseditswap)
+- [Sparsify](#sparsify)
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -145,6 +146,7 @@ def from_file(
         ppgs
             Phonetic posteriorgram
             shape=(len(ppgs.PHONEMES), frames)
+    """
 ```
 
 
@@ -521,6 +523,31 @@ def swap(ppg: torch.Tensor, phonemeA: str, phonemeB: str) -> torch.Tensor:
     """
 ```
 
+## Sparsify
+
+```python
+def sparsify(
+    ppg: torch.Tensor,
+    method: str='percentile',
+    threshold: Union[float, int]=0.85
+) -> torch.Tensor:
+    """Make phonetic posteriorgrams sparse
+
+    Arguments
+        ppg
+            Input PPG
+            shape=(*, len(ppgs.PHONEMES), frames)
+        method
+            Sparsification method. One of ['constant', 'percentile', 'topk'].
+        threshold
+            In [0, 1] for 'contant' and 'percentile'; integer > 0 for 'topk'.
+
+    Returns
+        Sparse phonetic posteriorgram
+        shape=(*, len(ppgs.PHONEMES), frames)
+    """
+```
+
 
 ## Training
 
@@ -565,13 +592,10 @@ python -m ppgs.partition --datasets <datasets>
 
 ### Train
 
-Trains a model. Checkpoints and logs are stored in `runs/`. You may want to run
-`accelerate config` first to configure which devices are used for training.
+Trains a model. Checkpoints and logs are stored in `runs/`.
 
 ```
-CUDA_VISIBLE_DEVICES=<gpus> accelerate launch -m ppgs.train \
-    --config <config> \
-    --dataset <dataset>
+python -m ppgs.train --config <config> --dataset <dataset> --gpu <gpu>
 ```
 
 If the config file has been previously run, the most recent checkpoint will
@@ -598,19 +622,15 @@ Performs objective evaluation of phoneme accuracy. Results are stored
 in `eval/`.
 
 ```
-python -m ppgs.evaluate \
-    --config <name> \
-    --datasets <datasets> \
-    --checkpoint <checkpoint> \
-    --gpus <gpus>
+python -m ppgs.evaluate --config <name> --datasets <datasets> --gpu <gpu>
 ```
 
 
 ## Citation
 
 ### IEEE
-C. Churchwell, M. Morrison, and B. Pardo, "High-Fidelity Neural Phonetic Posteriorgrams," Submitted
-to ICASSP 2024, April 2024.
+C. Churchwell, M. Morrison, and B. Pardo, "High-Fidelity Neural Phonetic Posteriorgrams,"
+ICASSP 2024 Workshop on Explainable Machine Learning for Speech and Audio, April 2024.
 
 
 ### BibTex
@@ -619,7 +639,7 @@ to ICASSP 2024, April 2024.
 @inproceedings{churchwell2024high,
     title={High-Fidelity Neural Phonetic Posteriorgrams},
     author={Churchwell, Cameron and Morrison, Max and Pardo, Bryan},
-    booktitle={Submitted to ICASSP 2024},
+    booktitle={ICASSP 2024 Workshop on Explainable Machine Learning for Speech and Audio},
     month={April},
     year={2024}
 }

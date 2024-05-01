@@ -191,16 +191,16 @@ def from_dataloader(loader, representations, output, num_workers=0, gpu=None):
             pool.join()
 
 
-def from_audio(audio, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
+def from_audio(audio, representation=ppgs.REPRESENTATION, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
     """Preprocess audio"""
     audio = ppgs.resample(audio, sample_rate)
 
-    if ppgs.REPRESENTATION == 'wav':
-        return audio
+    if representation is None:
+        representation = ppgs.REPRESENTATION
 
     # Compute representation
     with torch.autocast('cuda' if gpu is not None else 'cpu'):
-        features = getattr(ppgs.preprocess, ppgs.REPRESENTATION).from_audio(
+        features = getattr(ppgs.preprocess, representation).from_audio(
             audio,
             sample_rate=ppgs.SAMPLE_RATE,
             gpu=gpu)

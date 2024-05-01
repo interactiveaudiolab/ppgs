@@ -47,11 +47,10 @@ ALL_REPRESENTATIONS = ['bottleneck', 'w2v2fb', 'w2v2fc', 'mel', 'encodec']
 DATASETS = ['commonvoice', 'arctic', 'timit']
 
 # Best representation
-# TEMPORARY
-BEST_REPRESENTATION = None
+BEST_REPRESENTATION = 'mel'
 
 # Default representation
-REPRESENTATION = 'mel'
+REPRESENTATION = BEST_REPRESENTATION
 
 # representation kind
 # One of ['ppg', 'latents'].
@@ -72,6 +71,9 @@ ROOT_DIR = Path(__file__).parent.parent.parent
 # Location to save assets to be bundled with pip release
 ASSETS_DIR = Path(__file__).parent.parent / 'assets'
 
+# Location of initial downloads before processing into DATA_DIR
+SOURCES_DIR = Path(__file__).parent.parent.parent / 'data' / 'sources'
+
 # Location of preprocessed features
 CACHE_DIR = ROOT_DIR / 'data' / 'cache'
 
@@ -86,6 +88,12 @@ RUNS_DIR = ROOT_DIR / 'runs'
 
 # Location of initial downloads before processing into DATA_DIR
 SOURCES_DIR = ROOT_DIR / 'data' / 'sources'
+
+# Location of similarity matrix
+SIMILARITY_MATRIX_PATH = ASSETS_DIR / 'balanced_similarity.pt'
+
+# Location of checkpoints
+CHECKPOINT_DIR = ASSETS_DIR / 'checkpoints'
 
 # Location of similarity matrix
 SIMILARITY_MATRIX_PATH = ASSETS_DIR / 'balanced_similarity.pt'
@@ -120,6 +128,9 @@ ATTENTION_HEADS = 2
 
 # Attention window size
 ATTENTION_WINDOW_SIZE = 4
+
+# Use causal masking/methods
+IS_CAUSAL = False
 
 # This function takes as input a torch.Device and returns a callable frontend
 FRONTEND = None

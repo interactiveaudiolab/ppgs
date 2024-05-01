@@ -14,17 +14,6 @@ import ppgs
 ###############################################################################
 
 
-def ppg_from_stem(stem: str):
-    """Given a stem, loads the corresponding PPG"""
-
-    if not hasattr(ppg_from_stem, 'extension'):
-        ppg_from_stem.extension = ppgs.representation_file_extension()
-
-    path = Path(str(stem) + ppg_from_stem.extension)
-
-    return torch.load(path)
-
-
 def audio(file):
     """Load audio from disk"""
     path = Path(file)
@@ -40,9 +29,24 @@ def audio(file):
     return ppgs.resample(audio, sample_rate)
 
 
-def model(checkpoint=None):
+def model(checkpoint=None, representation=None):
     """Load a model"""
-    model = ppgs.Model()
+    if representation is not None:
+        if representation == 'w2v2fb':
+            checkpoint = huggingface_hub.hf_hub_download(
+                'CameronChurchwell/ppgs',
+                'w2v2fb-425k.pt')
+            conf = vars(ppgs.config.w2v2fb)
+            conf = {k: v for k, v in conf.items() if not k.startswith('__')}
+            kwargs = {kv[0].lower() : kv[1] for kv in conf.items()}
+        elif representation == 'mel':
+            pass # nothing to do
+        else:
+            raise ValueError("supplying representation directly only supported for w2v2fb and mel")
+    else:
+        kwargs = {}
+
+    model = ppgs.Model(**kwargs)
 
     # Pretrained model
     if ppgs.MODEL in ['W2V2FC', 'W2V2FS']:
@@ -50,9 +54,16 @@ def model(checkpoint=None):
 
     # Maybe download from HuggingFace
     if checkpoint is None and ppgs.LOCAL_CHECKPOINT is None:
-        checkpoint = huggingface_hub.hf_hub_download(
-            'CameronChurchwell/ppgs-w2v2fb',
-            'ppg.pt')
+        if ppgs.REPRESENTATION == 'mel' or ppgs.REPRESENTATION is None:
+            checkpoint = huggingface_hub.hf_hub_download(
+                'CameronChurchwell/ppgs',
+                'mel-800k.pt')
+        elif ppgs.REPRESENTATION == 'w2v2fb':
+            checkpoint = huggingface_hub.hf_hub_download(
+                'CameronChurchwell/ppgs',
+                'w2v2fb-425k.pt')
+        else:
+            raise ValueError(f"no default checkpoints exist for representation {ppgs.REPRESENTATION}")
     elif checkpoint is None and ppgs.LOCAL_CHECKPOINT is not None:
         checkpoint = ppgs.LOCAL_CHECKPOINT
 
@@ -95,7 +106,7 @@ def phoneme_weights(device='cpu'):
                 total=len(loader)
             ):
                 phonemes, lengths = phonemes.to(device), lengths.to(device)
-                mask = torchutil.mask.from_lengths(lengths)
+                mask = ppgs.model.transformer.mask_from_lengths(lengths)
                 phonemes = phonemes[mask]
                 counts.scatter_add_(
                     dim=0,
