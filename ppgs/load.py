@@ -13,6 +13,7 @@ import ppgs
 # Loading utilities
 ###############################################################################
 
+
 def ppg_from_stem(stem: str):
     """Given a stem, loads the corresponding PPG"""
 
@@ -94,7 +95,7 @@ def phoneme_weights(device='cpu'):
                 total=len(loader)
             ):
                 phonemes, lengths = phonemes.to(device), lengths.to(device)
-                mask = ppgs.model.transformer.mask_from_lengths(lengths)
+                mask = torchutil.mask.from_lengths(lengths)
                 phonemes = phonemes[mask]
                 counts.scatter_add_(
                     dim=0,
