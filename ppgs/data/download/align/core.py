@@ -3,8 +3,6 @@ import csv
 import pypar
 import numpy as np
 
-import ppgs
-
 
 ###############################################################################
 # Merge phoneme and word alignments

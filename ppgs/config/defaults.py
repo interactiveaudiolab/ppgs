@@ -65,6 +65,9 @@ TRAINING_DATASET = 'commonvoice'
 ###############################################################################
 
 
+# Root location for saving outputs
+ROOT_DIR = Path(__file__).parent.parent.parent
+
 # Location to save assets to be bundled with pip release
 ASSETS_DIR = Path(__file__).parent.parent / 'assets'
 
@@ -72,16 +75,22 @@ ASSETS_DIR = Path(__file__).parent.parent / 'assets'
 SOURCES_DIR = Path(__file__).parent.parent.parent / 'data' / 'sources'
 
 # Location of preprocessed features
-CACHE_DIR = Path(__file__).parent.parent.parent / 'data' / 'cache'
+CACHE_DIR = ROOT_DIR / 'data' / 'cache'
 
 # Location of datasets on disk
-DATA_DIR = Path(__file__).parent.parent.parent / 'data' / 'datasets'
+DATA_DIR = ROOT_DIR / 'data' / 'datasets'
 
 # Location to save evaluation artifacts
-EVAL_DIR = Path(__file__).parent.parent.parent / 'eval'
+EVAL_DIR = ROOT_DIR / 'eval'
 
 # Location to save training and adaptation artifacts
-RUNS_DIR = Path(__file__).parent.parent.parent / 'runs'
+RUNS_DIR = ROOT_DIR / 'runs'
+
+# Location of initial downloads before processing into DATA_DIR
+SOURCES_DIR = ROOT_DIR / 'data' / 'sources'
+
+# Location of similarity matrix
+SIMILARITY_MATRIX_PATH = ASSETS_DIR / 'balanced_similarity.pt'
 
 # Location of checkpoints
 CHECKPOINT_DIR = ASSETS_DIR / 'checkpoints'

@@ -87,7 +87,13 @@ def regex_find(
     match_spans = torch.tensor(
         [match.span() for match in re.finditer(pattern, string)])
 
-    return [[torch.argwhere(inverse == start)[0], torch.argwhere(inverse == end-1)[-1]+1] for start, end in match_spans]
+    return [
+        [
+            torch.argwhere(inverse == start)[0],
+            torch.argwhere(inverse == end-1)[-1] + 1
+        ]
+    for start, end in match_spans]
+
 
 def regex(
     ppg: torch.Tensor,
@@ -138,7 +144,8 @@ def regex(
             ppg[target_indices[i], slicing] += reallocation_probability
         else:
             temporary = ppg[target_indices[i], slicing].clone()
-            ppg[target_indices[i], slicing] = ppg[source_indices[i], slicing].clone()
+            ppg[target_indices[i], slicing] = \
+                ppg[source_indices[i], slicing].clone()
             ppg[source_indices[i], slicing] = temporary
 
     return ppg

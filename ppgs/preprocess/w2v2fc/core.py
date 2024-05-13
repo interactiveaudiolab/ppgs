@@ -47,7 +47,10 @@ def from_audios(
         # Maybe resample
         audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).to(device)
         pad = WINDOW_SIZE // 2 - ppgs.HOPSIZE // 2
-        padded_audio = torch.nn.functional.pad(audio, (pad, pad)).squeeze(dim=1)
+        padded_audio = torch.nn.functional.pad(
+            audio,
+            (pad, pad)
+        ).squeeze(dim=1)
 
         # Infer W2V2FC latents
         mask = ppgs.model.transformer.mask_from_lengths(

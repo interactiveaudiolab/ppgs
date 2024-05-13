@@ -16,8 +16,6 @@ def Model(**kwargs):
         init_fn = ppgs.model.W2V2
     elif ppgs.MODEL == 'W2V2FC':
         init_fn = ppgs.model.W2V2FC
-    elif ppgs.MODEL == 'mamba':
-        init_fn = ppgs.model.Mamba
     else:
         raise ValueError(f'Model {ppgs.MODEL} is not defined')
 

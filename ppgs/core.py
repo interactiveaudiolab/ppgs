@@ -49,8 +49,7 @@ def from_audio(
         audio=audio,
         sample_rate=sample_rate,
         representation=representation,
-        gpu=gpu
-    )
+        gpu=gpu)
 
     # Get length in frames
     length = torch.tensor([features.shape[-1]], dtype=torch.long)
@@ -58,9 +57,9 @@ def from_audio(
     # Infer
     return from_features(
         features=features,
-        lengths=length, 
+        lengths=length,
         representation=representation,
-        checkpoint=checkpoint, 
+        checkpoint=checkpoint,
         gpu=gpu)
 
 
@@ -96,8 +95,12 @@ def from_features(
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     if representation is None: # neither mel nor w2v2fb have a frontend
+
         # Maybe load and cache codebook
-        if not hasattr(from_features, 'frontend') and ppgs.FRONTEND is not None:
+        if (
+            not hasattr(from_features, 'frontend') and
+            ppgs.FRONTEND is not None
+        ):
             from_features.frontend = ppgs.FRONTEND(device)
 
         # Codebook lookup
@@ -110,8 +113,7 @@ def from_features(
         lengths=lengths.to(device),
         representation=representation,
         checkpoint=checkpoint,
-        softmax=softmax
-    )
+        softmax=softmax)
 
 
 def from_file(
@@ -169,8 +171,8 @@ def from_file_to_file(
     """
     # Compute PPGs
     result = from_file(
-        file=audio_file, 
-        checkpoint=checkpoint, 
+        file=audio_file,
+        checkpoint=checkpoint,
         representation=representation,
         gpu=gpu
     )
@@ -355,7 +357,7 @@ def from_dataloader(
                 attention_mask_lengths = frame_lengths
 
             if features.requires_grad:
-                raise ValueError('all representations should be detached!')
+                raise ValueError('All representations should be detached')
 
             # Infer
             result = from_features(
@@ -579,43 +581,6 @@ def sparsify(
     # Renormalize after sparsification
     return torch.softmax(torch.log(ppg + 1e-8), -2)
 
-def sparse_phonemes(
-    ppg: torch.Tensor,
-    method: Optional[str] = 'percentile',
-    threshold: Optional[Union[float, int]] = 0.85,
-    per_frame: Optional[bool] = False,
-) -> torch.Tensor:
-    """Make phonetic posteriorgrams sparse
-
-    Arguments
-        ppg
-            Input PPG
-            shape=(*, len(ppgs.PHONEMES), frames)
-        method
-            Sparsification method. One of ['constant', 'percentile', 'topk'].
-        threshold
-            In [0, 1] for 'contant' and 'percentile'; integer > 0 for 'topk'.
-        per_frame
-            return phonemes used per frame or throughout entire ppg
-
-    Returns
-        Sparse phonetic posteriorgram
-        shape=(*, len(ppgs.PHONEMES), frames)
-    """
-    # only operate on single ppg, not batch
-    assert ppg.dim() == 2 or (ppg.dim() == 3 and ppg.shape[0] == 0)
-    sppg = sparsify(ppg, method=method, threshold=threshold)
-    #TODO decide on threshold based on numerical stability of sparsify
-    if per_frame:
-        indices = (sppg.squeeze(dim=0) > 1e-7)
-        frames = []
-        for i in range(0, indices.shape[-1]):
-            frames.append(indices[:, i].argwhere())
-        return frames
-    else:
-        indices = (sppg.squeeze(dim=0) > 1e-7).any(dim=-1).argwhere().squeeze(dim=-1)
-        return indices
-
 
 ###############################################################################
 # Utilities
@@ -671,7 +636,9 @@ def aggregate(
             source_paths = [Path(source) for source in source_tuple]
             source_is_dir = list(set([source.is_dir() for source in source_paths]))
             if len(source_is_dir) > 1 and True in source_is_dir:
-                raise ValueError('cannot handle directories when more than one input list is given')
+                raise ValueError(
+                    'Cannot handle directories when more '
+                    'than one input list is given')
             elif len(source_is_dir) == 1 and source_is_dir[0]:
                 for extension in source_extensions:
                     source_files[0] += list(source_paths[0].rglob(f'*{extension}'))
@@ -690,11 +657,14 @@ def aggregate(
         source_files, sink_files = [[] for _ in sources], []
         for source_tuple, sink in zip(zip(*sources), sinks):
             source_paths = [Path(source) for source in source_tuple]
-            source_is_dir = list(set([source.is_dir() for source in source_paths]))
+            source_is_dir = list(
+                set([source.is_dir() for source in source_paths]))
             sink = Path(sink)
 
             if len(source_is_dir) > 1 and True in source_is_dir:
-                raise ValueError('cannot handle directories when more than one input list is given')
+                raise ValueError(
+                    'Cannot handle directories when more '
+                    'than one input list is given')
 
             # Handle input directory (only if one source list)
             if True in source_is_dir:
@@ -703,7 +673,8 @@ def aggregate(
                         f'For input tuple {source_tuple}, corresponding '
                         f'output {sink} is not a directory')
                 for extension in source_extensions:
-                    source_files[0] += list(source_tuple[0].rglob(f'*{extension}'))
+                    source_files[0] += list(
+                        source_tuple[0].rglob(f'*{extension}'))
 
                 # Ensure one-to-one
                 source_stems = [file.stem for file in source_files[0]]
@@ -727,13 +698,15 @@ def aggregate(
                     source_files[i].append(source)
                 sink_files.append(sink)
 
-    # if len(source_files) == 1:
-    #     source_files = source_files[0]
-
     return source_files, sink_files
 
 
-def infer(features, lengths, representation='mel', checkpoint=None, softmax=True):
+def infer(
+    features,
+    lengths,
+    representation='mel',
+    checkpoint=None,
+    softmax=True):
     """Perform model inference"""
 
     # Skip inference if we want input representations
@@ -750,7 +723,9 @@ def infer(features, lengths, representation='mel', checkpoint=None, softmax=True
     ):
         model_key = str(representation) + str(checkpoint)
         if model_key not in infer.models:
-            infer.models[model_key] = ppgs.load.model(checkpoint=checkpoint, representation=representation)
+            infer.models[model_key] = ppgs.load.model(
+                checkpoint=checkpoint,
+                representation=representation)
         infer.model = infer.models[model_key]
         infer.checkpoint = checkpoint
         infer.representation = representation
@@ -783,7 +758,10 @@ def resample(
 
 
 def representation_file_extension():
-    if ppgs.REPRESENTATION == ppgs.BEST_REPRESENTATION and ppgs.REPRESENTATION_KIND == 'ppg':
+    if (
+        ppgs.REPRESENTATION == ppgs.BEST_REPRESENTATION and
+        ppgs.REPRESENTATION_KIND == 'ppg'
+    ):
         return '-ppg.pt'
     else:
         if ppgs.REPRESENTATION_KIND == 'ppg':

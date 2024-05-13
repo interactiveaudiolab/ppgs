@@ -51,8 +51,7 @@ def parse_args():
         '--representation',
         type=str,
         default=None,
-        help='Representation to use for inference'
-    )
+        help='Representation to use for inference')
     return parser.parse_args()
 
 

@@ -191,7 +191,12 @@ def from_dataloader(loader, representations, output, num_workers=0, gpu=None):
             pool.join()
 
 
-def from_audio(audio, representation=ppgs.REPRESENTATION, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
+def from_audio(
+    audio,
+    representation=ppgs.REPRESENTATION,
+    sample_rate=ppgs.SAMPLE_RATE,
+    gpu=None
+):
     """Preprocess audio"""
     audio = ppgs.resample(audio, sample_rate)
 
