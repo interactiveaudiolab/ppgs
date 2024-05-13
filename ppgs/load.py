@@ -49,7 +49,7 @@ def model(checkpoint=None, representation=None):
             conf = {k: v for k, v in conf.items() if not k.startswith('__')}
             kwargs = {kv[0].lower() : kv[1] for kv in conf.items()}
         elif representation == 'mel':
-            pass # nothing to do
+            kwargs = {}
         else:
             raise ValueError("supplying representation directly only supported for w2v2fb and mel")
     else:

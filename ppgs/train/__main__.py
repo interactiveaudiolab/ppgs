@@ -13,7 +13,7 @@ import ppgs
 def main(config, dataset, gpu=None):
     """Train from configuration"""
     # Create output directory
-    directory = ppgs.RUNS_DIR / config.stem
+    directory = ppgs.RUNS_DIR / ppgs.CONFIG
     directory.mkdir(parents=True, exist_ok=True)
 
     # Save configuration
