@@ -8,6 +8,7 @@ import ppgs
 # Preprocess EnCodec input representation
 ###############################################################################
 
+
 def from_audios(audio, lengths, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
     device = torch.device(f'cuda:{gpu}' if gpu is not None else 'cpu')
     expected_length = audio.shape[-1] // ppgs.HOPSIZE

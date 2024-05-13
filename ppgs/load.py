@@ -21,7 +21,8 @@ def audio(file):
         try:
             audio, sample_rate = torchaudio.load(path, format='mp3')
         except RuntimeError:
-            raise RuntimeError("Failed to load mp3 file, make sure ffmpeg<=4.3 is installed")
+            raise RuntimeError(
+                'Failed to load mp3 file, make sure ffmpeg<=4.3 is installed')
     else:
         audio, sample_rate = torchaudio.load(file)
 
@@ -42,7 +43,9 @@ def model(checkpoint=None, representation=None):
         elif representation == 'mel':
             pass # nothing to do
         else:
-            raise ValueError("supplying representation directly only supported for w2v2fb and mel")
+            raise ValueError(
+                'Supplying representation directly only supported '
+                'for w2v2fb and mel')
     else:
         kwargs = {}
 
@@ -63,7 +66,9 @@ def model(checkpoint=None, representation=None):
                 'CameronChurchwell/ppgs',
                 'w2v2fb-425k.pt')
         else:
-            raise ValueError(f"no default checkpoints exist for representation {ppgs.REPRESENTATION}")
+            raise ValueError(
+                f'No default checkpoints exist for '
+                f'representation {ppgs.REPRESENTATION}')
     elif checkpoint is None and ppgs.LOCAL_CHECKPOINT is not None:
         checkpoint = ppgs.LOCAL_CHECKPOINT
 

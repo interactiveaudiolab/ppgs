@@ -185,7 +185,9 @@ class Metadata:
             # Compute length in frames
             for stem, audio_file in zip(self.stems, self.audio_files):
                 info = torchaudio.info(audio_file)
-                length = int(info.num_frames * (ppgs.SAMPLE_RATE / info.sample_rate)) // ppgs.HOPSIZE
+                length = int(
+                    info.num_frames * (ppgs.SAMPLE_RATE / info.sample_rate)
+                ) // ppgs.HOPSIZE
 
                 # Omit if length is too long to avoid OOM
                 if length <= max_frames:

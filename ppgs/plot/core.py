@@ -60,7 +60,10 @@ def from_paths_to_paths(
             )
             textgrid_files = None
         else:
-            (audio_files, ppg_files, textgrid_files), output_files = ppgs.aggregate(
+            (
+                (audio_files, ppg_files, textgrid_files),
+                output_files
+            ) = ppgs.aggregate(
                 audio_paths,
                 ppg_paths,
                 textgrid_paths,
@@ -145,7 +148,12 @@ def from_files_to_files(
     if ppg_files is not None:
         if audio_files is None:
             audio_files = repeat(None)
-        for audio_file, ppg_file, textgrid_file, output_file in zip(audio_files, ppg_files, textgrid_files, output_files):
+        for audio_file, ppg_file, textgrid_file, output_file in zip(
+            audio_files,
+            ppg_files,
+            textgrid_files,
+            output_files
+        ):
             output_ext = str(output_file).split('.')[-1]
             if output_ext == 'mp4':
                 mode = 'video'
@@ -162,7 +170,11 @@ def from_files_to_files(
                 mode=mode
             )
     else:
-        for audio_file, textgrid_file, output_file in zip(audio_files, textgrid_files, output_files):
+        for audio_file, textgrid_file, output_file in zip(
+            audio_files,
+            textgrid_files,
+            output_files
+        ):
             output_ext = str(output_file).split('.')[-1]
             if output_ext == 'mp4':
                 mode = 'video'
@@ -337,7 +349,9 @@ def from_ppg_to_video_file(
     """Takes ppg of shape time,categories and creates a visualization"""
     # Load audio
     if audio_filename is not None:
-        audio_clip = mpy.AudioFileClip(str(audio_filename), fps=ppgs.SAMPLE_RATE)
+        audio_clip = mpy.AudioFileClip(
+            str(audio_filename),
+            fps=ppgs.SAMPLE_RATE)
 
     num_frames = ppg.T.shape[-1]
 
