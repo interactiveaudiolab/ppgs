@@ -28,6 +28,7 @@ setup(
         'espnet',
         'huggingface-hub',
         'librosa',
+        'matplotlib',
         'moviepy',
         'numpy',
         'pypar',
@@ -38,7 +39,6 @@ setup(
         'transformers',
         'opencv-python',
         'yapecs',
-        'gdown>=4.6.2'
     ],
     packages=['ppgs'],
     package_data={'ppgs': ['assets/*', 'assets/*/*']},

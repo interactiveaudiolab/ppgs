@@ -144,7 +144,8 @@ def regex(
             ppg[target_indices[i], slicing] += reallocation_probability
         else:
             temporary = ppg[target_indices[i], slicing].clone()
-            ppg[target_indices[i], slicing] = ppg[source_indices[i], slicing].clone()
+            ppg[target_indices[i], slicing] = \
+                ppg[source_indices[i], slicing].clone()
             ppg[source_indices[i], slicing] = temporary
 
     return ppg
