@@ -50,7 +50,9 @@ def from_audios(
         audio = ppgs.resample(audio, sample_rate, SAMPLE_RATE).to(device)
 
         # Pad
-        lengths = torch.ceil(lengths * (SAMPLE_RATE / sample_rate)).to(torch.long)
+        lengths = torch.ceil(
+            lengths * (SAMPLE_RATE / sample_rate)
+        ).to(torch.long)
         pad = WINDOW_SIZE // 2 - HOP_SIZE // 2
         padded_audio = torch.nn.functional.pad(
             audio,

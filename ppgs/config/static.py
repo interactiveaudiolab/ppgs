@@ -20,4 +20,6 @@ CLASS_WEIGHT_FILE = ppgs.ASSETS_DIR / 'phoneme_weights.pt'
 
 
 # Maximum number of frames on the GPU during inference
-MAX_INFERENCE_FRAMES = min(ppgs.MAX_TRAINING_FRAMES, ppgs.MAX_PREPROCESS_FRAMES)
+MAX_INFERENCE_FRAMES = min(
+    ppgs.MAX_TRAINING_FRAMES,
+    ppgs.MAX_PREPROCESS_FRAMES)

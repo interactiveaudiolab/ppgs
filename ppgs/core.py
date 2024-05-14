@@ -51,8 +51,7 @@ def from_audio(
         audio=audio,
         sample_rate=sample_rate,
         representation=representation,
-        gpu=gpu
-    )
+        gpu=gpu)
 
     # Get length in frames
     length = torch.tensor([features.shape[-1]], dtype=torch.long)
@@ -60,9 +59,9 @@ def from_audio(
     # Infer
     return from_features(
         features=features,
-        lengths=length, 
+        lengths=length,
         representation=representation,
-        checkpoint=checkpoint, 
+        checkpoint=checkpoint,
         gpu=gpu)
 
 
@@ -100,8 +99,12 @@ def from_features(
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     if representation is None: # neither mel nor w2v2fb have a frontend
+
         # Maybe load and cache codebook
-        if not hasattr(from_features, 'frontend') and ppgs.FRONTEND is not None:
+        if (
+            not hasattr(from_features, 'frontend') and
+            ppgs.FRONTEND is not None
+        ):
             from_features.frontend = ppgs.FRONTEND(device)
 
         # Codebook lookup
@@ -114,8 +117,7 @@ def from_features(
         lengths=lengths.to(device),
         representation=representation,
         checkpoint=checkpoint,
-        softmax=softmax
-    )
+        softmax=softmax)
 
 
 def from_file(
@@ -177,8 +179,8 @@ def from_file_to_file(
     """
     # Compute PPGs
     result = from_file(
-        file=audio_file, 
-        checkpoint=checkpoint, 
+        file=audio_file,
+        checkpoint=checkpoint,
         representation=representation,
         gpu=gpu
     )
@@ -245,7 +247,7 @@ def from_files_to_files(
             output_files=output_files,
             representation=representation,
             checkpoint=checkpoint,
-            num_workers=num_workers // 2,
+            save_workers=num_workers // 2,
             gpu=gpu
         )
 
@@ -333,6 +335,9 @@ def from_dataloader(
         gpu
             The index of the GPU to use for inference
     """
+    # catch None values
+    if representation is None: representation = ppgs.REPRESENTATION
+
     # Setup multiprocessing
     if save_workers == 0:
         pool = contextlib.nullcontext()
@@ -366,7 +371,7 @@ def from_dataloader(
                 attention_mask_lengths = frame_lengths
 
             if features.requires_grad:
-                raise ValueError('all representations should be detached!')
+                raise ValueError('All representations should be detached')
 
             # Infer
             result = from_features(
@@ -441,6 +446,8 @@ def distance(
             Reduction to apply to the output. One of ['mean', 'none', 'sum'].
         normalize
             Apply similarity based normalization
+        exponent
+            Similarty exponent
 
     Returns
         Normalized Jenson-shannon divergence between PPGs
@@ -522,13 +529,15 @@ def interpolate(
     # "acos_vml_cpu" not implemented for 'Half'
     dtype = ppgX.dtype
     if dtype in [torch.float16, torch.bfloat16]:
-        omega = torch.acos(
-            (ppgX.to(torch.float32) * ppgY.to(torch.float32)).sum(
-                -2,
-                keepdim=True)
-        ).to(dtype)
+        p = ppgX.to(torch.float32) * ppgY.to(torch.float32)
+        s = p.sum(-2, keepdim=True)
+        s = s.clamp(-1.0, 1.0)
+        omega = torch.acos(s).to(dtype)
     else:
-        omega = torch.acos((ppgX * ppgY).sum(-2, keepdim=True))
+        p = ppgX * ppgY
+        s = p.sum(-2, keepdim=True)
+        s = s.clamp(-1.0, 1.0)
+        omega = torch.acos(s)
 
     sin_omega = torch.clip(torch.sin(omega), 1e-6)
     interpolated = (
@@ -550,8 +559,8 @@ def interpolate(
 
 def sparsify(
     ppg: torch.Tensor,
-    method: str='percentile',
-    threshold: Union[float, int]=0.85
+    method: Optional[str] = 'percentile',
+    threshold: Optional[Union[float, int]] = 0.85
 ) -> torch.Tensor:
     """Make phonetic posteriorgrams sparse
 
@@ -641,7 +650,9 @@ def aggregate(
             source_paths = [Path(source) for source in source_tuple]
             source_is_dir = list(set([source.is_dir() for source in source_paths]))
             if len(source_is_dir) > 1 and True in source_is_dir:
-                raise ValueError('cannot handle directories when more than one input list is given')
+                raise ValueError(
+                    'Cannot handle directories when more '
+                    'than one input list is given')
             elif len(source_is_dir) == 1 and source_is_dir[0]:
                 for extension in source_extensions:
                     source_files[0] += list(source_paths[0].rglob(f'*{extension}'))
@@ -660,11 +671,14 @@ def aggregate(
         source_files, sink_files = [[] for _ in sources], []
         for source_tuple, sink in zip(zip(*sources), sinks):
             source_paths = [Path(source) for source in source_tuple]
-            source_is_dir = list(set([source.is_dir() for source in source_paths]))
+            source_is_dir = list(
+                set([source.is_dir() for source in source_paths]))
             sink = Path(sink)
 
             if len(source_is_dir) > 1 and True in source_is_dir:
-                raise ValueError('cannot handle directories when more than one input list is given')
+                raise ValueError(
+                    'Cannot handle directories when more '
+                    'than one input list is given')
 
             # Handle input directory (only if one source list)
             if True in source_is_dir:
@@ -673,7 +687,8 @@ def aggregate(
                         f'For input tuple {source_tuple}, corresponding '
                         f'output {sink} is not a directory')
                 for extension in source_extensions:
-                    source_files[0] += list(source_tuple[0].rglob(f'*{extension}'))
+                    source_files[0] += list(
+                        source_tuple[0].rglob(f'*{extension}'))
 
                 # Ensure one-to-one
                 source_stems = [file.stem for file in source_files[0]]
@@ -697,13 +712,15 @@ def aggregate(
                     source_files[i].append(source)
                 sink_files.append(sink)
 
-    # if len(source_files) == 1:
-    #     source_files = source_files[0]
-
     return source_files, sink_files
 
 
-def infer(features, lengths, representation='mel', checkpoint=None, softmax=True):
+def infer(
+    features,
+    lengths,
+    representation='mel',
+    checkpoint=None,
+    softmax=True):
     """Perform model inference"""
 
     # Skip inference if we want input representations
@@ -720,7 +737,9 @@ def infer(features, lengths, representation='mel', checkpoint=None, softmax=True
     ):
         model_key = str(representation) + str(checkpoint)
         if model_key not in infer.models:
-            infer.models[model_key] = ppgs.load.model(checkpoint=checkpoint, representation=representation)
+            infer.models[model_key] = ppgs.load.model(
+                checkpoint=checkpoint,
+                representation=representation)
         infer.model = infer.models[model_key]
         infer.checkpoint = checkpoint
         infer.representation = representation
@@ -753,7 +772,10 @@ def resample(
 
 
 def representation_file_extension():
-    if ppgs.REPRESENTATION == ppgs.BEST_REPRESENTATION and ppgs.REPRESENTATION_KIND == 'ppg':
+    if (
+        ppgs.REPRESENTATION == ppgs.BEST_REPRESENTATION and
+        ppgs.REPRESENTATION_KIND == 'ppg'
+    ):
         return '-ppg.pt'
     else:
         if ppgs.REPRESENTATION_KIND == 'ppg':

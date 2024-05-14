@@ -19,7 +19,8 @@ def datasets(datasets, gpu=None, checkpoint=None):
 
     # Get model checkpoint
     if checkpoint is None:
-        checkpoint = torchutil.checkpoint.latest_path(ppgs.RUNS_DIR / ppgs.CONFIG)
+        checkpoint = torchutil.checkpoint.latest_path(
+            ppgs.RUNS_DIR / ppgs.CONFIG)
 
     # Containers for results
     results = {}
