@@ -14,21 +14,17 @@ def parse_args():
     parser = yapecs.ArgumentParser(
         description='Phonetic posteriorgram inference')
     parser.add_argument(
-        '--input_paths',
+        '--audio_files',
         nargs='+',
         type=Path,
         required=True,
-        help='Paths to audio files and/or directories')
+        help='Paths to audio files')
     parser.add_argument(
-        '--output_paths',
+        '--output_files',
         type=Path,
+        required=True,
         nargs='+',
-        help='The one-to-one corresponding output paths')
-    parser.add_argument(
-        '--extensions',
-        nargs='+',
-        type=str,
-        help='Extensions to glob for in directories')
+        help='The one-to-one corresponding output files')
     parser.add_argument(
         '--checkpoint',
         type=Path,
@@ -55,4 +51,4 @@ def parse_args():
     return parser.parse_args()
 
 
-ppgs.from_paths_to_paths(**vars(parse_args()))
+ppgs.from_files_to_files(**vars(parse_args()))

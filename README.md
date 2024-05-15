@@ -20,7 +20,6 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
         * [`ppgs.from_file`](#ppgsfrom_file)
         * [`ppgs.from_file_to_file`](#ppgsfrom_file_to_file)
         * [`ppgs.from_files_to_files`](#ppgsfrom_files_to_files)
-        * [`ppgs.from_paths_to_paths`](#ppgsfrom_paths_to_paths)
     * [Command-line interface (CLI)](#command-line-interface-cli)
 - [Distance](#distance)
 - [Interpolate](#interpolate)
@@ -203,47 +202,13 @@ def from_files_to_files(
     """
 ```
 
-
-#### `ppgs.from_paths_to_paths`
-
-```python
-def from_paths_to_paths(
-    input_paths: List[Union[str, bytes, os.PathLike]],
-    output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
-    extensions: Optional[List[str]] = None,
-    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = ppgs.NUM_WORKERS,
-    gpu: Optional[int] = None,
-    max_frames: int = ppgs.MAX_INFERENCE_FRAMES
-) -> None:
-    """Infer ppgs from audio files and save to torch tensor files
-
-    Arguments
-        input_paths
-            Paths to audio files and/or directories
-        output_paths
-            The one-to-one corresponding outputs
-        extensions
-            Extensions to glob for in directories
-        checkpoint
-            The checkpoint file
-        num_workers
-            Number of CPU threads for multiprocessing
-        gpu
-            The index of the GPU to use for inference
-        max_frames
-            The maximum number of frames on the GPU at once
-    """
-```
-
-
 ### Command-line interface (CLI)
 
 ```
 usage: python -m ppgs
     [-h]
-    [--input_paths INPUT_PATHS [INPUT_PATHS ...]]
-    [--output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]]
+    [--audio_files AUDIO_FILES [AUDIO_FILES ...]]
+    [--output_files OUTPUT_FILES [OUTPUT_FILES ...]]
     [--extensions EXTENSIONS [EXTENSIONS ...]]
     [--checkpoint CHECKPOINT]
     [--num-workers NUM_WORKERS]
@@ -251,14 +216,14 @@ usage: python -m ppgs
     [--max-frames MAX_TRAINING_FRAMES]
 
 arguments:
-    --input_paths INPUT_PATHS [INPUT_PATHS ...]
-        Paths to audio files and/or directories
+    --audio_files AUDIO_FILES [AUDIO_FILES ...]
+        Paths to input audio files
+    --output_files OUTPUT_FILES [OUTPUT_FILES ...]
+        The one-to-one corresponding output files
 
 optional arguments:
     -h, --help
         Show this help message and exit
-    --output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]
-        The one-to-one corresponding output paths
     --extensions EXTENSIONS [EXTENSIONS ...]
         Extensions to glob for in directories
     --checkpoint CHECKPOINT
