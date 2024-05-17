@@ -13,16 +13,6 @@ import ppgs
 # Loading utilities
 ###############################################################################
 
-def ppg_from_stem(stem: str):
-    """Given a stem, loads the corresponding PPG"""
-
-    if not hasattr(ppg_from_stem, 'extension'):
-        ppg_from_stem.extension = ppgs.representation_file_extension()
-
-    path = Path(str(stem) + ppg_from_stem.extension)
-
-    return torch.load(path)
-
 
 def audio(file):
     """Load audio from disk"""
@@ -31,16 +21,17 @@ def audio(file):
         try:
             audio, sample_rate = torchaudio.load(path, format='mp3')
         except RuntimeError:
-            raise RuntimeError("Failed to load mp3 file, make sure ffmpeg<=4.3 is installed")
+            raise RuntimeError(
+                'Failed to load mp3 file, make sure ffmpeg<=4.3 is installed')
     else:
         audio, sample_rate = torchaudio.load(file)
 
     # Maybe resample
     return ppgs.resample(audio, sample_rate)
 
+
 def model(checkpoint=None, representation=None):
     """Load a model"""
-    breakpoint()
     if representation is not None:
         if representation == 'w2v2fb':
             checkpoint = huggingface_hub.hf_hub_download(
@@ -50,9 +41,11 @@ def model(checkpoint=None, representation=None):
             conf = {k: v for k, v in conf.items() if not k.startswith('__')}
             kwargs = {kv[0].lower() : kv[1] for kv in conf.items()}
         elif representation == 'mel':
-            pass # nothing to do
+            kwargs = {}
         else:
-            raise ValueError("supplying representation directly only supported for w2v2fb and mel")
+            raise ValueError(
+                'Supplying representation directly only supported '
+                'for w2v2fb and mel')
     else:
         kwargs = {}
 
@@ -64,9 +57,18 @@ def model(checkpoint=None, representation=None):
 
     # Maybe download from HuggingFace
     if checkpoint is None and ppgs.LOCAL_CHECKPOINT is None:
-        checkpoint = huggingface_hub.hf_hub_download(
-            'CameronChurchwell/ppgs',
-            'mel-800k.pt')
+        if ppgs.REPRESENTATION == 'mel' or ppgs.REPRESENTATION is None:
+            checkpoint = huggingface_hub.hf_hub_download(
+                'CameronChurchwell/ppgs',
+                'mel-800k.pt')
+        elif ppgs.REPRESENTATION == 'w2v2fb':
+            checkpoint = huggingface_hub.hf_hub_download(
+                'CameronChurchwell/ppgs',
+                'w2v2fb-425k.pt')
+        else:
+            raise ValueError(
+                f'No default checkpoints exist for '
+                f'representation {ppgs.REPRESENTATION}')
     elif checkpoint is None and ppgs.LOCAL_CHECKPOINT is not None:
         checkpoint = ppgs.LOCAL_CHECKPOINT
 

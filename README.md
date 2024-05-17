@@ -20,7 +20,6 @@ Training, evaluation, and inference of neural phonetic posteriorgrams (PPGs) in 
         * [`ppgs.from_file`](#ppgsfrom_file)
         * [`ppgs.from_file_to_file`](#ppgsfrom_file_to_file)
         * [`ppgs.from_files_to_files`](#ppgsfrom_files_to_files)
-        * [`ppgs.from_paths_to_paths`](#ppgsfrom_paths_to_paths)
     * [Command-line interface (CLI)](#command-line-interface-cli)
 - [Distance](#distance)
 - [Interpolate](#interpolate)
@@ -100,6 +99,7 @@ ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 def from_audio(
     audio: torch.Tensor,
     sample_rate: Union[int, float],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: int = None
 ) -> torch.Tensor:
@@ -111,6 +111,8 @@ def from_audio(
             shape=(batch, 1, samples)
         sample_rate
             Audio sampling rate
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -129,6 +131,7 @@ def from_audio(
 ```python
 def from_file(
     file: Union[str, bytes, os.PathLike],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None
 ) -> torch.Tensor:
@@ -137,6 +140,8 @@ def from_file(
     Arguments
         file
             The audio file
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -156,6 +161,7 @@ def from_file(
 def from_file_to_file(
     audio_file: Union[str, bytes, os.PathLike],
     output_file: Union[str, bytes, os.PathLike],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None
 ) -> None:
@@ -166,6 +172,8 @@ def from_file_to_file(
             The audio file
         output_file
             The .pt file to save PPGs
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -180,8 +188,9 @@ def from_file_to_file(
 def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = ppgs.NUM_WORKERS,
+    num_workers: int = 0,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
 ) -> None:
@@ -192,39 +201,8 @@ def from_files_to_files(
             The audio files
         output_files
             The .pt files to save PPGs
-        checkpoint
-            The checkpoint file
-        num_workers
-            Number of CPU threads for multiprocessing
-        gpu
-            The index of the GPU to use for inference
-        max_frames
-            The maximum number of frames on the GPU at once
-    """
-```
-
-
-#### `ppgs.from_paths_to_paths`
-
-```python
-def from_paths_to_paths(
-    input_paths: List[Union[str, bytes, os.PathLike]],
-    output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
-    extensions: Optional[List[str]] = None,
-    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = ppgs.NUM_WORKERS,
-    gpu: Optional[int] = None,
-    max_frames: int = ppgs.MAX_INFERENCE_FRAMES
-) -> None:
-    """Infer ppgs from audio files and save to torch tensor files
-
-    Arguments
-        input_paths
-            Paths to audio files and/or directories
-        output_paths
-            The one-to-one corresponding outputs
-        extensions
-            Extensions to glob for in directories
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         num_workers
@@ -242,31 +220,33 @@ def from_paths_to_paths(
 ```
 usage: python -m ppgs
     [-h]
-    [--input_paths INPUT_PATHS [INPUT_PATHS ...]]
-    [--output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]]
-    [--extensions EXTENSIONS [EXTENSIONS ...]]
+    [--audio_files AUDIO_FILES [AUDIO_FILES ...]]
+    [--output_files OUTPUT_FILES [OUTPUT_FILES ...]]
+    [--representation REPRESENTATION]
     [--checkpoint CHECKPOINT]
     [--num-workers NUM_WORKERS]
     [--gpu GPU]
     [--max-frames MAX_TRAINING_FRAMES]
 
 arguments:
-    --input_paths INPUT_PATHS [INPUT_PATHS ...]
-        Paths to audio files and/or directories
+    --audio_files AUDIO_FILES [AUDIO_FILES ...]
+        Paths to input audio files
+    --output_files OUTPUT_FILES [OUTPUT_FILES ...]
+        The one-to-one corresponding output files
 
 optional arguments:
     -h, --help
         Show this help message and exit
-    --output_paths OUTPUT_PATHS [OUTPUT_PATHS ...]
-        The one-to-one corresponding output paths
-    --extensions EXTENSIONS [EXTENSIONS ...]
-        Extensions to glob for in directories
+    --representation REPRESENTATION
+        Representation to use for inference
     --checkpoint CHECKPOINT
         The checkpoint file
     --num-workers NUM_WORKERS
         Number of CPU threads for multiprocessing
     --gpu GPU
         The index of the GPU to use for inference. Defaults to CPU.
+    --max-frames MAX_FRAMES
+        Maximum number of frames in a batch
 ```
 
 
@@ -280,7 +260,8 @@ def distance(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
     reduction: str = 'mean',
-    normalize: bool = True
+    normalize: bool = True,
+    exponent: float = ppgs.SIMILARITY_EXPONENT
 ) -> torch.Tensor:
     """Compute the pronunciation distance between two aligned PPGs
 
@@ -295,6 +276,8 @@ def distance(
             Reduction to apply to the output. One of ['mean', 'none', 'sum'].
         normalize
             Apply similarity based normalization
+        exponent
+            Similarty exponent
 
     Returns
         Normalized Jenson-shannon divergence between PPGs
@@ -523,13 +506,14 @@ def swap(ppg: torch.Tensor, phonemeA: str, phonemeB: str) -> torch.Tensor:
     """
 ```
 
+
 ## Sparsify
 
 ```python
 def sparsify(
     ppg: torch.Tensor,
-    method: str='percentile',
-    threshold: Union[float, int]=0.85
+    method: str = 'percentile',
+    threshold: Union[float, int] = 0.85
 ) -> torch.Tensor:
     """Make phonetic posteriorgrams sparse
 
@@ -571,7 +555,7 @@ Prepares representations for training. Representations are stored
 in `data/cache/`.
 
 ```
-python -m ppgs.data.preprocess \
+python -m ppgs.preprocess \
    --datasets <datasets> \
    --representatations <representations> \
    --gpu <gpu> \
@@ -622,7 +606,11 @@ Performs objective evaluation of phoneme accuracy. Results are stored
 in `eval/`.
 
 ```
-python -m ppgs.evaluate --config <name> --datasets <datasets> --gpu <gpu>
+python -m ppgs.evaluate \
+    --config <name> \
+    --datasets <datasets> \
+    --checkpoint <checkpoint> \
+    --gpu <gpu>
 ```
 
 

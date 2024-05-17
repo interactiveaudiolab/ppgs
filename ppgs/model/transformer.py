@@ -19,7 +19,8 @@ class Transformer(torch.nn.Module):
         input_channels=ppgs.INPUT_CHANNELS,
         output_channels=ppgs.OUTPUT_CHANNELS,
         kernel_size=ppgs.KERNEL_SIZE,
-        attention_heads=ppgs.ATTENTION_HEADS
+        attention_heads=ppgs.ATTENTION_HEADS,
+        is_causal=ppgs.IS_CAUSAL
     ):
         super().__init__()
         self.position = PositionalEncoding(hidden_channels)
@@ -36,12 +37,21 @@ class Transformer(torch.nn.Module):
             output_channels,
             kernel_size=kernel_size,
             padding='same')
+        self.is_causal = is_causal
 
     def forward(self, x, lengths):
+        if self.is_causal:
+            causal_mask = torch.nn.Transformer.generate_square_subsequent_mask(
+                torch.max(lengths),
+                device = x.device
+            )
+        else:
+            causal_mask = None
         mask = mask_from_lengths(lengths).unsqueeze(1)
         x = self.input_layer(x) * mask
         x = self.model(
             self.position(x.permute(2, 0, 1)),
+            mask=causal_mask,
             src_key_padding_mask=~mask.squeeze(1)
         ).permute(1, 2, 0)
         return self.output_layer(x) * mask
