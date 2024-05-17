@@ -26,6 +26,11 @@ def parse_args():
         nargs='+',
         help='The one-to-one corresponding output files')
     parser.add_argument(
+        '--representation',
+        type=str,
+        default=None,
+        help='Representation to use for inference')
+    parser.add_argument(
         '--checkpoint',
         type=Path,
         help='The checkpoint file')
@@ -43,11 +48,6 @@ def parse_args():
         type=int,
         default=ppgs.MAX_INFERENCE_FRAMES,
         help='Maximum number of frames in a batch')
-    parser.add_argument(
-        '--representation',
-        type=str,
-        default=None,
-        help='Representation to use for inference')
     return parser.parse_args()
 
 

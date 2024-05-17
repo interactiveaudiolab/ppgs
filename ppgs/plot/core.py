@@ -15,106 +15,10 @@ from itertools import repeat
 
 import ppgs
 
-def from_paths_to_paths(
-    audio_paths: List[Union[str, bytes, os.PathLike]] = None,
-    ppg_paths: List[Union[str, bytes, os.PathLike]] = None,
-    textgrid_paths: List[Union[str, bytes, os.PathLike]] = None,
-    output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
-    audio_extensions: Optional[List[str]] = None,
-    checkpoint: Union[str, bytes, os.PathLike] = None,
-    video: bool = False,
-    font_filename: Union[str, bytes, os.PathLike] = None,
-    pdf: bool = False,
-    gpu: Optional[int] = None) -> None:
-    """Infer ppgs from audio files and save to torch tensor files
 
-    Arguments
-        input_paths
-            Paths to audio files and/or directories
-        output_paths
-            The one-to-one corresponding outputs
-        extensions
-            Extensions to glob for in directories
-        checkpoint
-            The checkpoint file
-        num_workers
-            Number of CPU threads for multiprocessing
-        gpu
-            The index of the GPU to use for inference
-    """
-
-    if video:
-        output_extension = 'mp4'
-    elif pdf:
-        output_extension = 'pdf'
-    else:
-        output_extension = 'jpg'
-
-    if audio_paths is not None and ppg_paths is not None:
-        if textgrid_paths is None:
-            (audio_files, ppg_files), output_files = ppgs.aggregate(
-                audio_paths,
-                ppg_paths,
-                sinks=output_paths,
-                sink_extension=output_extension
-            )
-            textgrid_files = None
-        else:
-            (
-                (audio_files, ppg_files, textgrid_files),
-                output_files
-            ) = ppgs.aggregate(
-                audio_paths,
-                ppg_paths,
-                textgrid_paths,
-                sinks=output_paths,
-                sink_extension=output_extension
-            )
-    elif audio_paths is not None and ppg_paths is None:
-        if textgrid_paths is None:
-            audio_files, output_files = ppgs.aggregate(
-                audio_paths,
-                sinks=output_paths,
-                source_extensions=audio_extensions,
-                sink_extension=output_extension
-            )
-            textgrid_files = None
-        else:
-            (audio_files, textgrid_files), output_files = ppgs.aggregate(
-                audio_paths,
-                textgrid_paths,
-                sinks=output_paths,
-                sink_extension=output_extension
-            )
-        ppg_files = None
-    elif audio_paths is None and ppg_paths is not None:
-        if textgrid_paths is None:
-            ppg_files, output_files = ppgs.aggregate(
-                ppg_paths,
-                sinks=output_paths,
-                source_extensions=['pt'],
-                sink_extension=output_extension
-            )
-            textgrid_files = None
-        else:
-            (ppg_files, textgrid_files), output_files = ppgs.aggregate(
-                ppg_paths,
-                textgrid_paths,
-                sinks=output_paths,
-                sink_extension=output_extension
-            )
-        audio_files = None
-    else:
-        raise ValueError('must provide audio_paths, OR ppg_paths, OR both')
-
-    from_files_to_files(
-        audio_files=audio_files,
-        ppg_files=ppg_files,
-        textgrid_files=textgrid_files,
-        output_files=output_files,
-        font_filename=font_filename,
-        checkpoint=checkpoint,
-        gpu=gpu)
+###############################################################################
+# Plot phonetic posteriorgrams
+###############################################################################
 
 
 def from_files_to_files(
@@ -125,17 +29,21 @@ def from_files_to_files(
     font_filename: Union[str, bytes, os.PathLike] = None,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None) -> None:
-    """Infer ppgs from audio files and save to torch tensor files
+    """Plot ppgs and save to disk
 
     Arguments
         audio_files
             The audio files
+        ppg_files
+            The PyTorch files containing PPGs
+        textgrid_files
+            The files containing the forced alignment
         output_files
-            The .pt files to save PPGs
+            The corresponding files to save the plots
+        font_filename
+            The file path containing font information
         checkpoint
             The checkpoint file
-        num_workers
-            Number of CPU threads for multiprocessing
         gpu
             The index of the GPU to use for inference
     """
@@ -167,8 +75,7 @@ def from_files_to_files(
                 textgrid_filename=textgrid_file,
                 output_filename=output_file,
                 font_filename=font_filename,
-                mode=mode
-            )
+                mode=mode)
     else:
         for audio_file, textgrid_file, output_file in zip(
             audio_files,
@@ -189,8 +96,7 @@ def from_files_to_files(
                 checkpoint=checkpoint,
                 gpu=gpu,
                 font_filename=font_filename,
-                mode=mode
-            )
+                mode=mode)
 
 
 ###############################################################################

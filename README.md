@@ -99,6 +99,7 @@ ppgs = ppgs.from_audio(audio, ppgs.SAMPLE_RATE, gpu=gpu)
 def from_audio(
     audio: torch.Tensor,
     sample_rate: Union[int, float],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: int = None
 ) -> torch.Tensor:
@@ -110,6 +111,8 @@ def from_audio(
             shape=(batch, 1, samples)
         sample_rate
             Audio sampling rate
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -128,6 +131,7 @@ def from_audio(
 ```python
 def from_file(
     file: Union[str, bytes, os.PathLike],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None
 ) -> torch.Tensor:
@@ -136,6 +140,8 @@ def from_file(
     Arguments
         file
             The audio file
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -155,6 +161,7 @@ def from_file(
 def from_file_to_file(
     audio_file: Union[str, bytes, os.PathLike],
     output_file: Union[str, bytes, os.PathLike],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None
 ) -> None:
@@ -165,6 +172,8 @@ def from_file_to_file(
             The audio file
         output_file
             The .pt file to save PPGs
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         gpu
@@ -179,8 +188,9 @@ def from_file_to_file(
 def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = ppgs.NUM_WORKERS,
+    num_workers: int = 0,
     gpu: Optional[int] = None,
     max_frames: int = ppgs.MAX_INFERENCE_FRAMES
 ) -> None:
@@ -191,6 +201,8 @@ def from_files_to_files(
             The audio files
         output_files
             The .pt files to save PPGs
+        representation
+            The representation to use, 'mel' and 'w2v2fb' are currently supported
         checkpoint
             The checkpoint file
         num_workers
@@ -202,6 +214,7 @@ def from_files_to_files(
     """
 ```
 
+
 ### Command-line interface (CLI)
 
 ```
@@ -209,7 +222,7 @@ usage: python -m ppgs
     [-h]
     [--audio_files AUDIO_FILES [AUDIO_FILES ...]]
     [--output_files OUTPUT_FILES [OUTPUT_FILES ...]]
-    [--extensions EXTENSIONS [EXTENSIONS ...]]
+    [--representation REPRESENTATION]
     [--checkpoint CHECKPOINT]
     [--num-workers NUM_WORKERS]
     [--gpu GPU]
@@ -224,14 +237,16 @@ arguments:
 optional arguments:
     -h, --help
         Show this help message and exit
-    --extensions EXTENSIONS [EXTENSIONS ...]
-        Extensions to glob for in directories
+    --representation REPRESENTATION
+        Representation to use for inference
     --checkpoint CHECKPOINT
         The checkpoint file
     --num-workers NUM_WORKERS
         Number of CPU threads for multiprocessing
     --gpu GPU
         The index of the GPU to use for inference. Defaults to CPU.
+    --max-frames MAX_FRAMES
+        Maximum number of frames in a batch
 ```
 
 
@@ -245,7 +260,8 @@ def distance(
     ppgX: torch.Tensor,
     ppgY: torch.Tensor,
     reduction: str = 'mean',
-    normalize: bool = True
+    normalize: bool = True,
+    exponent: float = ppgs.SIMILARITY_EXPONENT
 ) -> torch.Tensor:
     """Compute the pronunciation distance between two aligned PPGs
 
@@ -260,6 +276,8 @@ def distance(
             Reduction to apply to the output. One of ['mean', 'none', 'sum'].
         normalize
             Apply similarity based normalization
+        exponent
+            Similarty exponent
 
     Returns
         Normalized Jenson-shannon divergence between PPGs
@@ -488,13 +506,14 @@ def swap(ppg: torch.Tensor, phonemeA: str, phonemeB: str) -> torch.Tensor:
     """
 ```
 
+
 ## Sparsify
 
 ```python
 def sparsify(
     ppg: torch.Tensor,
-    method: str='percentile',
-    threshold: Union[float, int]=0.85
+    method: str = 'percentile',
+    threshold: Union[float, int] = 0.85
 ) -> torch.Tensor:
     """Make phonetic posteriorgrams sparse
 
@@ -536,7 +555,7 @@ Prepares representations for training. Representations are stored
 in `data/cache/`.
 
 ```
-python -m ppgs.data.preprocess \
+python -m ppgs.preprocess \
    --datasets <datasets> \
    --representatations <representations> \
    --gpu <gpu> \
@@ -587,7 +606,11 @@ Performs objective evaluation of phoneme accuracy. Results are stored
 in `eval/`.
 
 ```
-python -m ppgs.evaluate --config <name> --datasets <datasets> --gpu <gpu>
+python -m ppgs.evaluate \
+    --config <name> \
+    --datasets <datasets> \
+    --checkpoint <checkpoint> \
+    --gpu <gpu>
 ```
 
 

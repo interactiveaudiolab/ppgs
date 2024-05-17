@@ -504,8 +504,8 @@ def interpolate(
 
 def sparsify(
     ppg: torch.Tensor,
-    method: Optional[str] = 'percentile',
-    threshold: Optional[Union[float, int]] = 0.85
+    method: str = 'percentile',
+    threshold: Union[float, int] = 0.85
 ) -> torch.Tensor:
     """Make phonetic posteriorgrams sparse
 
