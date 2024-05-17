@@ -17,7 +17,8 @@ def main(config, dataset, gpu=None):
     directory.mkdir(parents=True, exist_ok=True)
 
     # Save configuration
-    shutil.copyfile(config, directory / config.name)
+    if config is not None:
+        shutil.copyfile(config, directory / config.name)
 
     # Train
     ppgs.train(dataset, directory, gpu)

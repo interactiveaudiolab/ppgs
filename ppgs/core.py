@@ -22,7 +22,7 @@ import ppgs
 def from_audio(
     audio: torch.Tensor,
     sample_rate: Union[int, float],
-    representation: Optional[str] = None,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: int = None
 ) -> torch.Tensor:
@@ -68,7 +68,7 @@ def from_audio(
 def from_features(
     features: torch.Tensor,
     lengths: torch.Tensor,
-    representation: Optional[str],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None,
     softmax: bool = True
@@ -122,7 +122,7 @@ def from_features(
 
 def from_file(
     file: Union[str, bytes, os.PathLike],
-    representation: Optional[str] = None,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None
 ) -> torch.Tensor:
@@ -159,7 +159,7 @@ def from_file(
 def from_file_to_file(
     audio_file: Union[str, bytes, os.PathLike],
     output_file: Union[str, bytes, os.PathLike],
-    representation: Optional[str] = None,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None
 ) -> None:
@@ -182,8 +182,7 @@ def from_file_to_file(
         file=audio_file,
         checkpoint=checkpoint,
         representation=representation,
-        gpu=gpu
-    )
+        gpu=gpu)
 
     # Save to disk
     torch.save(result.detach().cpu(), output_file)
@@ -192,7 +191,7 @@ def from_file_to_file(
 def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
-    representation: Optional[str] = None,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     num_workers: int = 0,
     gpu: Optional[int] = None,
@@ -256,7 +255,7 @@ def from_paths_to_paths(
     input_paths: List[Union[str, bytes, os.PathLike]],
     output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
     extensions: Optional[List[str]] = None,
-    representation: Optional[str] = None,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     num_workers: int = 0,
     gpu: Optional[int] = None,
@@ -299,8 +298,7 @@ def from_paths_to_paths(
         checkpoint=checkpoint,
         num_workers=num_workers,
         gpu=gpu,
-        max_frames=max_frames
-    )
+        max_frames=max_frames)
 
 
 ###############################################################################
@@ -313,7 +311,7 @@ def from_dataloader(
     output_files: Dict[
         Union[str, bytes, os.PathLike],
         Union[str, bytes, os.PathLike]],
-    representation: Optional[str] = ppgs.REPRESENTATION,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Union[str, bytes, os.PathLike] = None,
     save_workers: int = 1,
     gpu: Optional[int] = None
@@ -335,9 +333,6 @@ def from_dataloader(
         gpu
             The index of the GPU to use for inference
     """
-    # catch None values
-    if representation is None: representation = ppgs.REPRESENTATION
-
     # Setup multiprocessing
     if save_workers == 0:
         pool = contextlib.nullcontext()

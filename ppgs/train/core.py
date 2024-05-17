@@ -202,7 +202,7 @@ def train(dataset, directory=ppgs.RUNS_DIR / ppgs.CONFIG, gpu=None):
 
                     # Log VRAM utilization
                     # index = accelerator.device.index
-                    print(torch.cuda.memory_summary(device.index))
+                    # print(torch.cuda.memory_summary(device.index))
                     torchutil.tensorboard.update(
                         directory,
                         step,
