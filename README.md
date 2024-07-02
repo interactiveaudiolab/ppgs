@@ -54,7 +54,7 @@ To perform training, install training dependencies and FFMPEG.
 ```bash
 pip install ppgs[train]
 conda install -c conda-forge ffmpeg
-``````
+```
 
 If you wish to use the Charsiu representation, download the code,
 install both inference and training dependencies, and install
