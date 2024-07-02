@@ -41,7 +41,7 @@ def sample(ppg: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
     else:
         ppg = torch.nn.functional.pad(ppg, (0, 1), mode='replicate')
 
-    # Spherical linear interpolation
+    # Linear interpolation
     return ppgs.interpolate(ppg[..., i - 1], ppg[..., i], interp)
 
 

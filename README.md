@@ -293,7 +293,7 @@ def interpolate(
     ppgY: torch.Tensor,
     interp: Union[float, torch.Tensor]
 ) -> torch.Tensor:
-    """Spherical linear interpolation
+    """Linear interpolation
 
     Arguments
         ppgX

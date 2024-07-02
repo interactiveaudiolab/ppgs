@@ -454,7 +454,7 @@ def interpolate(
     ppgY: torch.Tensor,
     interp: Union[float, torch.Tensor]
 ) -> torch.Tensor:
-    """Spherical linear interpolation
+    """Linear interpolation
 
     Arguments
         ppgX
@@ -471,30 +471,7 @@ def interpolate(
         Interpolated PPGs
         shape=(len(ppgs.PHONEMES), frames)
     """
-    # "acos_vml_cpu" not implemented for 'Half'
-    dtype = ppgX.dtype
-    if dtype in [torch.float16, torch.bfloat16]:
-        p = ppgX.to(torch.float32) * ppgY.to(torch.float32)
-        s = p.sum(-2, keepdim=True)
-        s = s.clamp(-1.0, 1.0)
-        omega = torch.acos(s).to(dtype)
-    else:
-        p = ppgX * ppgY
-        s = p.sum(-2, keepdim=True)
-        s = s.clamp(-1.0, 1.0)
-        omega = torch.acos(s)
-
-    sin_omega = torch.clip(torch.sin(omega), 1e-6)
-    interpolated = (
-        torch.sin((1. - interp) * omega) / sin_omega * ppgX +
-        torch.sin(interp * omega) / sin_omega * ppgY)
-
-    # Fix locations where ppgX == ppgY
-    for i in range(ppgX.shape[-1]):
-        if not torch.count_nonzero(interpolated[..., i]):
-            interpolated[..., i] = ppgX[..., i]
-
-    return interpolated
+    return (1. - interp) * ppgX + interp * ppgY
 
 
 ###############################################################################
