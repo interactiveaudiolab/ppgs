@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument(
         '--representation',
         type=str,
-        default=None,
+        default=ppgs.REPRESENTATION,
         help='Representation to use for inference')
     parser.add_argument(
         '--checkpoint',
