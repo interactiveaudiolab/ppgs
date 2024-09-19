@@ -48,6 +48,11 @@ def parse_args():
         type=int,
         default=ppgs.MAX_INFERENCE_FRAMES,
         help='Maximum number of frames in a batch')
+    parser.add_argument(
+        '--legacy-mode',
+        action='store_true',
+        help='Use legacy (unchunked) inference'
+    )
     return parser.parse_args()
 
 

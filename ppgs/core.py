@@ -24,7 +24,8 @@ def from_audio(
     sample_rate: Union[int, float],
     representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    gpu: int = None
+    gpu: int = None,
+    legacy_mode: bool = False
 ) -> torch.Tensor:
     """Infer ppgs from audio
 
@@ -40,6 +41,8 @@ def from_audio(
             The checkpoint file
         gpu
             The index of the GPU to use for inference
+        legacy_mode
+            Use legacy (unchunked) inference
 
     Returns
         ppgs
@@ -62,7 +65,8 @@ def from_audio(
         lengths=length,
         representation=representation,
         checkpoint=checkpoint,
-        gpu=gpu)
+        gpu=gpu,
+        legacy_mode=legacy_mode)
 
 
 def from_features(
@@ -71,7 +75,8 @@ def from_features(
     representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None,
-    softmax: bool = True
+    softmax: bool = True,
+    legacy_mode: bool = False
 ) -> torch.Tensor:
     """Infer ppgs from input features (e.g. w2v2fb, mel, etc.)
 
@@ -90,6 +95,8 @@ def from_features(
             The index of the GPU to use for inference
         softmax
             Whether to apply softmax normalization to the inferred logits
+        legacy_mode
+            Use legacy (unchunked) inference
 
     Returns
         ppgs
@@ -117,14 +124,16 @@ def from_features(
         lengths=lengths.to(device),
         representation=representation,
         checkpoint=checkpoint,
-        softmax=softmax)
+        softmax=softmax,
+        legacy_mode=legacy_mode)
 
 
 def from_file(
     file: Union[str, bytes, os.PathLike],
     representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    gpu: Optional[int] = None
+    gpu: Optional[int] = None,
+    legacy_mode: bool = False
 ) -> torch.Tensor:
     """Infer ppgs from an audio file
 
@@ -137,6 +146,8 @@ def from_file(
             The checkpoint file
         gpu
             The index of the GPU to use for inference
+        legacy_mode
+            Use legacy (unchunked) inference
 
     Returns
         ppgs
@@ -152,7 +163,8 @@ def from_file(
         sample_rate=ppgs.SAMPLE_RATE,
         representation=representation,
         checkpoint=checkpoint,
-        gpu=gpu
+        gpu=gpu,
+        legacy_mode=legacy_mode
     ).squeeze(0)
 
 
@@ -161,7 +173,8 @@ def from_file_to_file(
     output_file: Union[str, bytes, os.PathLike],
     representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    gpu: Optional[int] = None
+    gpu: Optional[int] = None,
+    legacy_mode: bool = False
 ) -> None:
     """Infer ppg from an audio file and save to a torch tensor file
 
@@ -176,13 +189,16 @@ def from_file_to_file(
             The checkpoint file
         gpu
             The index of the GPU to use for inference
+        legacy_mode
+            Use legacy (unchunked) inference
     """
     # Compute PPGs
     result = from_file(
         file=audio_file,
         checkpoint=checkpoint,
         representation=representation,
-        gpu=gpu)
+        gpu=gpu,
+        legacy_mode=legacy_mode)
 
     # Save to disk
     torch.save(result.detach().cpu(), output_file)
@@ -195,7 +211,8 @@ def from_files_to_files(
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     num_workers: int = 0,
     gpu: Optional[int] = None,
-    max_frames: int = ppgs.MAX_INFERENCE_FRAMES
+    max_frames: int = ppgs.MAX_INFERENCE_FRAMES,
+    legacy_mode: bool = False
 ) -> None:
     """Infer ppgs from audio files and save to torch tensor files
 
@@ -214,6 +231,8 @@ def from_files_to_files(
             The index of the GPU to use for inference
         max_frames
             The maximum number of frames on the GPU at once
+        legacy_mode
+            Use legacy (unchunked) inference
     """
     # Single-threaded
     if num_workers == 0:
@@ -221,7 +240,8 @@ def from_files_to_files(
             from_file_to_file,
             representation=representation,
             checkpoint=checkpoint,
-            gpu=gpu)
+            gpu=gpu,
+            legacy_mode=legacy_mode)
         for audio_file, output_file in zip(audio_files, output_files):
             infer_fn(audio_file, output_file)
 
@@ -247,7 +267,8 @@ def from_files_to_files(
             representation=representation,
             checkpoint=checkpoint,
             save_workers=num_workers // 2,
-            gpu=gpu
+            gpu=gpu,
+            legacy_mode=legacy_mode
         )
 
 
@@ -264,7 +285,8 @@ def from_dataloader(
     representation: str = ppgs.REPRESENTATION,
     checkpoint: Union[str, bytes, os.PathLike] = None,
     save_workers: int = 1,
-    gpu: Optional[int] = None
+    gpu: Optional[int] = None,
+    legacy_mode: bool = False
 ) -> None:
     """Infer ppgs from a dataloader yielding audio files
 
@@ -282,6 +304,8 @@ def from_dataloader(
             The number of worker threads to use for async file saving
         gpu
             The index of the GPU to use for inference
+        legacy_mode
+            Use legacy (unchunked) inference
     """
     # Setup multiprocessing
     if save_workers == 0:
@@ -324,7 +348,8 @@ def from_dataloader(
                 lengths=attention_mask_lengths,
                 representation=representation,
                 checkpoint=checkpoint,
-                gpu=gpu)
+                gpu=gpu,
+                legacy_mode=legacy_mode)
 
             # Get output filenames
             filenames = [output_files[file] for file in audio_files]
@@ -528,7 +553,8 @@ def infer(
     lengths,
     representation='mel',
     checkpoint=None,
-    softmax=True):
+    softmax=True,
+    legacy_mode=False):
     """Perform model inference"""
 
     # Skip inference if we want input representations
@@ -558,7 +584,10 @@ def infer(
 
     # Infer
     with torchutil.inference.context(infer.model):
-        logits = infer.model(features, lengths)
+        if isinstance(infer.model, ppgs.model.Transformer):
+            logits = infer.model(features, lengths, legacy_mode=legacy_mode)
+        else:
+            logits = infer.model(features, lengths)
 
         # Postprocess
         if softmax:
