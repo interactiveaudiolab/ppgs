@@ -29,7 +29,10 @@ class Collate():
             # Pack target phonemes
             elif feature == 'phonemes':
                 max_length = max([indices.shape[-1] for indices in values])
-                padded_indices = torch.full((batch_size, max_length), -100, dtype=torch.long)
+                padded_indices = torch.full(
+                    (batch_size, max_length),
+                    -100,
+                    dtype=torch.long)
                 for i, indices in enumerate(values):
                     padded_indices[i, :indices.shape[-1]] = indices
                 batch_values.append(padded_indices)

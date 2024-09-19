@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 with open('README.md') as file:
@@ -19,15 +19,16 @@ setup(
             'g2pM',
             'gdown>=4.6.2',
             'humanfriendly',
-            'librosa',
             'nltk',
             'pyyaml',
-            'torch-complex',
+            'torch-complex'
         ]
     },
     install_requires=[
         'espnet',
         'huggingface-hub',
+        'librosa',
+        'matplotlib',
         'moviepy',
         'numpy',
         'pypar',
@@ -38,9 +39,8 @@ setup(
         'transformers',
         'opencv-python',
         'yapecs',
-        'gdown>=4.6.2'
     ],
-    packages=['ppgs'],
+    packages=find_packages(),
     package_data={'ppgs': ['assets/*', 'assets/*/*']},
     long_description=long_description,
     long_description_content_type='text/markdown',

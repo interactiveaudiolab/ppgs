@@ -2,7 +2,6 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-import gdown
 import torchutil
 
 import ppgs
@@ -48,6 +47,7 @@ def ci_fmt(fragment):
 
 def download_google_drive_zip(url, path, skip_first=True):
     """Download a zip file from google drive, extract contents to path"""
+    import gdown
     f = tempfile.NamedTemporaryFile(mode='r+b', suffix='.zip', delete=False)
     f.close()
     gdown.download(url, f.name)

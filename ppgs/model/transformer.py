@@ -1,7 +1,7 @@
 import math
 
 import torch
-
+import math
 import ppgs
 
 
@@ -19,10 +19,13 @@ class Transformer(torch.nn.Module):
         input_channels=ppgs.INPUT_CHANNELS,
         output_channels=ppgs.OUTPUT_CHANNELS,
         kernel_size=ppgs.KERNEL_SIZE,
-        attention_heads=ppgs.ATTENTION_HEADS
+        attention_heads=ppgs.ATTENTION_HEADS,
+        is_causal=ppgs.IS_CAUSAL,
+        max_len=5000
     ):
         super().__init__()
-        self.position = PositionalEncoding(hidden_channels)
+        self.position = PositionalEncoding(hidden_channels, max_len=max_len)
+        self.max_len = max_len
         self.input_layer = torch.nn.Conv1d(
             input_channels,
             hidden_channels,
@@ -36,12 +39,43 @@ class Transformer(torch.nn.Module):
             output_channels,
             kernel_size=kernel_size,
             padding='same')
+        self.is_causal = is_causal
 
-    def forward(self, x, lengths):
+    def forward(self, x, lengths=None, legacy_mode=False):
+        if legacy_mode:
+            assert x.shape[-1] < ppgs.MAX_INFERENCE_FRAMES
+        else: # do chunking
+            overlap = 50
+            # max_len = self.max_len
+            max_len = 500
+            stride = max_len - 2*overlap
+            if x.shape[-1] > self.max_len:
+                print('overlap: ', overlap)
+                padded = torch.nn.functional.pad(x, (overlap, 0), mode='replicate').to(x.device)
+                split_results = []
+                num_blocks = math.ceil(x.shape[-1] / stride)
+                for i in range(0, num_blocks):
+                    split = padded[..., i*stride:(i+1)*(stride)+2*overlap]
+                    chunk_lengths = (lengths+overlap).clamp(0, max_len)
+                    chunk_lengths[chunk_lengths==overlap] = 0
+                    lengths = (lengths-stride).clamp(min=0)
+                    # recursively compute forward in chunks
+                    split_results.append(self.forward(split, chunk_lengths)[..., overlap:max_len-overlap])
+                return torch.cat(split_results, dim=-1)
+        if self.is_causal: # apply causal mask
+            causal_mask = torch.nn.Transformer.generate_square_subsequent_mask(
+                torch.max(lengths),
+                device = x.device
+            )
+        else: # no causal masking
+            causal_mask = None
+
+        # actual inference time
         mask = mask_from_lengths(lengths).unsqueeze(1)
         x = self.input_layer(x) * mask
         x = self.model(
             self.position(x.permute(2, 0, 1)),
+            mask=causal_mask,
             src_key_padding_mask=~mask.squeeze(1)
         ).permute(1, 2, 0)
         return self.output_layer(x) * mask

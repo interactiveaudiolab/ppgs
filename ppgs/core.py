@@ -22,9 +22,10 @@ import ppgs
 def from_audio(
     audio: torch.Tensor,
     sample_rate: Union[int, float],
-    representation: Optional[str] = None,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    gpu: int = None
+    gpu: int = None,
+    legacy_mode: bool = False
 ) -> torch.Tensor:
     """Infer ppgs from audio
 
@@ -40,6 +41,8 @@ def from_audio(
             The checkpoint file
         gpu
             The index of the GPU to use for inference
+        legacy_mode
+            Use legacy (unchunked) inference
 
     Returns
         ppgs
@@ -51,8 +54,7 @@ def from_audio(
         audio=audio,
         sample_rate=sample_rate,
         representation=representation,
-        gpu=gpu
-    )
+        gpu=gpu)
 
     # Get length in frames
     length = torch.tensor([features.shape[-1]], dtype=torch.long)
@@ -60,19 +62,21 @@ def from_audio(
     # Infer
     return from_features(
         features=features,
-        lengths=length, 
+        lengths=length,
         representation=representation,
-        checkpoint=checkpoint, 
-        gpu=gpu)
+        checkpoint=checkpoint,
+        gpu=gpu,
+        legacy_mode=legacy_mode)
 
 
 def from_features(
     features: torch.Tensor,
     lengths: torch.Tensor,
-    representation: Optional[str],
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     gpu: Optional[int] = None,
-    softmax: bool = True
+    softmax: bool = True,
+    legacy_mode: bool = False
 ) -> torch.Tensor:
     """Infer ppgs from input features (e.g. w2v2fb, mel, etc.)
 
@@ -91,6 +95,8 @@ def from_features(
             The index of the GPU to use for inference
         softmax
             Whether to apply softmax normalization to the inferred logits
+        legacy_mode
+            Use legacy (unchunked) inference
 
     Returns
         ppgs
@@ -100,8 +106,12 @@ def from_features(
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
     if representation is None: # neither mel nor w2v2fb have a frontend
+
         # Maybe load and cache codebook
-        if not hasattr(from_features, 'frontend') and ppgs.FRONTEND is not None:
+        if (
+            not hasattr(from_features, 'frontend') and
+            ppgs.FRONTEND is not None
+        ):
             from_features.frontend = ppgs.FRONTEND(device)
 
         # Codebook lookup
@@ -114,15 +124,16 @@ def from_features(
         lengths=lengths.to(device),
         representation=representation,
         checkpoint=checkpoint,
-        softmax=softmax
-    )
+        softmax=softmax,
+        legacy_mode=legacy_mode)
 
 
 def from_file(
     file: Union[str, bytes, os.PathLike],
-    representation: Optional[str] = None,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    gpu: Optional[int] = None
+    gpu: Optional[int] = None,
+    legacy_mode: bool = False
 ) -> torch.Tensor:
     """Infer ppgs from an audio file
 
@@ -135,6 +146,8 @@ def from_file(
             The checkpoint file
         gpu
             The index of the GPU to use for inference
+        legacy_mode
+            Use legacy (unchunked) inference
 
     Returns
         ppgs
@@ -150,16 +163,18 @@ def from_file(
         sample_rate=ppgs.SAMPLE_RATE,
         representation=representation,
         checkpoint=checkpoint,
-        gpu=gpu
+        gpu=gpu,
+        legacy_mode=legacy_mode
     ).squeeze(0)
 
 
 def from_file_to_file(
     audio_file: Union[str, bytes, os.PathLike],
     output_file: Union[str, bytes, os.PathLike],
-    representation: Optional[str] = None,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    gpu: Optional[int] = None
+    gpu: Optional[int] = None,
+    legacy_mode: bool = False
 ) -> None:
     """Infer ppg from an audio file and save to a torch tensor file
 
@@ -174,14 +189,16 @@ def from_file_to_file(
             The checkpoint file
         gpu
             The index of the GPU to use for inference
+        legacy_mode
+            Use legacy (unchunked) inference
     """
     # Compute PPGs
     result = from_file(
-        file=audio_file, 
-        checkpoint=checkpoint, 
+        file=audio_file,
+        checkpoint=checkpoint,
         representation=representation,
-        gpu=gpu
-    )
+        gpu=gpu,
+        legacy_mode=legacy_mode)
 
     # Save to disk
     torch.save(result.detach().cpu(), output_file)
@@ -190,11 +207,12 @@ def from_file_to_file(
 def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
-    representation: Optional[str] = None,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
     num_workers: int = 0,
     gpu: Optional[int] = None,
-    max_frames: int = ppgs.MAX_INFERENCE_FRAMES
+    max_frames: int = ppgs.MAX_INFERENCE_FRAMES,
+    legacy_mode: bool = False
 ) -> None:
     """Infer ppgs from audio files and save to torch tensor files
 
@@ -213,6 +231,8 @@ def from_files_to_files(
             The index of the GPU to use for inference
         max_frames
             The maximum number of frames on the GPU at once
+        legacy_mode
+            Use legacy (unchunked) inference
     """
     # Single-threaded
     if num_workers == 0:
@@ -220,7 +240,8 @@ def from_files_to_files(
             from_file_to_file,
             representation=representation,
             checkpoint=checkpoint,
-            gpu=gpu)
+            gpu=gpu,
+            legacy_mode=legacy_mode)
         for audio_file, output_file in zip(audio_files, output_files):
             infer_fn(audio_file, output_file)
 
@@ -245,60 +266,10 @@ def from_files_to_files(
             output_files=output_files,
             representation=representation,
             checkpoint=checkpoint,
-            num_workers=num_workers // 2,
-            gpu=gpu
+            save_workers=num_workers // 2,
+            gpu=gpu,
+            legacy_mode=legacy_mode
         )
-
-
-def from_paths_to_paths(
-    input_paths: List[Union[str, bytes, os.PathLike]],
-    output_paths: Optional[List[Union[str, bytes, os.PathLike]]] = None,
-    extensions: Optional[List[str]] = None,
-    representation: Optional[str] = None,
-    checkpoint: Optional[Union[str, bytes, os.PathLike]] = None,
-    num_workers: int = 0,
-    gpu: Optional[int] = None,
-    max_frames: int = ppgs.MAX_INFERENCE_FRAMES
-) -> None:
-    """Infer ppgs from audio files and save to torch tensor files
-
-    Arguments
-        input_paths
-            Paths to audio files and/or directories
-        output_paths
-            The one-to-one corresponding outputs
-        extensions
-            Extensions to glob for in directories
-        representation
-            The representation to use, 'mel' and 'w2v2fb' are currently supported
-        checkpoint
-            The checkpoint file
-        num_workers
-            Number of CPU threads for multiprocessing
-        gpu
-            The index of the GPU to use for inference
-        max_frames
-            The maximum number of frames on the GPU at once
-    """
-    if output_paths is not None:
-        input_files, output_files = aggregate(
-            input_paths,
-            sinks=output_paths,
-            source_extensions=extensions,
-            sink_extension=f'-{ppgs.REPRESENTATION}-ppg.pt')
-    else:
-        input_files, output_files = aggregate(
-            input_paths,
-            source_extensions=extensions)
-    from_files_to_files(
-        audio_files=input_files,
-        output_files=output_files,
-        representation=representation,
-        checkpoint=checkpoint,
-        num_workers=num_workers,
-        gpu=gpu,
-        max_frames=max_frames
-    )
 
 
 ###############################################################################
@@ -311,10 +282,11 @@ def from_dataloader(
     output_files: Dict[
         Union[str, bytes, os.PathLike],
         Union[str, bytes, os.PathLike]],
-    representation: Optional[str] = ppgs.REPRESENTATION,
+    representation: str = ppgs.REPRESENTATION,
     checkpoint: Union[str, bytes, os.PathLike] = None,
     save_workers: int = 1,
-    gpu: Optional[int] = None
+    gpu: Optional[int] = None,
+    legacy_mode: bool = False
 ) -> None:
     """Infer ppgs from a dataloader yielding audio files
 
@@ -332,6 +304,8 @@ def from_dataloader(
             The number of worker threads to use for async file saving
         gpu
             The index of the GPU to use for inference
+        legacy_mode
+            Use legacy (unchunked) inference
     """
     # Setup multiprocessing
     if save_workers == 0:
@@ -366,7 +340,7 @@ def from_dataloader(
                 attention_mask_lengths = frame_lengths
 
             if features.requires_grad:
-                raise ValueError('all representations should be detached!')
+                raise ValueError('All representations should be detached')
 
             # Infer
             result = from_features(
@@ -374,7 +348,8 @@ def from_dataloader(
                 lengths=attention_mask_lengths,
                 representation=representation,
                 checkpoint=checkpoint,
-                gpu=gpu)
+                gpu=gpu,
+                legacy_mode=legacy_mode)
 
             # Get output filenames
             filenames = [output_files[file] for file in audio_files]
@@ -441,6 +416,8 @@ def distance(
             Reduction to apply to the output. One of ['mean', 'none', 'sum'].
         normalize
             Apply similarity based normalization
+        exponent
+            Similarty exponent
 
     Returns
         Normalized Jenson-shannon divergence between PPGs
@@ -502,7 +479,7 @@ def interpolate(
     ppgY: torch.Tensor,
     interp: Union[float, torch.Tensor]
 ) -> torch.Tensor:
-    """Spherical linear interpolation
+    """Linear interpolation
 
     Arguments
         ppgX
@@ -519,28 +496,7 @@ def interpolate(
         Interpolated PPGs
         shape=(len(ppgs.PHONEMES), frames)
     """
-    # "acos_vml_cpu" not implemented for 'Half'
-    dtype = ppgX.dtype
-    if dtype in [torch.float16, torch.bfloat16]:
-        omega = torch.acos(
-            (ppgX.to(torch.float32) * ppgY.to(torch.float32)).sum(
-                -2,
-                keepdim=True)
-        ).to(dtype)
-    else:
-        omega = torch.acos((ppgX * ppgY).sum(-2, keepdim=True))
-
-    sin_omega = torch.clip(torch.sin(omega), 1e-6)
-    interpolated = (
-        torch.sin((1. - interp) * omega) / sin_omega * ppgX +
-        torch.sin(interp * omega) / sin_omega * ppgY)
-
-    # Fix locations where ppgX == ppgY
-    for i in range(ppgX.shape[-1]):
-        if not torch.count_nonzero(interpolated[..., i]):
-            interpolated[..., i] = ppgX[..., i]
-
-    return interpolated
+    return (1. - interp) * ppgX + interp * ppgY
 
 
 ###############################################################################
@@ -550,15 +506,15 @@ def interpolate(
 
 def sparsify(
     ppg: torch.Tensor,
-    method: str='percentile',
-    threshold: Union[float, int]=0.85
+    method: str = 'percentile',
+    threshold: torch.Tensor = torch.Tensor([0.85])
 ) -> torch.Tensor:
     """Make phonetic posteriorgrams sparse
 
     Arguments
         ppg
             Input PPG
-            shape=(*, len(ppgs.PHONEMES), frames)
+            shape=(batch, len(ppgs.PHONEMES), frames)
         method
             Sparsification method. One of ['constant', 'percentile', 'topk'].
         threshold
@@ -566,7 +522,7 @@ def sparsify(
 
     Returns
         Sparse phonetic posteriorgram
-        shape=(*, len(ppgs.PHONEMES), frames)
+        shape=(batch, len(ppgs.PHONEMES), frames)
     """
     # Threshold either a constant value or a percentile
     if method in ['constant', 'percentile']:
@@ -581,7 +537,7 @@ def sparsify(
             dim=-2)
         ppg.zero_()
         for t in range(ppg.shape[-1]):
-            ppg[..., indices[..., t], t] = values[..., t]
+            ppg[:, indices[..., t], t] = values[..., t]
 
     # Renormalize after sparsification
     return torch.softmax(torch.log(ppg + 1e-8), -2)
@@ -592,118 +548,13 @@ def sparsify(
 ###############################################################################
 
 
-def aggregate(
-    *sources: List[Union[str, bytes, os.PathLike]],
-    sinks: Optional[List[Union[str, bytes, os.PathLike]]] = None,
-    source_extensions: Optional[str] = None,
-    sink_extension: str = '.pt'):
-    """
-    Aggregates lists of input and output directories and files into two lists
-    of files, using the provided extension to glob directories.
-    """
-    if len(sources) == 0:
-        raise ValueError('At least one source list must be provided')
-    elif len(sources) == 1:
-        assert sources[0] is not None, 'At least one source list must be provieded, but found None'
-    else:
-        assert source_extensions is None
-
-    sources = list(sources)
-    for i in range(0, len(sources)):
-        if sources[i] is None:
-            sources[i] = itertools.repeat(None)
-
-    # Standardize extensions
-    if source_extensions is not None:
-        source_extensions = set([
-            '.' + ext if '.' not in ext else ext
-            for ext in source_extensions])
-    else:
-        source_extensions = []
-    sink_extension = (
-        '.' + sink_extension if '.' not in sink_extension
-        else sink_extension)
-
-    lengths = set()
-    for source_list in sources:
-        lengths.add(len(source_list))
-
-    assert len(lengths) == 1, 'all source lists must have the same lengths'
-
-    if sinks is not None:
-        assert len(sinks) == len(sources[0]), 'sinks must have the same length as the source lists'
-
-    if sinks is None:
-
-        # Get sources as a list of files
-        source_files = [[] for _ in sources]
-        for source_tuple in zip(*sources):
-            source_paths = [Path(source) for source in source_tuple]
-            source_is_dir = list(set([source.is_dir() for source in source_paths]))
-            if len(source_is_dir) > 1 and True in source_is_dir:
-                raise ValueError('cannot handle directories when more than one input list is given')
-            elif len(source_is_dir) == 1 and source_is_dir[0]:
-                for extension in source_extensions:
-                    source_files[0] += list(source_paths[0].rglob(f'*{extension}'))
-            else:
-                for i, source in enumerate(source_paths):
-                    source_files[i].append(source)
-
-        # Sink files are source files with sink extension
-        source_files = sum(source_files, [])
-        sink_files = [
-            file.with_suffix(sink_extension) for file in source_files]
-
-    else:
-
-        # Get sources and sinks as file lists
-        source_files, sink_files = [[] for _ in sources], []
-        for source_tuple, sink in zip(zip(*sources), sinks):
-            source_paths = [Path(source) for source in source_tuple]
-            source_is_dir = list(set([source.is_dir() for source in source_paths]))
-            sink = Path(sink)
-
-            if len(source_is_dir) > 1 and True in source_is_dir:
-                raise ValueError('cannot handle directories when more than one input list is given')
-
-            # Handle input directory (only if one source list)
-            if True in source_is_dir:
-                if not sink.is_dir():
-                    raise RuntimeError(
-                        f'For input tuple {source_tuple}, corresponding '
-                        f'output {sink} is not a directory')
-                for extension in source_extensions:
-                    source_files[0] += list(source_tuple[0].rglob(f'*{extension}'))
-
-                # Ensure one-to-one
-                source_stems = [file.stem for file in source_files[0]]
-                if not len(source_stems) == len(set(source_stems)):
-                    raise ValueError(
-                        'Two or more files have the same '
-                        'stem with different extensions')
-
-                # Get corresponding output files
-                sink_files += [
-                    sink / (file.stem + sink_extension)
-                    for file in source_files]
-
-            # Handle input file(s)
-            else:
-                if sink.is_dir():
-                    raise RuntimeError(
-                        f'For input file {source}, corresponding '
-                        f'output {sink} is a directory')
-                for i, source in enumerate(source_tuple):
-                    source_files[i].append(source)
-                sink_files.append(sink)
-
-    # if len(source_files) == 1:
-    #     source_files = source_files[0]
-
-    return source_files, sink_files
-
-
-def infer(features, lengths, representation='mel', checkpoint=None, softmax=True):
+def infer(
+    features,
+    lengths,
+    representation='mel',
+    checkpoint=None,
+    softmax=True,
+    legacy_mode=False):
     """Perform model inference"""
 
     # Skip inference if we want input representations
@@ -720,7 +571,9 @@ def infer(features, lengths, representation='mel', checkpoint=None, softmax=True
     ):
         model_key = str(representation) + str(checkpoint)
         if model_key not in infer.models:
-            infer.models[model_key] = ppgs.load.model(checkpoint=checkpoint, representation=representation)
+            infer.models[model_key] = ppgs.load.model(
+                checkpoint=checkpoint,
+                representation=representation)
         infer.model = infer.models[model_key]
         infer.checkpoint = checkpoint
         infer.representation = representation
@@ -731,7 +584,10 @@ def infer(features, lengths, representation='mel', checkpoint=None, softmax=True
 
     # Infer
     with torchutil.inference.context(infer.model):
-        logits = infer.model(features, lengths)
+        if isinstance(infer.model, ppgs.model.Transformer):
+            logits = infer.model(features, lengths, legacy_mode=legacy_mode)
+        else:
+            logits = infer.model(features, lengths)
 
         # Postprocess
         if softmax:
@@ -753,7 +609,10 @@ def resample(
 
 
 def representation_file_extension():
-    if ppgs.REPRESENTATION == ppgs.BEST_REPRESENTATION and ppgs.REPRESENTATION_KIND == 'ppg':
+    if (
+        ppgs.REPRESENTATION == ppgs.BEST_REPRESENTATION and
+        ppgs.REPRESENTATION_KIND == 'ppg'
+    ):
         return '-ppg.pt'
     else:
         if ppgs.REPRESENTATION_KIND == 'ppg':

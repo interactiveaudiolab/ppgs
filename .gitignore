@@ -19,6 +19,7 @@ __pycache__/
 build/
 .pytest_cache
 
+dist/
 tmp/
 ppgs/config/secrets.py
 notebooks/*

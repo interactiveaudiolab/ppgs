@@ -13,11 +13,12 @@ import ppgs
 def main(config, dataset, gpu=None):
     """Train from configuration"""
     # Create output directory
-    directory = ppgs.RUNS_DIR / config.stem
+    directory = ppgs.RUNS_DIR / ppgs.CONFIG
     directory.mkdir(parents=True, exist_ok=True)
 
     # Save configuration
-    shutil.copyfile(config, directory / config.name)
+    if config is not None:
+        shutil.copyfile(config, directory / config.name)
 
     # Train
     ppgs.train(dataset, directory, gpu)

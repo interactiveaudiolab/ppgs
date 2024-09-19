@@ -1,5 +1,4 @@
 import torch
-import torchaudio
 
 import ppgs
 
@@ -10,6 +9,7 @@ HOP_SIZE = 320
 ###############################################################################
 # Preprocess EnCodec input representation
 ###############################################################################
+
 
 def from_audios(audio, lengths, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
     device = torch.device(f'cuda:{gpu}' if gpu is not None else 'cpu')
@@ -28,13 +28,6 @@ def from_audios(audio, lengths, sample_rate=ppgs.SAMPLE_RATE, gpu=None):
 
         # Encode
         model_input = from_audios.model.preprocess(audio, sample_rate)
-        
-        # Maybe resample
-        # audio = ppgs.resample(audio, sample_rate)
-
-        # pad = WINDOW_SIZE // 2 - HOP_SIZE // 2
-        # pad=0
-        # padded_audio = torch.nn.functional.pad(audio, (pad, pad))
         z, codes, latents, _, _ = from_audios.model.encode(model_input)
 
         # Upsample
