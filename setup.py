@@ -8,7 +8,7 @@ with open('README.md') as file:
 setup(
     name='ppgs',
     description='Phonetic posteriorgrams',
-    version='0.0.6',
+    version='0.0.7',
     author='Interactive Audio Lab',
     author_email='interactiveaudiolab@gmail.com',
     url='https://github.com/interactiveaudiolab/ppgs',
