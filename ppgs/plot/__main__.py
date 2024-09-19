@@ -24,6 +24,11 @@ def parse_args():
         type=Path,
         help='PPG filenames')
     parser.add_argument(
+        '--second_ppg_files',
+        nargs='+',
+        type=Path,
+        help='Second PPG filenames to compare to')
+    parser.add_argument(
         '--textgrid_files',
         nargs='+',
         type=Path,

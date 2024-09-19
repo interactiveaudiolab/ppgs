@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument(
         '--representation',
         type=str,
-        default=None,
+        default=ppgs.REPRESENTATION,
         help='Representation to use for inference')
     parser.add_argument(
         '--checkpoint',
@@ -48,6 +48,11 @@ def parse_args():
         type=int,
         default=ppgs.MAX_INFERENCE_FRAMES,
         help='Maximum number of frames in a batch')
+    parser.add_argument(
+        '--legacy-mode',
+        action='store_true',
+        help='Use legacy (unchunked) inference'
+    )
     return parser.parse_args()
 
 

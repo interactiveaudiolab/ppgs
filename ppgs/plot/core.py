@@ -24,6 +24,7 @@ import ppgs
 def from_files_to_files(
     audio_files: List[Union[str, bytes, os.PathLike]],
     ppg_files: List[Union[str, bytes, os.PathLike]],
+    second_ppg_files: List[Union[str, bytes, os.PathLike]],
     textgrid_files: List[Union[str, bytes, os.PathLike]],
     output_files: List[Union[str, bytes, os.PathLike]],
     font_filename: Union[str, bytes, os.PathLike] = None,
@@ -36,6 +37,8 @@ def from_files_to_files(
             The audio files
         ppg_files
             The PyTorch files containing PPGs
+        second_ppg_files
+            The PyTorch files containing secondary PPGs to compare to.
         textgrid_files
             The files containing the forced alignment
         output_files
@@ -56,9 +59,12 @@ def from_files_to_files(
     if ppg_files is not None:
         if audio_files is None:
             audio_files = repeat(None)
-        for audio_file, ppg_file, textgrid_file, output_file in zip(
+        if second_ppg_files is None:
+            second_ppg_files = repeat(None)
+        for audio_file, ppg_file, second_ppg_file, textgrid_file, output_file in zip(
             audio_files,
             ppg_files,
+            second_ppg_files,
             textgrid_files,
             output_files
         ):
@@ -71,6 +77,7 @@ def from_files_to_files(
                 raise ValueError(f'Unknown extension {output_ext}')
             from_ppg_file_to_file(
                 ppg_filename=ppg_file,
+                second_ppg_filename=second_ppg_file,
                 audio_filename=audio_file,
                 textgrid_filename=textgrid_file,
                 output_filename=output_file,
@@ -250,6 +257,8 @@ def from_ppg_to_video_file(
     video_filename,
     textgrid_filename=None,
     preprocess_only=False,
+    second_ppg=None,
+    font_filename=None,
     labels=ppgs.PHONEMES,
     scalefactor=16):
     """Takes ppg of shape time,categories and creates a visualization"""
@@ -262,11 +271,31 @@ def from_ppg_to_video_file(
     num_frames = ppg.T.shape[-1]
 
     ppg_pixels = from_ppg_to_pixels(ppg)
-    textgrid_pixels = from_textgrid_to_pixels(
-        textgrid_filename,
-        num_frames)
+    if textgrid_filename is not None:
+        textgrid_pixels = from_textgrid_to_pixels(
+            textgrid_filename,
+            num_frames)
+    else:
+        textgrid_pixels = None
 
-    pixels = combine_pixels(ppg_pixels, textgrid_pixels)
+    if second_ppg is not None:
+        second_ppg_pixels = from_ppg_to_pixels(second_ppg)
+    else:
+        second_ppg_pixels = None
+
+    all_pixels = [
+        p for p in (ppg_pixels, second_ppg_pixels, textgrid_pixels) if p is not None
+    ]
+
+    pixels = combine_pixels(*all_pixels)
+
+    # Add chunk demarcation row (DEBUG)
+    # chunk_size_0 = 500
+    # chunk_size_1 = 500 - (50 * 2)
+    # demarcation_row = torch.zeros((pixels.shape[0], 1, pixels.shape[2]))
+    # demarcation_row[DISPLAY_PADDING::chunk_size_0, :, 0] = 255
+    # demarcation_row[DISPLAY_PADDING::chunk_size_1, :, 2] = 255
+    # pixels = torch.cat([pixels, demarcation_row], dim=1)
 
     # Chunk PPG into video frames
     frames = []
@@ -295,28 +324,32 @@ def from_ppg_to_video_file(
     # Cache label + playhead overlay to improve performance
     if not hasattr(from_ppg_to_video_file, 'overlay'):
 
-        text_clips = []
+        # text_clips = []
+        frame_shape = np.array(frames[0].shape)
+        frame_shape[0:2] *= scalefactor
         if not preprocess_only:
-            for i, label in enumerate(labels):
+            # Add labels
+            text_image = Image.fromarray(np.zeros(frame_shape, dtype='uint8'))
+            if font_filename is not None:
+                draw = ImageDraw.Draw(text_image)
+                font = ImageFont.truetype(font_filename, size=scalefactor)
+                for idx, label in enumerate(labels):
+                    draw.text(
+                        (frame_shape[1] // 2, idx * scalefactor),
+                        label,
+                        font=font)
+            text_image.save('text.png')
 
-                # Create text
-                text_clip = mpy.TextClip(
-                    label,
-                    color='rgb(255,255,255)',
-                    fontsize=scalefactor,
-                    bg_color='black')
+        text_clip = mpy.ImageClip(np.array(text_image))
+        text_clip = text_clip.set_duration(clip.duration).set_fps(1)
 
-                # Brighten text
-                text_clip = text_clip.fl_image(
-                    lambda frame: brighten(frame, 1.5))
+        text_mask = text_clip.copy().to_mask()
+        text_mask = mpy.ImageClip(
+            np.where(text_mask.get_frame(0) > 0, 1.0, 0.0),
+            ismask=True
+        ).set_duration(clip.duration)
 
-                # Set text location
-                text_clip = text_clip.set_position((
-                    clip.size[0] // 2 - text_clip.size[0] - scalefactor,
-                    scalefactor * i + 1))
-
-                # Add text
-                text_clips.append(text_clip)
+        text_clip = text_clip.set_mask(text_mask)
 
         # Create playhead
         playhead = np.zeros((clip.size[1], 1, 3))
@@ -338,8 +371,9 @@ def from_ppg_to_video_file(
         ).set_fps(1).set_opacity(0)
 
         # Overlay text and playhead clips (slow)
-        overlay = mpy.CompositeVideoClip(
-            [blank, overlay_clip] + text_clips)
+        # overlay = mpy.CompositeVideoClip(
+        #     [blank, overlay_clip] + text_clips)
+        overlay = mpy.CompositeVideoClip([blank, overlay_clip, text_clip])
 
         # Set overlay to persist throughout clip
         overlay = overlay.set_duration(clip.duration)
@@ -413,7 +447,9 @@ def from_ppg_file_to_file(
             ppg=ppg,
             audio_filename=audio_filename,
             video_filename=output_filename,
-            textgrid_filename=textgrid_filename)
+            second_ppg=ppg2,
+            textgrid_filename=textgrid_filename,
+            font_filename=font_filename)
 
 
 def from_ppg_to_video(ppg, audio_filename, labels=ppgs.PHONEMES):
@@ -464,7 +500,9 @@ def combine_pixels(red, blue=None, green=None):
     #clear all but red channels
     combined[..., 1:] = 0
     if blue is not None:
-        combined[..., 2] = blue[..., 2]
+        if blue.shape[0] < combined.shape[0]:
+            print('Warning: red pixel source has longer duration than blue pixel source') #TODO make this an actual warning
+        combined[:blue.shape[0], ..., 2] = blue[..., 2]
     if green is not None:
         combined[..., 1] = green[..., 1]
     if blue is None and green is None:
