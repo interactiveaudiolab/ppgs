@@ -154,6 +154,12 @@ NUM_HIDDEN_LAYERS = 5
 # Dimensionality of output representation
 OUTPUT_CHANNELS = 40
 
+# Additional context overlap between chunks
+CHUNK_OVERLAP = 50
+
+# Maximum number of frames in a chunk
+CHUNK_LENGTH = 500
+
 
 ###############################################################################
 # Training parameters

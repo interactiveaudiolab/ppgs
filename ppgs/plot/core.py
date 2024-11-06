@@ -291,10 +291,13 @@ def from_ppg_to_video_file(
 
     # Add chunk demarcation row (DEBUG)
     # chunk_size_0 = 500
-    # chunk_size_1 = 500 - (50 * 2)
+    # overlap = 50
+    # # chunk_size_1 = 500 - (50 * 2)
     # demarcation_row = torch.zeros((pixels.shape[0], 1, pixels.shape[2]))
     # demarcation_row[DISPLAY_PADDING::chunk_size_0, :, 0] = 255
-    # demarcation_row[DISPLAY_PADDING::chunk_size_1, :, 2] = 255
+    # demarcation_row[max(DISPLAY_PADDING-overlap, 0)::chunk_size_0, :, 2] = 255
+    # demarcation_row[max(DISPLAY_PADDING+overlap, 0)::chunk_size_0, :, 2] = 255
+    # # demarcation_row[DISPLAY_PADDING::chunk_size_1, :, 2] = 255
     # pixels = torch.cat([pixels, demarcation_row], dim=1)
 
     # Chunk PPG into video frames
