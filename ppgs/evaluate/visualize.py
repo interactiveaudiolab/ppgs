@@ -8,7 +8,7 @@ import pypar
 import torch
 import torchaudio
 import torchutil
-from moviepy import editor as mpy
+from moviepy import AudioFileClip, ColorClip, CompositeVideoClip, ImageClip, ImageSequenceClip, TextClip
 from PIL import Image, ImageDraw, ImageFont
 
 import ppgs
@@ -175,7 +175,7 @@ def from_ppg_to_video_file(
     """Takes ppg of shape time,categories and creates a visualization"""
     # Load audio
     audio = torchaudio.load(audio_filename)[0][0]
-    audio_clip = mpy.AudioFileClip(audio_filename, fps=ppgs.SAMPLE_RATE)
+    audio_clip = AudioFileClip(audio_filename, fps=ppgs.SAMPLE_RATE)
 
     num_frames = len(audio) // ppgs.HOPSIZE
 
@@ -204,7 +204,7 @@ def from_ppg_to_video_file(
         frames.append(frame.numpy())
 
     # Create clip
-    clip = mpy.ImageSequenceClip(
+    clip = ImageSequenceClip(
         frames,
         fps=DISPLAY_WINDOW_SIZE // DISPLAY_HOPSIZE)
 
@@ -219,7 +219,7 @@ def from_ppg_to_video_file(
             for i, label in enumerate(labels):
 
                 # Create text
-                text_clip = mpy.TextClip(
+                text_clip = TextClip(
                     label,
                     color='rgb(255,255,255)',
                     fontsize=scalefactor,
@@ -240,7 +240,7 @@ def from_ppg_to_video_file(
         # Create playhead
         playhead = np.zeros((clip.size[1], 1, 3))
         playhead[:, 0, 0] = np.full(clip.size[1], 255)
-        overlay_clip = mpy.ImageClip(playhead)
+        overlay_clip = ImageClip(playhead)
 
         # Set playhead to persist throughout clip
         overlay_clip = overlay_clip.set_duration(clip.duration)
@@ -250,25 +250,25 @@ def from_ppg_to_video_file(
             (clip.size[0] // 2 - scalefactor, 0))
 
         # Create overlay
-        blank = mpy.ColorClip(
+        blank = ColorClip(
             clip.size,
             color=(0.0, 0.0, 0.0),
             duration=clip.duration
         ).set_fps(1).set_opacity(0)
 
         # Overlay text and playhead clips (slow)
-        overlay = mpy.CompositeVideoClip(
+        overlay = CompositeVideoClip(
             [blank, overlay_clip] + text_clips)
 
         # Set overlay to persist throughout clip
         overlay = overlay.set_duration(clip.duration)
 
         # Render (slow)
-        overlay = mpy.ImageSequenceClip(list(overlay.iter_frames()), fps=1)
+        overlay = ImageSequenceClip(list(overlay.iter_frames()), fps=1)
 
         # Create mask over unused pixels
         overlay_mask = overlay.copy().to_mask()
-        overlay_mask = mpy.ImageClip(
+        overlay_mask = ImageClip(
             np.where(overlay_mask.get_frame(0) > 0, 1.0, 0.0),
             ismask=True
         ).set_duration(clip.duration)
@@ -283,7 +283,7 @@ def from_ppg_to_video_file(
     from_ppg_to_video_file.overlay.set_duration(clip.duration)
 
     # Apply overlay to clip
-    composite = mpy.CompositeVideoClip([clip, from_ppg_to_video_file.overlay])
+    composite = CompositeVideoClip([clip, from_ppg_to_video_file.overlay])
 
     # Clean-up non-overlaid clip
     clip.close()

@@ -9,7 +9,7 @@ import numpy as np
 import pypar
 import torch
 import torchutil
-from moviepy import editor as mpy
+from moviepy import AudioFileClip, ColorClip, CompositeVideoClip, ImageClip, ImageSequenceClip
 from PIL import Image, ImageDraw, ImageFont
 from itertools import repeat
 
