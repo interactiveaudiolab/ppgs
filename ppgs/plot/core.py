@@ -9,7 +9,7 @@ import numpy as np
 import pypar
 import torch
 import torchutil
-from moviepy import editor as mpy
+import moviepy as mpy
 from PIL import Image, ImageDraw, ImageFont
 from itertools import repeat
 

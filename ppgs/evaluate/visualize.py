@@ -8,7 +8,7 @@ import pypar
 import torch
 import torchaudio
 import torchutil
-from moviepy import editor as mpy
+import moviepy as mpy
 from PIL import Image, ImageDraw, ImageFont
 
 import ppgs
